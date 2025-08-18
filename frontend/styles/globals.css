@@ -1,5 +1,6 @@
 @charset "UTF-8";
-@import url('https://fonts.googleapis.com/css2?family=Yatra+One&display=swap');
+@import url("https://fonts.googleapis.com/css2?family=Yatra+One&display=swap");
+@import "tailwindcss";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -124,11 +125,15 @@
 
 @layer base {
   * {
-    @apply border-border outline-ring/50;
+    border-color: var(--color-border);
+    outline: 2px solid transparent;
+    outline-offset: 2px;
+    outline-color: color-mix(in srgb, var(--color-ring) 50%, transparent);
   }
 
   body {
-    @apply bg-background text-foreground;
+    background-color: var(--color-background);
+    color: var(--color-foreground);
   }
 }
 
@@ -193,7 +198,7 @@ html {
 
 /* Yatra One font for Marathi temple title */
 .temple-title-marathi {
-  font-family: 'Yatra One', cursive;
+  font-family: "Yatra One", cursive;
   font-weight: 400;
   letter-spacing: 0.025em;
   line-height: 1.3;
