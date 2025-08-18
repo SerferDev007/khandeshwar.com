@@ -184,9 +184,7 @@
 @layer base {
   * {
     border-color: var(--color-border);
-    outline: 2px solid transparent;
-    outline-offset: 2px;
-    outline-color: color-mix(in srgb, var(--color-ring) 50%, transparent);
+    outline: none;
   }
 
   body {
@@ -482,8 +480,6 @@ html {
     padding: 0.875rem 1rem;
     font-size: 0.875rem;
   }
-
-
 
   /* Enhanced Badge Styling */
   [class*="badge"],
