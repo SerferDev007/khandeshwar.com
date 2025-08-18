@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Portal | Khandeshwar Temple Management</title>
+    <link rel="stylesheet" href="../css/main.css">
+</head>
+<body>
+    <header class="main-header">
+        <div class="container">
+            <h1 class="logo">🕉️ Khandeshwar Temple - User Portal</h1>
+            <nav class="main-nav">
+                <ul>
+                    <li><a href="/">Home</a></li>
+                    <li><a href="/user">Dashboard</a></li>
+                    <li><a href="#profile">Profile</a></li>
+                    <li><a href="#logout">Logout</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <main class="dashboard">
+        <div class="container">
+            <div class="dashboard-header">
+                <h2>User Dashboard</h2>
+                <p>Welcome to your personal temple management portal</p>
+            </div>
+
+            <nav class="dashboard-nav">
+                <ul>
+                    <li><a href="#profile" class="nav-link active" data-section="profile">My Profile</a></li>
+                    <li><a href="#donations" class="nav-link" data-section="donations">My Donations</a></li>
+                    <li><a href="#events" class="nav-link" data-section="events">Events</a></li>
+                    <li><a href="#donate" class="nav-link" data-section="donate">Make Donation</a></li>
+                    <li><a href="#register-event" class="nav-link" data-section="register-event">Event Registration</a></li>
+                </ul>
+            </nav>
+
+            <div class="dashboard-content">
+                <!-- Profile Section -->
+                <div id="profile-section" class="content-section active">
+                    <h3>My Profile</h3>
+                    
+                    <div class="profile-info">
+                        <div class="profile-card">
+                            <div class="profile-avatar">
+                                <span class="avatar-placeholder">👤</span>
+                            </div>
+                            <div class="profile-details">
+                                <h4 id="user-name">Sample User</h4>
+                                <p id="user-email">user@example.com</p>
+                                <p id="user-phone">+1234567890</p>
+                                <p id="user-membership">Regular Member</p>
+                                <p id="member-since">Member since: January 2024</p>
+                            </div>
+                            <div class="profile-actions">
+                                <button class="btn btn-primary" onclick="editProfile()">Edit Profile</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <h4 id="total-user-donations">₹0</h4>
+                            <p>Total Donations</p>
+                        </div>
+                        <div class="stat-card">
+                            <h4 id="donation-count">0</h4>
+                            <p>Number of Donations</p>
+                        </div>
+                        <div class="stat-card">
+                            <h4 id="events-attended">0</h4>
+                            <p>Events Attended</p>
+                        </div>
+                        <div class="stat-card">
+                            <h4 id="upcoming-registrations">0</h4>
+                            <p>Upcoming Events</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- My Donations Section -->
+                <div id="donations-section" class="content-section">
+                    <h3>My Donation History</h3>
+                    
+                    <div class="section-actions">
+                        <button class="btn btn-primary" onclick="downloadTaxReceipt()">Download Tax Receipt</button>
+                        <button class="btn btn-secondary" onclick="exportDonations()">Export History</button>
+                    </div>
+
+                    <div class="search-filters">
+                        <input type="date" id="user-donation-start" class="form-control" placeholder="Start Date">
+                        <input type="date" id="user-donation-end" class="form-control" placeholder="End Date">
+                        <select id="user-donation-purpose" class="form-control">
+                            <option value="">All Purposes</option>
+                            <option value="general">General</option>
+                            <option value="festival">Festival</option>
+                            <option value="maintenance">Maintenance</option>
+                            <option value="construction">Construction</option>
+                            <option value="food">Food</option>
+                        </select>
+                        <button class="btn btn-secondary" onclick="filterUserDonations()">Filter</button>
+                    </div>
+                    
+                    <div id="user-donations-list" class="loading">
+                        Loading your donation history...
+                    </div>
+                </div>
+
+                <!-- Events Section -->
+                <div id="events-section" class="content-section">
+                    <h3>Temple Events</h3>
+                    
+                    <div class="events-tabs">
+                        <button class="btn btn-primary events-tab active" data-tab="upcoming">Upcoming Events</button>
+                        <button class="btn btn-secondary events-tab" data-tab="registered">My Registrations</button>
+                        <button class="btn btn-secondary events-tab" data-tab="past">Past Events</button>
+                    </div>
+
+                    <div id="upcoming-events" class="events-content active">
+                        <div id="upcoming-events-list" class="loading">
+                            Loading upcoming events...
+                        </div>
+                    </div>
+
+                    <div id="registered-events" class="events-content">
+                        <div id="registered-events-list" class="loading">
+                            Loading your registered events...
+                        </div>
+                    </div>
+
+                    <div id="past-events" class="events-content">
+                        <div id="past-events-list" class="loading">
+                            Loading past events...
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Make Donation Section -->
+                <div id="donate-section" class="content-section">
+                    <h3>Make a Donation</h3>
+                    
+                    <div class="donation-form-container">
+                        <form id="donation-form" class="donation-form">
+                            <div class="form-group">
+                                <label for="donation-amount">Donation Amount (₹)</label>
+                                <input type="number" id="donation-amount" name="amount" class="form-control" min="1" required>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="donation-purpose">Purpose</label>
+                                <select id="donation-purpose" name="purpose" class="form-control" required>
+                                    <option value="">Select Purpose</option>
+                                    <option value="general">General Temple Fund</option>
+                                    <option value="festival">Festival Celebrations</option>
+                                    <option value="maintenance">Temple Maintenance</option>
+                                    <option value="construction">Construction Work</option>
+                                    <option value="food">Food Distribution</option>
+                                    <option value="other">Other</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="purpose-description">Purpose Description (Optional)</label>
+                                <textarea id="purpose-description" name="purpose_description" class="form-control" rows="3"></textarea>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="payment-method">Payment Method</label>
+                                <select id="payment-method" name="payment_method" class="form-control" required>
+                                    <option value="cash">Cash</option>
+                                    <option value="card">Credit/Debit Card</option>
+                                    <option value="upi">UPI</option>
+                                    <option value="bank_transfer">Bank Transfer</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label>
+                                    <input type="checkbox" id="anonymous-donation" name="is_anonymous">
+                                    Make this donation anonymous
+                                </label>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="donation-notes">Additional Notes (Optional)</label>
+                                <textarea id="donation-notes" name="notes" class="form-control" rows="2"></textarea>
+                            </div>
+
+                            <div class="form-actions">
+                                <button type="submit" class="btn btn-primary">Proceed to Payment</button>
+                                <button type="reset" class="btn btn-secondary">Clear Form</button>
+                            </div>
+                        </form>
+
+                        <div class="donation-info">
+                            <h4>Important Information</h4>
+                            <ul>
+                                <li>All donations are tax-exempt under Section 80G</li>
+                                <li>You will receive an official receipt via email</li>
+                                <li>For donations above ₹2000, PAN details are required</li>
+                                <li>Contact temple office for any donation-related queries</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Event Registration Section -->
+                <div id="register-event-section" class="content-section">
+                    <h3>Event Registration</h3>
+                    
+                    <div class="available-events">
+                        <h4>Available Events for Registration</h4>
+                        <div id="registrable-events-list" class="loading">
+                            Loading events available for registration...
+                        </div>
+                    </div>
+
+                    <div id="registration-form-container" class="hidden">
+                        <h4>Register for Event</h4>
+                        <form id="event-registration-form">
+                            <div id="selected-event-info" class="event-info-card">
+                                <!-- Selected event information will be displayed here -->
+                            </div>
+
+                            <div class="form-group">
+                                <label for="participants-count">Number of Participants</label>
+                                <input type="number" id="participants-count" name="participants" class="form-control" min="1" max="10" value="1" required>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="special-requirements">Special Requirements (Optional)</label>
+                                <textarea id="special-requirements" name="special_requirements" class="form-control" rows="3" placeholder="Any dietary restrictions, accessibility needs, etc."></textarea>
+                            </div>
+
+                            <div id="registration-fee-info" class="fee-info">
+                                <!-- Fee information will be displayed here -->
+                            </div>
+
+                            <div class="form-actions">
+                                <button type="submit" class="btn btn-primary">Complete Registration</button>
+                                <button type="button" class="btn btn-secondary" onclick="cancelRegistration()">Cancel</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer class="main-footer">
+        <div class="container">
+            <p>&copy; 2024 Khandeshwar Temple Management System - User Portal</p>
+        </div>
+    </footer>
+
+    <script src="../js/main.js"></script>
+    <script src="user.js"></script>
+</body>
+</html>

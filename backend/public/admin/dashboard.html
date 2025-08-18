@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard | Khandeshwar Temple Management</title>
+    <link rel="stylesheet" href="../css/main.css">
+</head>
+<body>
+    <header class="main-header">
+        <div class="container">
+            <h1 class="logo">🕉️ Khandeshwar Temple - Admin</h1>
+            <nav class="main-nav">
+                <ul>
+                    <li><a href="/">Home</a></li>
+                    <li><a href="/admin">Dashboard</a></li>
+                    <li><a href="#logout">Logout</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <main class="dashboard">
+        <div class="container">
+            <div class="dashboard-header">
+                <h2>Admin Dashboard</h2>
+                <p>Manage temple operations, staff, and administrative tasks</p>
+            </div>
+
+            <nav class="dashboard-nav">
+                <ul>
+                    <li><a href="#overview" class="nav-link active" data-section="overview">Overview</a></li>
+                    <li><a href="#devotees" class="nav-link" data-section="devotees">Devotees</a></li>
+                    <li><a href="#donations" class="nav-link" data-section="donations">Donations</a></li>
+                    <li><a href="#events" class="nav-link" data-section="events">Events</a></li>
+                    <li><a href="#staff" class="nav-link" data-section="staff">Staff</a></li>
+                    <li><a href="#reports" class="nav-link" data-section="reports">Reports</a></li>
+                </ul>
+            </nav>
+
+            <div class="dashboard-content">
+                <!-- Overview Section -->
+                <div id="overview-section" class="content-section active">
+                    <h3>System Overview</h3>
+                    
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <h4 id="total-devotees">-</h4>
+                            <p>Total Devotees</p>
+                        </div>
+                        <div class="stat-card">
+                            <h4 id="total-donations">-</h4>
+                            <p>Total Donations</p>
+                        </div>
+                        <div class="stat-card">
+                            <h4 id="active-events">-</h4>
+                            <p>Active Events</p>
+                        </div>
+                        <div class="stat-card">
+                            <h4 id="staff-count">-</h4>
+                            <p>Staff Members</p>
+                        </div>
+                    </div>
+
+                    <div class="recent-activities">
+                        <h4>Recent Activities</h4>
+                        <div id="recent-activities-list" class="loading">
+                            Loading recent activities...
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Devotees Section -->
+                <div id="devotees-section" class="content-section">
+                    <div class="section-header">
+                        <h3>Devotees Management</h3>
+                        <button class="btn btn-primary" onclick="showAddDevoteeForm()">Add New Devotee</button>
+                    </div>
+                    
+                    <div class="search-filters">
+                        <input type="text" id="devotee-search" class="form-control" placeholder="Search devotees...">
+                        <select id="membership-filter" class="form-control">
+                            <option value="">All Memberships</option>
+                            <option value="regular">Regular</option>
+                            <option value="premium">Premium</option>
+                            <option value="life">Life</option>
+                        </select>
+                    </div>
+                    
+                    <div id="devotees-list" class="loading">
+                        Loading devotees...
+                    </div>
+                </div>
+
+                <!-- Donations Section -->
+                <div id="donations-section" class="content-section">
+                    <div class="section-header">
+                        <h3>Donations Management</h3>
+                        <button class="btn btn-primary" onclick="showAddDonationForm()">Record New Donation</button>
+                    </div>
+                    
+                    <div class="search-filters">
+                        <input type="date" id="donation-start-date" class="form-control">
+                        <input type="date" id="donation-end-date" class="form-control">
+                        <select id="donation-purpose-filter" class="form-control">
+                            <option value="">All Purposes</option>
+                            <option value="general">General</option>
+                            <option value="festival">Festival</option>
+                            <option value="maintenance">Maintenance</option>
+                            <option value="construction">Construction</option>
+                            <option value="food">Food</option>
+                        </select>
+                        <button class="btn btn-secondary" onclick="loadDonations()">Filter</button>
+                    </div>
+                    
+                    <div id="donations-summary" class="stats-grid">
+                        <!-- Donation statistics will be loaded here -->
+                    </div>
+                    
+                    <div id="donations-list" class="loading">
+                        Loading donations...
+                    </div>
+                </div>
+
+                <!-- Events Section -->
+                <div id="events-section" class="content-section">
+                    <div class="section-header">
+                        <h3>Events Management</h3>
+                        <button class="btn btn-primary" onclick="showAddEventForm()">Create New Event</button>
+                    </div>
+                    
+                    <div class="search-filters">
+                        <select id="event-type-filter" class="form-control">
+                            <option value="">All Types</option>
+                            <option value="festival">Festival</option>
+                            <option value="ceremony">Ceremony</option>
+                            <option value="prayer">Prayer</option>
+                            <option value="cultural">Cultural</option>
+                            <option value="educational">Educational</option>
+                        </select>
+                        <select id="event-status-filter" class="form-control">
+                            <option value="active">Active Events</option>
+                            <option value="planned">Planned</option>
+                            <option value="completed">Completed</option>
+                            <option value="cancelled">Cancelled</option>
+                        </select>
+                    </div>
+                    
+                    <div id="events-list" class="loading">
+                        Loading events...
+                    </div>
+                </div>
+
+                <!-- Staff Section -->
+                <div id="staff-section" class="content-section">
+                    <div class="section-header">
+                        <h3>Staff Management</h3>
+                        <button class="btn btn-primary" onclick="showAddStaffForm()">Add New Staff</button>
+                    </div>
+                    
+                    <div class="search-filters">
+                        <select id="department-filter" class="form-control">
+                            <option value="">All Departments</option>
+                            <option value="management">Management</option>
+                            <option value="security">Security</option>
+                            <option value="maintenance">Maintenance</option>
+                            <option value="kitchen">Kitchen</option>
+                            <option value="decoration">Decoration</option>
+                            <option value="administration">Administration</option>
+                        </select>
+                        <select id="employment-type-filter" class="form-control">
+                            <option value="">All Types</option>
+                            <option value="full_time">Full Time</option>
+                            <option value="part_time">Part Time</option>
+                            <option value="volunteer">Volunteer</option>
+                            <option value="contract">Contract</option>
+                        </select>
+                    </div>
+                    
+                    <div id="staff-list" class="loading">
+                        Loading staff...
+                    </div>
+                </div>
+
+                <!-- Reports Section -->
+                <div id="reports-section" class="content-section">
+                    <h3>Reports & Analytics</h3>
+                    
+                    <div class="reports-grid">
+                        <div class="report-card">
+                            <h4>📊 Donation Reports</h4>
+                            <p>Generate detailed donation reports by period, purpose, or type</p>
+                            <button class="btn btn-primary" onclick="generateDonationReport()">Generate Report</button>
+                        </div>
+                        
+                        <div class="report-card">
+                            <h4>👥 Devotee Analytics</h4>
+                            <p>View devotee demographics and membership statistics</p>
+                            <button class="btn btn-primary" onclick="generateDevoteeReport()">View Analytics</button>
+                        </div>
+                        
+                        <div class="report-card">
+                            <h4>📅 Event Statistics</h4>
+                            <p>Track event participation and success metrics</p>
+                            <button class="btn btn-primary" onclick="generateEventReport()">View Statistics</button>
+                        </div>
+                        
+                        <div class="report-card">
+                            <h4>👨‍💼 Staff Reports</h4>
+                            <p>Staff attendance, performance, and administrative reports</p>
+                            <button class="btn btn-primary" onclick="generateStaffReport()">Generate Report</button>
+                        </div>
+                    </div>
+                    
+                    <div id="report-output" class="mt-4">
+                        <!-- Generated reports will appear here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer class="main-footer">
+        <div class="container">
+            <p>&copy; 2024 Khandeshwar Temple Management System - Admin Panel</p>
+        </div>
+    </footer>
+
+    <script src="../js/main.js"></script>
+    <script src="admin.js"></script>
+</body>
+</html>
