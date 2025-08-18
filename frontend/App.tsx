@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import Header from "./components/Header";
 import Dashboard from "./components/Dashboard";
 import Donations from "./components/Donations";
@@ -8,16 +8,16 @@ import Login from "./components/Login";
 import UserManagement from "./components/UserManagement";
 import RentManagement from "./components/RentManagement";
 import { LanguageProvider, useLanguage } from "./components/LanguageContext";
-import templeImage from 'figma:asset/bda0abc50732414fe01eb68f92299cc5ca6d6d02.png';
+import templeImage from "../frontend/public/pics/templeImage.jpg";
 import { Alert, AlertDescription } from "./components/ui/alert";
-import { toast } from "sonner@2.0.3";
+import { toast } from "sonner";
 
 interface User {
   id: string;
   username: string;
   email: string;
-  role: 'Admin' | 'Treasurer' | 'Viewer';
-  status: 'Active' | 'Inactive';
+  role: "Admin" | "Treasurer" | "Viewer";
+  status: "Active" | "Inactive";
   createdAt: string;
   lastLogin?: string;
 }
@@ -38,7 +38,7 @@ interface Shop {
   size: number;
   monthlyRent: number;
   deposit: number;
-  status: 'Vacant' | 'Occupied' | 'Maintenance';
+  status: "Vacant" | "Occupied" | "Maintenance";
   tenantId?: string;
   agreementId?: string;
   createdAt: string;
@@ -53,7 +53,7 @@ interface Tenant {
   address: string;
   businessType: string;
   createdAt: string;
-  status: 'Active' | 'Inactive';
+  status: "Active" | "Inactive";
   idProof?: string;
 }
 
@@ -66,8 +66,8 @@ interface Agreement {
   monthlyRent: number;
   securityDeposit: number;
   advanceRent: number;
-  agreementType: 'Residential' | 'Commercial';
-  status: 'Active' | 'Expired' | 'Terminated';
+  agreementType: "Residential" | "Commercial";
+  status: "Active" | "Expired" | "Terminated";
   nextDueDate: string;
   lastPaymentDate?: string;
   hasActiveLoan?: boolean;
@@ -89,7 +89,7 @@ interface Loan {
   monthlyEmi: number;
   outstandingBalance: number;
   totalRepaid: number;
-  status: 'Active' | 'Completed' | 'Defaulted';
+  status: "Active" | "Completed" | "Defaulted";
   nextEmiDate: string;
   lastPaymentDate?: string;
   createdAt: string;
@@ -107,14 +107,14 @@ interface RentPenalty {
   penaltyAmount: number;
   penaltyPaid: boolean;
   penaltyPaidDate?: string;
-  status: 'Pending' | 'Paid';
+  status: "Pending" | "Paid";
   createdAt: string;
 }
 
 interface Transaction {
   id: string;
   date: string;
-  type: 'Donation' | 'Expense' | 'Utilities' | 'Salary' | 'RentIncome';
+  type: "Donation" | "Expense" | "Utilities" | "Salary" | "RentIncome";
   category: string;
   subCategory?: string;
   description: string;
@@ -154,7 +154,7 @@ const initialUsers: User[] = [
     role: "Admin",
     status: "Active",
     createdAt: "2024-01-01",
-    lastLogin: "2024-04-10"
+    lastLogin: "2024-04-10",
   },
   {
     id: "2",
@@ -163,7 +163,7 @@ const initialUsers: User[] = [
     role: "Treasurer",
     status: "Active",
     createdAt: "2024-01-15",
-    lastLogin: "2024-04-09"
+    lastLogin: "2024-04-09",
   },
   {
     id: "3",
@@ -172,15 +172,15 @@ const initialUsers: User[] = [
     role: "Viewer",
     status: "Active",
     createdAt: "2024-02-01",
-    lastLogin: "2024-04-08"
-  }
+    lastLogin: "2024-04-08",
+  },
 ];
 
 // Demo credentials
 const demoCredentials = {
   admin: "admin123",
   treasurer: "treasurer123",
-  viewer: "viewer123"
+  viewer: "viewer123",
 };
 
 // Initial sample shops
@@ -195,7 +195,7 @@ const initialShops: Shop[] = [
     tenantId: "1",
     agreementId: "1",
     createdAt: "2024-01-01",
-    description: "Corner shop with good visibility"
+    description: "Corner shop with good visibility",
   },
   {
     id: "2",
@@ -205,7 +205,7 @@ const initialShops: Shop[] = [
     deposit: 12000,
     status: "Vacant",
     createdAt: "2024-01-01",
-    description: "Small shop suitable for retail"
+    description: "Small shop suitable for retail",
   },
   {
     id: "3",
@@ -217,8 +217,8 @@ const initialShops: Shop[] = [
     tenantId: "2",
     agreementId: "2",
     createdAt: "2024-01-01",
-    description: "Large shop with storage space"
-  }
+    description: "Large shop with storage space",
+  },
 ];
 
 // Initial sample tenants
@@ -232,7 +232,7 @@ const initialTenants: Tenant[] = [
     businessType: "General Store",
     createdAt: "2024-01-15",
     status: "Active",
-    idProof: "Aadhaar: 1234 5678 9012"
+    idProof: "Aadhaar: 1234 5678 9012",
   },
   {
     id: "2",
@@ -243,8 +243,8 @@ const initialTenants: Tenant[] = [
     businessType: "Clothing Store",
     createdAt: "2024-02-10",
     status: "Active",
-    idProof: "PAN: ABCDE1234F"
-  }
+    idProof: "PAN: ABCDE1234F",
+  },
 ];
 
 // Initial sample agreements
@@ -265,7 +265,7 @@ const initialAgreements: Agreement[] = [
     hasActiveLoan: true,
     activeLoanId: "1",
     pendingPenalties: ["1"],
-    createdAt: "2024-01-15"
+    createdAt: "2024-01-15",
   },
   {
     id: "2",
@@ -280,8 +280,8 @@ const initialAgreements: Agreement[] = [
     status: "Active",
     nextDueDate: "2024-05-10",
     lastPaymentDate: "2024-04-10",
-    createdAt: "2024-02-10"
-  }
+    createdAt: "2024-02-10",
+  },
 ];
 
 // Initial sample transactions with separate receipt numbering
@@ -295,7 +295,7 @@ const initialTransactions: Transaction[] = [
     description: "General donation",
     amount: 15000,
     receiptNumber: "DON001",
-    donorName: "राम शर्मा"
+    donorName: "राम शर्मा",
   },
   {
     id: "2",
@@ -306,7 +306,7 @@ const initialTransactions: Transaction[] = [
     description: "Daily pooja expenses",
     amount: 10000,
     payeeName: "पंडित राम शास्त्री",
-    payeeContact: "9876543212"
+    payeeContact: "9876543212",
   },
   {
     id: "3",
@@ -314,7 +314,7 @@ const initialTransactions: Transaction[] = [
     type: "Utilities",
     category: "Utilities",
     description: "Electricity bill",
-    amount: 3500
+    amount: 3500,
   },
   {
     id: "4",
@@ -322,7 +322,7 @@ const initialTransactions: Transaction[] = [
     type: "Salary",
     category: "Salary",
     description: "Staff salary",
-    amount: 9000
+    amount: 9000,
   },
   {
     id: "5",
@@ -333,7 +333,7 @@ const initialTransactions: Transaction[] = [
     description: "State government grant",
     amount: 200000,
     receiptNumber: "DON002",
-    donorName: "महाराष्ट्र सरकार"
+    donorName: "महाराष्ट्र सरकार",
   },
   {
     id: "6",
@@ -346,7 +346,7 @@ const initialTransactions: Transaction[] = [
     receiptNumber: "DON003",
     donorName: "मोहन पाटील",
     familyMembers: 5,
-    amountPerPerson: 3000
+    amountPerPerson: 3000,
   },
   {
     id: "7",
@@ -359,7 +359,7 @@ const initialTransactions: Transaction[] = [
     receiptNumber: "DON004",
     donorName: "सुनीता देशमुख",
     familyMembers: 4,
-    amountPerPerson: 3000
+    amountPerPerson: 3000,
   },
   {
     id: "8",
@@ -373,7 +373,7 @@ const initialTransactions: Transaction[] = [
     tenantName: "राजेश शर्मा",
     tenantContact: "9876543210",
     agreementId: "1",
-    shopNumber: "A-001"
+    shopNumber: "A-001",
   },
   {
     id: "10",
@@ -384,7 +384,7 @@ const initialTransactions: Transaction[] = [
     description: "Construction donation",
     amount: 25000,
     receiptNumber: "DON005",
-    donorName: "विकास जोशी"
+    donorName: "विकास जोशी",
   },
   {
     id: "11",
@@ -395,7 +395,7 @@ const initialTransactions: Transaction[] = [
     description: "Ganesh festival celebration expenses",
     amount: 15000,
     payeeName: "गणेश उत्सव मंडळ",
-    payeeContact: "9876543213"
+    payeeContact: "9876543213",
   },
   {
     id: "12",
@@ -406,7 +406,7 @@ const initialTransactions: Transaction[] = [
     description: "Monthly electricity bill",
     amount: 8500,
     payeeName: "महावितरण कंपनी",
-    payeeContact: "1912"
+    payeeContact: "1912",
   },
   {
     id: "13",
@@ -417,7 +417,7 @@ const initialTransactions: Transaction[] = [
     description: "Shop cleaning expenses",
     amount: 2500,
     payeeName: "स्वच्छता सेवा",
-    payeeContact: "9876543214"
+    payeeContact: "9876543214",
   },
   {
     id: "14",
@@ -428,8 +428,8 @@ const initialTransactions: Transaction[] = [
     description: "Sound system maintenance",
     amount: 5500,
     payeeName: "ऑडिओ टेक सर्व्हिसेस",
-    payeeContact: "9876543215"
-  }
+    payeeContact: "9876543215",
+  },
 ];
 
 // Initial sample loans
@@ -449,8 +449,8 @@ const initialLoans: Loan[] = [
     status: "Active",
     nextEmiDate: "2024-04-15",
     lastPaymentDate: "2024-03-15",
-    createdAt: "2024-01-15"
-  }
+    createdAt: "2024-01-15",
+  },
 ];
 
 // Initial sample penalties
@@ -466,8 +466,8 @@ const initialPenalties: RentPenalty[] = [
     penaltyAmount: 50,
     penaltyPaid: false,
     status: "Pending",
-    createdAt: "2024-03-02"
-  }
+    createdAt: "2024-03-02",
+  },
 ];
 
 // Document storage utility functions
@@ -475,8 +475,8 @@ const saveDocuments = (key: string, documents: UploadedFile[]) => {
   try {
     localStorage.setItem(key, JSON.stringify(documents));
   } catch (error) {
-    console.error('Error saving documents:', error);
-    toast.error('Failed to save documents. Storage may be full.');
+    console.error("Error saving documents:", error);
+    toast.error("Failed to save documents. Storage may be full.");
   }
 };
 
@@ -485,7 +485,7 @@ const loadDocuments = (key: string): UploadedFile[] => {
     const stored = localStorage.getItem(key);
     return stored ? JSON.parse(stored) : [];
   } catch (error) {
-    console.error('Error loading documents:', error);
+    console.error("Error loading documents:", error);
     return [];
   }
 };
@@ -495,7 +495,8 @@ function AppContent() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [activeTab, setActiveTab] = useState("Dashboard");
-  const [transactions, setTransactions] = useState<Transaction[]>(initialTransactions);
+  const [transactions, setTransactions] =
+    useState<Transaction[]>(initialTransactions);
   const [users, setUsers] = useState(initialUsers);
   const [shops, setShops] = useState<Shop[]>(initialShops);
   const [tenants, setTenants] = useState<Tenant[]>(initialTenants);
@@ -503,49 +504,51 @@ function AppContent() {
   const [loans, setLoans] = useState<Loan[]>(initialLoans);
   const [penalties, setPenalties] = useState<RentPenalty[]>(initialPenalties);
   const [loginError, setLoginError] = useState("");
-  
+
   // Separate receipt counters for different transaction types
-  const [receiptCounters, setReceiptCounters] = useState<ReceiptCounters>(() => {
-    const getHighestReceiptNumber = (prefix: string) => {
-      const relevantTransactions = initialTransactions.filter(t => 
-        t.receiptNumber && t.receiptNumber.startsWith(prefix)
-      );
-      
-      if (relevantTransactions.length === 0) return 0;
-      
-      const numbers = relevantTransactions
-        .map(t => t.receiptNumber!)
-        .map(receipt => {
-          const match = receipt.match(new RegExp(`${prefix}(\\d+)`));
-          return match ? parseInt(match[1]) : 0;
-        })
-        .sort((a, b) => b - a);
-      
-      return numbers[0] || 0;
-    };
-    
-    return {
-      donations: getHighestReceiptNumber('DON'),
-      rentIncome: getHighestReceiptNumber('RENT')
-    };
-  });
+  const [receiptCounters, setReceiptCounters] = useState<ReceiptCounters>(
+    () => {
+      const getHighestReceiptNumber = (prefix: string) => {
+        const relevantTransactions = initialTransactions.filter(
+          (t) => t.receiptNumber && t.receiptNumber.startsWith(prefix)
+        );
+
+        if (relevantTransactions.length === 0) return 0;
+
+        const numbers = relevantTransactions
+          .map((t) => t.receiptNumber!)
+          .map((receipt) => {
+            const match = receipt.match(new RegExp(`${prefix}(\\d+)`));
+            return match ? parseInt(match[1]) : 0;
+          })
+          .sort((a, b) => b - a);
+
+        return numbers[0] || 0;
+      };
+
+      return {
+        donations: getHighestReceiptNumber("DON"),
+        rentIncome: getHighestReceiptNumber("RENT"),
+      };
+    }
+  );
 
   // Check for saved session on app load
   useEffect(() => {
-    const savedUser = localStorage.getItem('currentUser');
-    const savedCounters = localStorage.getItem('receiptCounters');
-    const savedShops = localStorage.getItem('shops');
-    const savedTenants = localStorage.getItem('tenants');
-    const savedAgreements = localStorage.getItem('agreements');
-    const savedLoans = localStorage.getItem('loans');
-    const savedPenalties = localStorage.getItem('penalties');
-    
+    const savedUser = localStorage.getItem("currentUser");
+    const savedCounters = localStorage.getItem("receiptCounters");
+    const savedShops = localStorage.getItem("shops");
+    const savedTenants = localStorage.getItem("tenants");
+    const savedAgreements = localStorage.getItem("agreements");
+    const savedLoans = localStorage.getItem("loans");
+    const savedPenalties = localStorage.getItem("penalties");
+
     if (savedUser) {
       const user = JSON.parse(savedUser);
       setCurrentUser(user);
       setIsAuthenticated(true);
     }
-    
+
     if (savedCounters) {
       setReceiptCounters(JSON.parse(savedCounters));
     }
@@ -573,42 +576,42 @@ function AppContent() {
 
   // Save data to localStorage whenever state changes
   useEffect(() => {
-    localStorage.setItem('receiptCounters', JSON.stringify(receiptCounters));
+    localStorage.setItem("receiptCounters", JSON.stringify(receiptCounters));
   }, [receiptCounters]);
 
   useEffect(() => {
-    localStorage.setItem('transactions', JSON.stringify(transactions));
+    localStorage.setItem("transactions", JSON.stringify(transactions));
   }, [transactions]);
 
   useEffect(() => {
-    localStorage.setItem('shops', JSON.stringify(shops));
+    localStorage.setItem("shops", JSON.stringify(shops));
   }, [shops]);
 
   useEffect(() => {
-    localStorage.setItem('tenants', JSON.stringify(tenants));
+    localStorage.setItem("tenants", JSON.stringify(tenants));
   }, [tenants]);
 
   useEffect(() => {
-    localStorage.setItem('agreements', JSON.stringify(agreements));
+    localStorage.setItem("agreements", JSON.stringify(agreements));
   }, [agreements]);
 
   useEffect(() => {
-    localStorage.setItem('loans', JSON.stringify(loans));
+    localStorage.setItem("loans", JSON.stringify(loans));
   }, [loans]);
 
   useEffect(() => {
-    localStorage.setItem('penalties', JSON.stringify(penalties));
+    localStorage.setItem("penalties", JSON.stringify(penalties));
   }, [penalties]);
 
   // Load transactions from localStorage on mount
   useEffect(() => {
-    const savedTransactions = localStorage.getItem('transactions');
+    const savedTransactions = localStorage.getItem("transactions");
     if (savedTransactions) {
       try {
         const parsedTransactions = JSON.parse(savedTransactions);
         setTransactions(parsedTransactions);
       } catch (error) {
-        console.error('Error loading transactions:', error);
+        console.error("Error loading transactions:", error);
       }
     }
   }, []);
@@ -616,279 +619,324 @@ function AppContent() {
   // Generate next receipt number functions
   const generateDonationReceiptNumber = (): string => {
     const nextNumber = receiptCounters.donations + 1;
-    return `DON${nextNumber.toString().padStart(3, '0')}`;
+    return `DON${nextNumber.toString().padStart(3, "0")}`;
   };
 
   const generateRentReceiptNumber = (): string => {
     const nextNumber = receiptCounters.rentIncome + 1;
-    return `RENT${nextNumber.toString().padStart(3, '0')}`;
+    return `RENT${nextNumber.toString().padStart(3, "0")}`;
   };
 
   // Update receipt counters
   const incrementDonationCounter = () => {
-    setReceiptCounters(prev => ({
+    setReceiptCounters((prev) => ({
       ...prev,
-      donations: prev.donations + 1
+      donations: prev.donations + 1,
     }));
   };
 
   const incrementRentCounter = () => {
-    setReceiptCounters(prev => ({
+    setReceiptCounters((prev) => ({
       ...prev,
-      rentIncome: prev.rentIncome + 1
+      rentIncome: prev.rentIncome + 1,
     }));
   };
 
   // Shop management functions
-  const handleAddShop = (shopData: Omit<Shop, 'id' | 'createdAt'>) => {
-    if (currentUser?.role === 'Viewer') return;
-    
+  const handleAddShop = (shopData: Omit<Shop, "id" | "createdAt">) => {
+    if (currentUser?.role === "Viewer") return;
+
     const newShop: Shop = {
       ...shopData,
       id: Date.now().toString(),
       createdAt: new Date().toISOString(),
-      status: 'Vacant'
+      status: "Vacant",
     };
-    
-    setShops(prev => [...prev, newShop]);
-    toast.success(t('rent.shopAdded') || 'Shop added successfully');
+
+    setShops((prev) => [...prev, newShop]);
+    toast.success(t("rent.shopAdded") || "Shop added successfully");
   };
 
   const handleUpdateShop = (shopId: string, updates: Partial<Shop>) => {
-    if (currentUser?.role === 'Viewer') return;
-    
-    setShops(prev => prev.map(shop => 
-      shop.id === shopId ? { ...shop, ...updates } : shop
-    ));
-    toast.success(t('rent.shopUpdated') || 'Shop updated successfully');
+    if (currentUser?.role === "Viewer") return;
+
+    setShops((prev) =>
+      prev.map((shop) => (shop.id === shopId ? { ...shop, ...updates } : shop))
+    );
+    toast.success(t("rent.shopUpdated") || "Shop updated successfully");
   };
 
   const handleDeleteShop = (shopId: string) => {
-    if (currentUser?.role === 'Viewer') return;
-    
+    if (currentUser?.role === "Viewer") return;
+
     // Check if shop is occupied
-    const shop = shops.find(s => s.id === shopId);
-    if (shop && shop.status === 'Occupied') {
-      toast.error(t('rent.cannotDeleteOccupiedShop') || 'Cannot delete occupied shop');
+    const shop = shops.find((s) => s.id === shopId);
+    if (shop && shop.status === "Occupied") {
+      toast.error(
+        t("rent.cannotDeleteOccupiedShop") || "Cannot delete occupied shop"
+      );
       return;
     }
-    
-    setShops(prev => prev.filter(shop => shop.id !== shopId));
-    toast.success(t('rent.shopDeleted') || 'Shop deleted successfully');
+
+    setShops((prev) => prev.filter((shop) => shop.id !== shopId));
+    toast.success(t("rent.shopDeleted") || "Shop deleted successfully");
   };
 
   // Tenant management functions
-  const handleAddTenant = (tenantData: Omit<Tenant, 'id' | 'createdAt'>) => {
-    if (currentUser?.role === 'Viewer') return;
-    
+  const handleAddTenant = (tenantData: Omit<Tenant, "id" | "createdAt">) => {
+    if (currentUser?.role === "Viewer") return;
+
     const newTenant: Tenant = {
       ...tenantData,
       id: Date.now().toString(),
       createdAt: new Date().toISOString(),
-      status: 'Active'
+      status: "Active",
     };
-    
-    setTenants(prev => [...prev, newTenant]);
-    toast.success(t('rent.tenantAdded') || 'Tenant added successfully');
+
+    setTenants((prev) => [...prev, newTenant]);
+    toast.success(t("rent.tenantAdded") || "Tenant added successfully");
   };
 
   const handleUpdateTenant = (tenantId: string, updates: Partial<Tenant>) => {
-    if (currentUser?.role === 'Viewer') return;
-    
-    setTenants(prev => prev.map(tenant => 
-      tenant.id === tenantId ? { ...tenant, ...updates } : tenant
-    ));
-    toast.success(t('rent.tenantUpdated') || 'Tenant updated successfully');
+    if (currentUser?.role === "Viewer") return;
+
+    setTenants((prev) =>
+      prev.map((tenant) =>
+        tenant.id === tenantId ? { ...tenant, ...updates } : tenant
+      )
+    );
+    toast.success(t("rent.tenantUpdated") || "Tenant updated successfully");
   };
 
   const handleDeleteTenant = (tenantId: string) => {
-    if (currentUser?.role === 'Viewer') return;
-    
+    if (currentUser?.role === "Viewer") return;
+
     // Check if tenant has active agreements
-    const activeAgreements = agreements.filter(a => a.tenantId === tenantId && a.status === 'Active');
+    const activeAgreements = agreements.filter(
+      (a) => a.tenantId === tenantId && a.status === "Active"
+    );
     if (activeAgreements.length > 0) {
-      toast.error(t('rent.cannotDeleteTenantWithActiveAgreements') || 'Cannot delete tenant with active agreements');
+      toast.error(
+        t("rent.cannotDeleteTenantWithActiveAgreements") ||
+          "Cannot delete tenant with active agreements"
+      );
       return;
     }
-    
-    setTenants(prev => prev.filter(tenant => tenant.id !== tenantId));
-    toast.success(t('rent.tenantDeleted') || 'Tenant deleted successfully');
+
+    setTenants((prev) => prev.filter((tenant) => tenant.id !== tenantId));
+    toast.success(t("rent.tenantDeleted") || "Tenant deleted successfully");
   };
 
   // Agreement management functions
-  const handleCreateAgreement = (agreementData: Omit<Agreement, 'id' | 'createdAt' | 'nextDueDate'>) => {
-    if (currentUser?.role === 'Viewer') return;
-    
+  const handleCreateAgreement = (
+    agreementData: Omit<Agreement, "id" | "createdAt" | "nextDueDate">
+  ) => {
+    if (currentUser?.role === "Viewer") return;
+
     // Calculate next due date (1 month from agreement date)
     const nextDueDate = new Date(agreementData.agreementDate);
     nextDueDate.setMonth(nextDueDate.getMonth() + 1);
-    
+
     const newAgreement: Agreement = {
       ...agreementData,
       id: Date.now().toString(),
       createdAt: new Date().toISOString(),
-      nextDueDate: nextDueDate.toISOString().split('T')[0],
-      status: 'Active'
+      nextDueDate: nextDueDate.toISOString().split("T")[0],
+      status: "Active",
     };
-    
-    setAgreements(prev => [...prev, newAgreement]);
-    
+
+    setAgreements((prev) => [...prev, newAgreement]);
+
     // Update shop status to occupied
-    setShops(prev => prev.map(shop => 
-      shop.id === agreementData.shopId 
-        ? { 
-            ...shop, 
-            status: 'Occupied',
-            tenantId: agreementData.tenantId,
-            agreementId: newAgreement.id
-          } 
-        : shop
-    ));
+    setShops((prev) =>
+      prev.map((shop) =>
+        shop.id === agreementData.shopId
+          ? {
+              ...shop,
+              status: "Occupied",
+              tenantId: agreementData.tenantId,
+              agreementId: newAgreement.id,
+            }
+          : shop
+      )
+    );
 
     // Add deposit as income transaction if there are deposits
-    const totalDeposit = agreementData.securityDeposit + agreementData.advanceRent;
+    const totalDeposit =
+      agreementData.securityDeposit + agreementData.advanceRent;
     if (totalDeposit > 0) {
-      const shop = shops.find(s => s.id === agreementData.shopId);
-      const tenant = tenants.find(t => t.id === agreementData.tenantId);
-      
+      const shop = shops.find((s) => s.id === agreementData.shopId);
+      const tenant = tenants.find((t) => t.id === agreementData.tenantId);
+
       const depositTransaction: Transaction = {
         id: `deposit_${Date.now()}`,
         date: agreementData.agreementDate,
-        type: 'RentIncome',
-        category: 'Security Deposit',
-        subCategory: 'newAgreement',
+        type: "RentIncome",
+        category: "Security Deposit",
+        subCategory: "newAgreement",
         description: `Security deposit and advance rent for Shop ${shop?.shopNumber}`,
         amount: totalDeposit,
         receiptNumber: generateRentReceiptNumber(),
-        tenantName: tenant?.name || '',
-        tenantContact: tenant?.phone || '',
+        tenantName: tenant?.name || "",
+        tenantContact: tenant?.phone || "",
         agreementId: newAgreement.id,
-        shopNumber: shop?.shopNumber || ''
+        shopNumber: shop?.shopNumber || "",
       };
-      
-      setTransactions(prev => [...prev, depositTransaction]);
+
+      setTransactions((prev) => [...prev, depositTransaction]);
       incrementRentCounter();
     }
-    
-    toast.success(t('rent.agreementCreated') || 'Agreement created successfully');
+
+    toast.success(
+      t("rent.agreementCreated") || "Agreement created successfully"
+    );
   };
 
-  const handleUpdateAgreement = (agreementId: string, updates: Partial<Agreement>) => {
-    if (currentUser?.role === 'Viewer') return;
-    
-    setAgreements(prev => prev.map(agreement => 
-      agreement.id === agreementId ? { ...agreement, ...updates } : agreement
-    ));
-    
+  const handleUpdateAgreement = (
+    agreementId: string,
+    updates: Partial<Agreement>
+  ) => {
+    if (currentUser?.role === "Viewer") return;
+
+    setAgreements((prev) =>
+      prev.map((agreement) =>
+        agreement.id === agreementId ? { ...agreement, ...updates } : agreement
+      )
+    );
+
     // If agreement is terminated, update shop status
-    if (updates.status === 'Terminated' || updates.status === 'Expired') {
-      const agreement = agreements.find(a => a.id === agreementId);
+    if (updates.status === "Terminated" || updates.status === "Expired") {
+      const agreement = agreements.find((a) => a.id === agreementId);
       if (agreement) {
-        setShops(prev => prev.map(shop => 
-          shop.id === agreement.shopId 
-            ? { 
-                ...shop, 
-                status: 'Vacant',
-                tenantId: undefined,
-                agreementId: undefined
-              } 
-            : shop
-        ));
+        setShops((prev) =>
+          prev.map((shop) =>
+            shop.id === agreement.shopId
+              ? {
+                  ...shop,
+                  status: "Vacant",
+                  tenantId: undefined,
+                  agreementId: undefined,
+                }
+              : shop
+          )
+        );
       }
     }
-    
-    toast.success(t('rent.agreementUpdated') || 'Agreement updated successfully');
+
+    toast.success(
+      t("rent.agreementUpdated") || "Agreement updated successfully"
+    );
   };
 
   // Loan management functions
-  const handleAddLoan = (loanData: Omit<Loan, 'id' | 'createdAt'>) => {
-    if (currentUser?.role === 'Viewer') return;
-    
+  const handleAddLoan = (loanData: Omit<Loan, "id" | "createdAt">) => {
+    if (currentUser?.role === "Viewer") return;
+
     const newLoan: Loan = {
       ...loanData,
       id: Date.now().toString(),
-      createdAt: new Date().toISOString()
+      createdAt: new Date().toISOString(),
     };
-    
-    setLoans(prev => [...prev, newLoan]);
-    
+
+    setLoans((prev) => [...prev, newLoan]);
+
     // Update agreement to mark it has active loan
-    setAgreements(prev => prev.map(agreement =>
-      agreement.id === loanData.agreementId
-        ? { ...agreement, hasActiveLoan: true, activeLoanId: newLoan.id }
-        : agreement
-    ));
-    
+    setAgreements((prev) =>
+      prev.map((agreement) =>
+        agreement.id === loanData.agreementId
+          ? { ...agreement, hasActiveLoan: true, activeLoanId: newLoan.id }
+          : agreement
+      )
+    );
+
     // Save loan documents if any
     if (loanData.loanDocuments?.length) {
       saveDocuments(`loan_${newLoan.id}_documents`, loanData.loanDocuments);
     }
-    
-    toast.success(t('loans.successMessage') || 'Loan added successfully');
+
+    toast.success(t("loans.successMessage") || "Loan added successfully");
   };
 
   const handleUpdateLoan = (loanId: string, updates: Partial<Loan>) => {
-    if (currentUser?.role === 'Viewer') return;
-    
-    setLoans(prev => prev.map(loan => 
-      loan.id === loanId ? { ...loan, ...updates } : loan
-    ));
-    
+    if (currentUser?.role === "Viewer") return;
+
+    setLoans((prev) =>
+      prev.map((loan) => (loan.id === loanId ? { ...loan, ...updates } : loan))
+    );
+
     // If loan is completed, update agreement
-    if (updates.status === 'Completed') {
-      const loan = loans.find(l => l.id === loanId);
+    if (updates.status === "Completed") {
+      const loan = loans.find((l) => l.id === loanId);
       if (loan) {
-        setAgreements(prev => prev.map(agreement =>
-          agreement.id === loan.agreementId
-            ? { ...agreement, hasActiveLoan: false, activeLoanId: undefined }
-            : agreement
-        ));
+        setAgreements((prev) =>
+          prev.map((agreement) =>
+            agreement.id === loan.agreementId
+              ? { ...agreement, hasActiveLoan: false, activeLoanId: undefined }
+              : agreement
+          )
+        );
       }
     }
   };
 
   // Penalty management functions
-  const handleAddPenalty = (penaltyData: Omit<RentPenalty, 'id' | 'createdAt'>) => {
-    if (currentUser?.role === 'Viewer') return;
-    
+  const handleAddPenalty = (
+    penaltyData: Omit<RentPenalty, "id" | "createdAt">
+  ) => {
+    if (currentUser?.role === "Viewer") return;
+
     const newPenalty: RentPenalty = {
       ...penaltyData,
       id: Date.now().toString(),
-      createdAt: new Date().toISOString()
+      createdAt: new Date().toISOString(),
     };
-    
-    setPenalties(prev => [...prev, newPenalty]);
-    
+
+    setPenalties((prev) => [...prev, newPenalty]);
+
     // Add penalty to agreement's pending penalties
-    setAgreements(prev => prev.map(agreement =>
-      agreement.id === penaltyData.agreementId
-        ? { 
-            ...agreement, 
-            pendingPenalties: [...(agreement.pendingPenalties || []), newPenalty.id]
-          }
-        : agreement
-    ));
+    setAgreements((prev) =>
+      prev.map((agreement) =>
+        agreement.id === penaltyData.agreementId
+          ? {
+              ...agreement,
+              pendingPenalties: [
+                ...(agreement.pendingPenalties || []),
+                newPenalty.id,
+              ],
+            }
+          : agreement
+      )
+    );
   };
 
-  const handleUpdatePenalty = (penaltyId: string, updates: Partial<RentPenalty>) => {
-    if (currentUser?.role === 'Viewer') return;
-    
-    setPenalties(prev => prev.map(penalty => 
-      penalty.id === penaltyId ? { ...penalty, ...updates } : penalty
-    ));
-    
+  const handleUpdatePenalty = (
+    penaltyId: string,
+    updates: Partial<RentPenalty>
+  ) => {
+    if (currentUser?.role === "Viewer") return;
+
+    setPenalties((prev) =>
+      prev.map((penalty) =>
+        penalty.id === penaltyId ? { ...penalty, ...updates } : penalty
+      )
+    );
+
     // If penalty is paid, remove from agreement's pending penalties
-    if (updates.status === 'Paid') {
-      const penalty = penalties.find(p => p.id === penaltyId);
+    if (updates.status === "Paid") {
+      const penalty = penalties.find((p) => p.id === penaltyId);
       if (penalty) {
-        setAgreements(prev => prev.map(agreement =>
-          agreement.id === penalty.agreementId
-            ? { 
-                ...agreement, 
-                pendingPenalties: (agreement.pendingPenalties || []).filter(id => id !== penaltyId)
-              }
-            : agreement
-        ));
+        setAgreements((prev) =>
+          prev.map((agreement) =>
+            agreement.id === penalty.agreementId
+              ? {
+                  ...agreement,
+                  pendingPenalties: (agreement.pendingPenalties || []).filter(
+                    (id) => id !== penaltyId
+                  ),
+                }
+              : agreement
+          )
+        );
       }
     }
   };
@@ -905,7 +953,7 @@ function AppContent() {
     tenantContact?: string;
     shopNumber?: string;
   }) => {
-    if (currentUser?.role === 'Viewer') return;
+    if (currentUser?.role === "Viewer") return;
 
     const rentReceiptNumber = generateRentReceiptNumber();
     incrementRentCounter();
@@ -914,117 +962,136 @@ function AppContent() {
     if (collectionData.rentAmount && collectionData.rentAmount > 0) {
       const rentTransaction: Transaction = {
         id: `rent_${Date.now()}`,
-        date: new Date().toISOString().split('T')[0],
-        type: 'RentIncome',
-        category: 'Bhade Jama',
-        subCategory: 'bhade1Jama',
+        date: new Date().toISOString().split("T")[0],
+        type: "RentIncome",
+        category: "Bhade Jama",
+        subCategory: "bhade1Jama",
         description: `Monthly rent - Shop ${collectionData.shopNumber}`,
         amount: collectionData.rentAmount,
         receiptNumber: rentReceiptNumber,
         tenantName: collectionData.tenantName,
         tenantContact: collectionData.tenantContact,
         agreementId: collectionData.agreementId,
-        shopNumber: collectionData.shopNumber
+        shopNumber: collectionData.shopNumber,
       };
-      
-      setTransactions(prev => [...prev, rentTransaction]);
-      
+
+      setTransactions((prev) => [...prev, rentTransaction]);
+
       // Update agreement's last payment date and next due date
-      setAgreements(prev => prev.map(agreement => {
-        if (agreement.id === collectionData.agreementId) {
-          const nextDueDate = new Date();
-          nextDueDate.setMonth(nextDueDate.getMonth() + 1);
-          return {
-            ...agreement,
-            lastPaymentDate: new Date().toISOString().split('T')[0],
-            nextDueDate: nextDueDate.toISOString().split('T')[0]
-          };
-        }
-        return agreement;
-      }));
+      setAgreements((prev) =>
+        prev.map((agreement) => {
+          if (agreement.id === collectionData.agreementId) {
+            const nextDueDate = new Date();
+            nextDueDate.setMonth(nextDueDate.getMonth() + 1);
+            return {
+              ...agreement,
+              lastPaymentDate: new Date().toISOString().split("T")[0],
+              nextDueDate: nextDueDate.toISOString().split("T")[0],
+            };
+          }
+          return agreement;
+        })
+      );
     }
 
     // Create EMI payment transaction and update loan
-    if (collectionData.emiAmount && collectionData.emiAmount > 0 && collectionData.loanId) {
+    if (
+      collectionData.emiAmount &&
+      collectionData.emiAmount > 0 &&
+      collectionData.loanId
+    ) {
       const emiTransaction: Transaction = {
         id: `emi_${Date.now()}`,
-        date: new Date().toISOString().split('T')[0],
-        type: 'RentIncome',
-        category: 'Loan EMI',
-        subCategory: 'loanRepayment',
+        date: new Date().toISOString().split("T")[0],
+        type: "RentIncome",
+        category: "Loan EMI",
+        subCategory: "loanRepayment",
         description: `Loan EMI payment - ${collectionData.tenantName}`,
         amount: collectionData.emiAmount,
         receiptNumber: `${rentReceiptNumber}_EMI`,
         tenantName: collectionData.tenantName,
         loanId: collectionData.loanId,
-        emiAmount: collectionData.emiAmount
+        emiAmount: collectionData.emiAmount,
       };
-      
-      setTransactions(prev => [...prev, emiTransaction]);
+
+      setTransactions((prev) => [...prev, emiTransaction]);
 
       // Update loan balance
-      setLoans(prev => prev.map(loan => {
-        if (loan.id === collectionData.loanId) {
-          const newOutstandingBalance = loan.outstandingBalance - collectionData.emiAmount!;
-          const newTotalRepaid = loan.totalRepaid + collectionData.emiAmount!;
-          const nextEmiDate = new Date();
-          nextEmiDate.setMonth(nextEmiDate.getMonth() + 1);
-          
-          return {
-            ...loan,
-            outstandingBalance: Math.max(0, newOutstandingBalance),
-            totalRepaid: newTotalRepaid,
-            lastPaymentDate: new Date().toISOString().split('T')[0],
-            nextEmiDate: nextEmiDate.toISOString().split('T')[0],
-            status: newOutstandingBalance <= 0 ? 'Completed' : 'Active'
-          };
-        }
-        return loan;
-      }));
+      setLoans((prev) =>
+        prev.map((loan) => {
+          if (loan.id === collectionData.loanId) {
+            const newOutstandingBalance =
+              loan.outstandingBalance - collectionData.emiAmount!;
+            const newTotalRepaid = loan.totalRepaid + collectionData.emiAmount!;
+            const nextEmiDate = new Date();
+            nextEmiDate.setMonth(nextEmiDate.getMonth() + 1);
+
+            return {
+              ...loan,
+              outstandingBalance: Math.max(0, newOutstandingBalance),
+              totalRepaid: newTotalRepaid,
+              lastPaymentDate: new Date().toISOString().split("T")[0],
+              nextEmiDate: nextEmiDate.toISOString().split("T")[0],
+              status: newOutstandingBalance <= 0 ? "Completed" : "Active",
+            };
+          }
+          return loan;
+        })
+      );
     }
 
     // Create penalty payment transaction and update penalty
-    if (collectionData.penaltyAmount && collectionData.penaltyAmount > 0 && collectionData.penaltyId) {
+    if (
+      collectionData.penaltyAmount &&
+      collectionData.penaltyAmount > 0 &&
+      collectionData.penaltyId
+    ) {
       const penaltyTransaction: Transaction = {
         id: `penalty_${Date.now()}`,
-        date: new Date().toISOString().split('T')[0],
-        type: 'RentIncome',
-        category: 'Rent Penalty',
-        subCategory: 'penaltyPayment',
+        date: new Date().toISOString().split("T")[0],
+        type: "RentIncome",
+        category: "Rent Penalty",
+        subCategory: "penaltyPayment",
         description: `Rent penalty payment - ${collectionData.tenantName}`,
         amount: collectionData.penaltyAmount,
         receiptNumber: `${rentReceiptNumber}_PENALTY`,
         tenantName: collectionData.tenantName,
         penaltyId: collectionData.penaltyId,
-        penaltyAmount: collectionData.penaltyAmount
+        penaltyAmount: collectionData.penaltyAmount,
       };
-      
-      setTransactions(prev => [...prev, penaltyTransaction]);
+
+      setTransactions((prev) => [...prev, penaltyTransaction]);
 
       // Update penalty status
       handleUpdatePenalty(collectionData.penaltyId, {
         penaltyPaid: true,
-        penaltyPaidDate: new Date().toISOString().split('T')[0],
-        status: 'Paid'
+        penaltyPaidDate: new Date().toISOString().split("T")[0],
+        status: "Paid",
       });
     }
   };
 
   // Authentication functions
   const handleLogin = (username: string, password: string) => {
-    const user = users.find(u => u.username === username && u.status === 'Active');
-    const expectedPassword = demoCredentials[username as keyof typeof demoCredentials];
-    
+    const user = users.find(
+      (u) => u.username === username && u.status === "Active"
+    );
+    const expectedPassword =
+      demoCredentials[username as keyof typeof demoCredentials];
+
     if (user && password === expectedPassword) {
-      const updatedUser = { ...user, lastLogin: new Date().toISOString().split('T')[0] };
+      const updatedUser = {
+        ...user,
+        lastLogin: new Date().toISOString().split("T")[0],
+      };
       setCurrentUser(updatedUser);
       setIsAuthenticated(true);
       setLoginError("");
-      
-      setUsers(prev => prev.map(u => u.id === user.id ? updatedUser : u));
-      localStorage.setItem('currentUser', JSON.stringify(updatedUser));
+
+      setUsers((prev) => prev.map((u) => (u.id === user.id ? updatedUser : u)));
+      localStorage.setItem("currentUser", JSON.stringify(updatedUser));
     } else {
-      setLoginError(t('login.invalidCredentials'));
+      setLoginError(t("login.invalidCredentials"));
     }
   };
 
@@ -1032,131 +1099,157 @@ function AppContent() {
     setCurrentUser(null);
     setIsAuthenticated(false);
     setActiveTab("Dashboard");
-    localStorage.removeItem('currentUser');
+    localStorage.removeItem("currentUser");
   };
 
   // Transaction functions
   const handleAddDonation = (donation: any) => {
-    if (currentUser?.role === 'Viewer') return;
-    
+    if (currentUser?.role === "Viewer") return;
+
     const donationWithReceipt = {
       ...donation,
-      receiptNumber: donation.receiptNumber || generateDonationReceiptNumber()
+      receiptNumber: donation.receiptNumber || generateDonationReceiptNumber(),
     };
-    
-    setTransactions(prev => [...prev, donationWithReceipt]);
-    
+
+    setTransactions((prev) => [...prev, donationWithReceipt]);
+
     if (!donation.receiptNumber) {
       incrementDonationCounter();
     }
-    
+
     if (donation.supportingDocuments?.length > 0) {
-      saveDocuments(`transaction_${donationWithReceipt.id}_documents`, donation.supportingDocuments);
+      saveDocuments(
+        `transaction_${donationWithReceipt.id}_documents`,
+        donation.supportingDocuments
+      );
     }
   };
 
   const handleAddExpense = (expense: any) => {
-    if (currentUser?.role === 'Viewer') return;
-    
-    setTransactions(prev => [...prev, expense]);
-    
+    if (currentUser?.role === "Viewer") return;
+
+    setTransactions((prev) => [...prev, expense]);
+
     if (expense.receiptImages?.length > 0) {
-      saveDocuments(`transaction_${expense.id}_receipts`, expense.receiptImages);
+      saveDocuments(
+        `transaction_${expense.id}_receipts`,
+        expense.receiptImages
+      );
     }
   };
 
   const handleAddRentIncome = (rentIncome: any) => {
-    if (currentUser?.role === 'Viewer') return;
-    
+    if (currentUser?.role === "Viewer") return;
+
     const rentIncomeWithReceipt = {
       ...rentIncome,
-      receiptNumber: rentIncome.receiptNumber || generateRentReceiptNumber()
+      receiptNumber: rentIncome.receiptNumber || generateRentReceiptNumber(),
     };
-    
-    setTransactions(prev => [...prev, rentIncomeWithReceipt]);
-    
+
+    setTransactions((prev) => [...prev, rentIncomeWithReceipt]);
+
     if (!rentIncome.receiptNumber) {
       incrementRentCounter();
     }
-    
+
     if (rentIncome.supportingDocuments?.length > 0) {
-      saveDocuments(`transaction_${rentIncomeWithReceipt.id}_documents`, rentIncome.supportingDocuments);
+      saveDocuments(
+        `transaction_${rentIncomeWithReceipt.id}_documents`,
+        rentIncome.supportingDocuments
+      );
     }
   };
 
   const handleImportTransactions = (importedTransactions: Transaction[]) => {
-    if (currentUser?.role === 'Viewer') return;
-    
+    if (currentUser?.role === "Viewer") return;
+
     const existingTransactionKeys = new Set(
-      transactions.map(t => `${t.date}-${t.type}-${t.category}-${t.description}-${t.amount}`)
+      transactions.map(
+        (t) => `${t.date}-${t.type}-${t.category}-${t.description}-${t.amount}`
+      )
     );
-    
-    const newTransactions = importedTransactions.filter(t => 
-      !existingTransactionKeys.has(`${t.date}-${t.type}-${t.category}-${t.description}-${t.amount}`)
+
+    const newTransactions = importedTransactions.filter(
+      (t) =>
+        !existingTransactionKeys.has(
+          `${t.date}-${t.type}-${t.category}-${t.description}-${t.amount}`
+        )
     );
-    
+
     if (newTransactions.length > 0) {
-      const processedTransactions = newTransactions.map(transaction => {
-        if (transaction.type === 'Donation' && !transaction.receiptNumber) {
+      const processedTransactions = newTransactions.map((transaction) => {
+        if (transaction.type === "Donation" && !transaction.receiptNumber) {
           const receiptNumber = generateDonationReceiptNumber();
           incrementDonationCounter();
           return { ...transaction, receiptNumber };
-        } else if (transaction.type === 'RentIncome' && !transaction.receiptNumber) {
+        } else if (
+          transaction.type === "RentIncome" &&
+          !transaction.receiptNumber
+        ) {
           const receiptNumber = generateRentReceiptNumber();
           incrementRentCounter();
           return { ...transaction, receiptNumber };
         }
         return transaction;
       });
-      
-      setTransactions(prev => [...prev, ...processedTransactions]);
-      toast.success(`${newTransactions.length} new transactions imported successfully`);
+
+      setTransactions((prev) => [...prev, ...processedTransactions]);
+      toast.success(
+        `${newTransactions.length} new transactions imported successfully`
+      );
     } else {
       toast.info("No new transactions found to import");
     }
   };
 
   // User management functions
-  const handleAddUser = (userData: Omit<User, 'id' | 'createdAt'>) => {
-    if (currentUser?.role !== 'Admin') return;
-    
+  const handleAddUser = (userData: Omit<User, "id" | "createdAt">) => {
+    if (currentUser?.role !== "Admin") return;
+
     const newUser: User = {
       ...userData,
       id: Date.now().toString(),
-      createdAt: new Date().toISOString().split('T')[0]
+      createdAt: new Date().toISOString().split("T")[0],
     };
     setUsers([...users, newUser]);
   };
 
   const handleEditUser = (id: string, userData: Partial<User>) => {
-    if (currentUser?.role !== 'Admin') return;
-    
-    setUsers(prev => prev.map(user => 
-      user.id === id ? { ...user, ...userData } : user
-    ));
+    if (currentUser?.role !== "Admin") return;
+
+    setUsers((prev) =>
+      prev.map((user) => (user.id === id ? { ...user, ...userData } : user))
+    );
   };
 
   const handleDeleteUser = (id: string) => {
-    if (currentUser?.role !== 'Admin' || id === currentUser.id) return;
-    
-    setUsers(prev => prev.filter(user => user.id !== id));
+    if (currentUser?.role !== "Admin" || id === currentUser.id) return;
+
+    setUsers((prev) => prev.filter((user) => user.id !== id));
   };
 
   const handleToggleUserStatus = (id: string) => {
-    if (currentUser?.role !== 'Admin' || id === currentUser.id) return;
-    
-    setUsers(prev => prev.map(user => 
-      user.id === id 
-        ? { ...user, status: user.status === 'Active' ? 'Inactive' : 'Active' } 
-        : user
-    ));
+    if (currentUser?.role !== "Admin" || id === currentUser.id) return;
+
+    setUsers((prev) =>
+      prev.map((user) =>
+        user.id === id
+          ? {
+              ...user,
+              status: user.status === "Active" ? "Inactive" : "Active",
+            }
+          : user
+      )
+    );
   };
 
   // Calculate totals
-  const donations = transactions.filter(t => t.type === 'Donation');
-  const expenses = transactions.filter(t => t.type === 'Expense' || t.type === 'Utilities' || t.type === 'Salary');
-  const rentIncomes = transactions.filter(t => t.type === 'RentIncome');
-  
+  const donations = transactions.filter((t) => t.type === "Donation");
+  const expenses = transactions.filter(
+    (t) => t.type === "Expense" || t.type === "Utilities" || t.type === "Salary"
+  );
+  const rentIncomes = transactions.filter((t) => t.type === "RentIncome");
+
   const totalDonations = donations.reduce((sum, d) => sum + d.amount, 0);
   const totalExpenses = expenses.reduce((sum, e) => sum + e.amount, 0);
   const totalRentIncome = rentIncomes.reduce((sum, r) => sum + r.amount, 0);
@@ -1167,14 +1260,16 @@ function AppContent() {
 
     const canAccessTab = (tab: string) => {
       switch (tab) {
-        case 'Users':
-          return currentUser.role === 'Admin';
-        case 'Donations':
-        case 'Expenses':
-        case 'RentManagement':
-          return currentUser.role === 'Admin' || currentUser.role === 'Treasurer';
-        case 'Dashboard':
-        case 'Reports':
+        case "Users":
+          return currentUser.role === "Admin";
+        case "Donations":
+        case "Expenses":
+        case "RentManagement":
+          return (
+            currentUser.role === "Admin" || currentUser.role === "Treasurer"
+          );
+        case "Dashboard":
+        case "Reports":
           return true;
         default:
           return false;
@@ -1184,9 +1279,7 @@ function AppContent() {
     if (!canAccessTab(activeTab)) {
       return (
         <Alert className="max-w-md mx-auto mt-8">
-          <AlertDescription>
-            {t('common.noPermission')}
-          </AlertDescription>
+          <AlertDescription>{t("common.noPermission")}</AlertDescription>
         </Alert>
       );
     }
@@ -1211,12 +1304,7 @@ function AppContent() {
           />
         );
       case "Expenses":
-        return (
-          <Expenses
-            expenses={expenses}
-            onAddExpense={handleAddExpense}
-          />
-        );
+        return <Expenses expenses={expenses} onAddExpense={handleAddExpense} />;
       case "RentManagement":
         return (
           <RentManagement
@@ -1247,7 +1335,9 @@ function AppContent() {
           <Reports
             transactions={transactions}
             onImportTransactions={
-              currentUser.role !== 'Viewer' ? handleImportTransactions : undefined
+              currentUser.role !== "Viewer"
+                ? handleImportTransactions
+                : undefined
             }
           />
         );
@@ -1269,13 +1359,13 @@ function AppContent() {
   // Show login screen if not authenticated
   if (!isAuthenticated || !currentUser) {
     return (
-      <div 
+      <div
         className="min-h-screen relative"
         style={{
           backgroundImage: `url(${templeImage})`,
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-          backgroundAttachment: 'fixed'
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+          backgroundAttachment: "fixed",
         }}
       >
         <div className="absolute inset-0 bg-white/40"></div>
@@ -1287,27 +1377,25 @@ function AppContent() {
   }
 
   return (
-    <div 
+    <div
       className="min-h-screen relative"
       style={{
         backgroundImage: `url(${templeImage})`,
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-        backgroundAttachment: 'fixed'
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+        backgroundAttachment: "fixed",
       }}
     >
       <div className="absolute inset-0 bg-white/40"></div>
-      
+
       <div className="relative z-10">
-        <Header 
-          activeTab={activeTab} 
+        <Header
+          activeTab={activeTab}
           onTabChange={setActiveTab}
           currentUser={currentUser}
           onLogout={handleLogout}
         />
-        <main className="container mx-auto p-6">
-          {renderContent()}
-        </main>
+        <main className="container mx-auto p-6">{renderContent()}</main>
       </div>
     </div>
   );

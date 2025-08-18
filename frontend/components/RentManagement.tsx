@@ -3,23 +3,43 @@ import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "./ui/select";
 import { Textarea } from "./ui/textarea";
 import { DatePicker } from "./ui/date-picker";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "./ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "./ui/table";
 import { Badge } from "./ui/badge";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "./ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "./ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 import { Alert, AlertDescription } from "./ui/alert";
 import { FileUpload } from "./ui/file-upload";
-import { 
-  Building, 
-  Users, 
-  FileText, 
-  IndianRupee, 
-  Plus, 
-  Edit, 
-  Eye, 
+import {
+  Building,
+  Users,
+  FileText,
+  IndianRupee,
+  Plus,
+  Edit,
+  Eye,
   Printer,
   Calendar,
   Phone,
@@ -41,10 +61,10 @@ import {
   Trash2,
   UserPlus,
   FileSignature,
-  Home
+  Home,
 } from "lucide-react";
 import { useLanguage } from "./LanguageContext";
-import { toast } from "sonner@2.0.3";
+import { toast } from "sonner";
 
 interface UploadedFile {
   id: string;
@@ -62,7 +82,7 @@ interface Shop {
   size: number;
   monthlyRent: number;
   deposit: number;
-  status: 'Vacant' | 'Occupied' | 'Maintenance';
+  status: "Vacant" | "Occupied" | "Maintenance";
   tenantId?: string;
   agreementId?: string;
   createdAt: string;
@@ -77,7 +97,7 @@ interface Tenant {
   address: string;
   businessType: string;
   createdAt: string;
-  status: 'Active' | 'Inactive';
+  status: "Active" | "Inactive";
   idProof?: string;
 }
 
@@ -90,8 +110,8 @@ interface Agreement {
   monthlyRent: number;
   securityDeposit: number;
   advanceRent: number;
-  agreementType: 'Residential' | 'Commercial';
-  status: 'Active' | 'Expired' | 'Terminated';
+  agreementType: "Residential" | "Commercial";
+  status: "Active" | "Expired" | "Terminated";
   nextDueDate: string;
   lastPaymentDate?: string;
   hasActiveLoan?: boolean;
@@ -113,7 +133,7 @@ interface Loan {
   monthlyEmi: number;
   outstandingBalance: number;
   totalRepaid: number;
-  status: 'Active' | 'Completed' | 'Defaulted';
+  status: "Active" | "Completed" | "Defaulted";
   nextEmiDate: string;
   lastPaymentDate?: string;
   createdAt: string;
@@ -131,7 +151,7 @@ interface RentPenalty {
   penaltyAmount: number;
   penaltyPaid: boolean;
   penaltyPaidDate?: string;
-  status: 'Pending' | 'Paid';
+  status: "Pending" | "Paid";
   createdAt: string;
 }
 
@@ -143,17 +163,19 @@ interface RentManagementProps {
   agreements: Agreement[];
   loans: Loan[];
   penalties: RentPenalty[];
-  onAddShop: (shopData: Omit<Shop, 'id' | 'createdAt'>) => void;
+  onAddShop: (shopData: Omit<Shop, "id" | "createdAt">) => void;
   onUpdateShop: (shopId: string, updates: Partial<Shop>) => void;
   onDeleteShop: (shopId: string) => void;
-  onAddTenant: (tenantData: Omit<Tenant, 'id' | 'createdAt'>) => void;
+  onAddTenant: (tenantData: Omit<Tenant, "id" | "createdAt">) => void;
   onUpdateTenant: (tenantId: string, updates: Partial<Tenant>) => void;
   onDeleteTenant: (tenantId: string) => void;
-  onCreateAgreement: (agreementData: Omit<Agreement, 'id' | 'createdAt' | 'nextDueDate'>) => void;
+  onCreateAgreement: (
+    agreementData: Omit<Agreement, "id" | "createdAt" | "nextDueDate">
+  ) => void;
   onUpdateAgreement: (agreementId: string, updates: Partial<Agreement>) => void;
-  onAddLoan: (loanData: Omit<Loan, 'id' | 'createdAt'>) => void;
+  onAddLoan: (loanData: Omit<Loan, "id" | "createdAt">) => void;
   onUpdateLoan: (loanId: string, updates: Partial<Loan>) => void;
-  onAddPenalty: (penaltyData: Omit<RentPenalty, 'id' | 'createdAt'>) => void;
+  onAddPenalty: (penaltyData: Omit<RentPenalty, "id" | "createdAt">) => void;
   onUpdatePenalty: (penaltyId: string, updates: Partial<RentPenalty>) => void;
   onRentCollection: (collectionData: {
     rentAmount?: number;
@@ -168,13 +190,13 @@ interface RentManagementProps {
   }) => void;
 }
 
-export default function RentManagement({ 
-  onAddRentIncome, 
-  nextReceiptNumber, 
+export default function RentManagement({
+  onAddRentIncome,
+  nextReceiptNumber,
   shops,
   tenants,
   agreements,
-  loans, 
+  loans,
   penalties,
   onAddShop,
   onUpdateShop,
@@ -188,19 +210,19 @@ export default function RentManagement({
   onUpdateLoan,
   onAddPenalty,
   onUpdatePenalty,
-  onRentCollection
+  onRentCollection,
 }: RentManagementProps) {
   const { t } = useLanguage();
-  
+
   const [selectedTab, setSelectedTab] = useState("shops");
 
   // Shop Form State
   const [shopFormData, setShopFormData] = useState({
-    shopNumber: '',
-    size: '',
-    monthlyRent: '',
-    deposit: '',
-    description: ''
+    shopNumber: "",
+    size: "",
+    monthlyRent: "",
+    deposit: "",
+    description: "",
   });
 
   const [shopErrors, setShopErrors] = useState<any>({});
@@ -209,12 +231,12 @@ export default function RentManagement({
 
   // Tenant Form State
   const [tenantFormData, setTenantFormData] = useState({
-    name: '',
-    phone: '',
-    email: '',
-    address: '',
-    businessType: '',
-    idProof: ''
+    name: "",
+    phone: "",
+    email: "",
+    address: "",
+    businessType: "",
+    idProof: "",
   });
 
   const [tenantErrors, setTenantErrors] = useState<any>({});
@@ -223,29 +245,30 @@ export default function RentManagement({
 
   // Agreement Form State
   const [agreementFormData, setAgreementFormData] = useState({
-    shopId: '',
-    tenantId: '',
+    shopId: "",
+    tenantId: "",
     agreementDate: null as Date | null,
-    duration: '12',
-    agreementType: 'Commercial',
-    securityDeposit: '',
-    advanceRent: '',
-    agreementDocument: [] as UploadedFile[]
+    duration: "12",
+    agreementType: "Commercial",
+    securityDeposit: "",
+    advanceRent: "",
+    agreementDocument: [] as UploadedFile[],
   });
 
   const [agreementErrors, setAgreementErrors] = useState<any>({});
-  const [showAgreementSuccessDialog, setShowAgreementSuccessDialog] = useState(false);
+  const [showAgreementSuccessDialog, setShowAgreementSuccessDialog] =
+    useState(false);
   const [lastCreatedAgreement, setLastCreatedAgreement] = useState<any>(null);
 
   // Loan Form State
   const [loanFormData, setLoanFormData] = useState({
-    tenantId: '',
-    agreementId: '',
-    loanAmount: '',
-    interestRate: '1',
-    loanDuration: '12',
+    tenantId: "",
+    agreementId: "",
+    loanAmount: "",
+    interestRate: "1",
+    loanDuration: "12",
     disbursedDate: null as Date | null,
-    loanDocuments: [] as UploadedFile[]
+    loanDocuments: [] as UploadedFile[],
   });
 
   const [loanErrors, setLoanErrors] = useState<any>({});
@@ -254,30 +277,31 @@ export default function RentManagement({
 
   // Rent Collection Form State
   const [collectionFormData, setCollectionFormData] = useState({
-    agreementId: '',
-    rentAmount: '',
-    emiAmount: '',
-    penaltyAmount: '',
-    selectedLoanId: '',
-    selectedPenaltyId: '',
+    agreementId: "",
+    rentAmount: "",
+    emiAmount: "",
+    penaltyAmount: "",
+    selectedLoanId: "",
+    selectedPenaltyId: "",
     collectRent: true,
     collectEmi: false,
-    collectPenalty: false
+    collectPenalty: false,
   });
 
-  const [showCollectionSuccessDialog, setShowCollectionSuccessDialog] = useState(false);
+  const [showCollectionSuccessDialog, setShowCollectionSuccessDialog] =
+    useState(false);
 
   // Original rent income form state
   const [rentIncomeFormData, setRentIncomeFormData] = useState({
     date: null as Date | null,
-    category: '',
-    subCategory: '',
-    agreementId: '',
-    tenantName: '',
-    tenantContact: '',
-    rentAmount: '',
-    details: '',
-    receiptNumber: nextReceiptNumber
+    category: "",
+    subCategory: "",
+    agreementId: "",
+    tenantName: "",
+    tenantContact: "",
+    rentAmount: "",
+    details: "",
+    receiptNumber: nextReceiptNumber,
   });
 
   const [rentIncomeErrors, setRentIncomeErrors] = useState<any>({});
@@ -285,41 +309,43 @@ export default function RentManagement({
   const [lastAddedRentIncome, setLastAddedRentIncome] = useState<any>(null);
 
   const rentCategorySubCategories = {
-    'Bhade Jama': [
-      'bhade1Jama',
-      'bhade2Jama'
-    ]
+    "Bhade Jama": ["bhade1Jama", "bhade2Jama"],
   };
 
   // Update receipt number when prop changes
   useEffect(() => {
-    setRentIncomeFormData(prev => ({
+    setRentIncomeFormData((prev) => ({
       ...prev,
-      receiptNumber: nextReceiptNumber
+      receiptNumber: nextReceiptNumber,
     }));
   }, [nextReceiptNumber]);
 
   const formatCurrency = (amount: number) => {
-    return `${t('common.currency')}${amount.toLocaleString()}`;
+    return `${t("common.currency")}${amount.toLocaleString()}`;
   };
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
-    return date.toLocaleDateString('en-IN', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
+    return date.toLocaleDateString("en-IN", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
     });
   };
 
-  const getShopById = (id: string) => shops.find(s => s.id === id);
-  const getTenantById = (id: string) => tenants.find(t => t.id === id);
-  const getAgreementById = (id: string) => agreements.find(a => a.id === id);
+  const getShopById = (id: string) => shops.find((s) => s.id === id);
+  const getTenantById = (id: string) => tenants.find((t) => t.id === id);
+  const getAgreementById = (id: string) => agreements.find((a) => a.id === id);
 
   // Calculate EMI using formula: EMI = [P × R × (1+R)^N] / [(1+R)^N-1]
-  const calculateEMI = (principal: number, rate: number, duration: number): number => {
+  const calculateEMI = (
+    principal: number,
+    rate: number,
+    duration: number
+  ): number => {
     const monthlyRate = rate / 100;
-    const numerator = principal * monthlyRate * Math.pow(1 + monthlyRate, duration);
+    const numerator =
+      principal * monthlyRate * Math.pow(1 + monthlyRate, duration);
     const denominator = Math.pow(1 + monthlyRate, duration) - 1;
     return Math.round(numerator / denominator);
   };
@@ -329,33 +355,33 @@ export default function RentManagement({
     const newErrors: any = {};
 
     if (!shopFormData.shopNumber.trim()) {
-      newErrors.shopNumber = t('shop.shopNumberRequired');
+      newErrors.shopNumber = t("shop.shopNumberRequired");
     }
 
     if (!shopFormData.size.trim()) {
-      newErrors.size = t('shop.shopSizeRequired');
+      newErrors.size = t("shop.shopSizeRequired");
     } else {
       const size = parseFloat(shopFormData.size);
       if (isNaN(size) || size <= 0) {
-        newErrors.size = t('shop.shopSizeInvalid');
+        newErrors.size = t("shop.shopSizeInvalid");
       }
     }
 
     if (!shopFormData.monthlyRent.trim()) {
-      newErrors.monthlyRent = t('shop.monthlyRentRequired');
+      newErrors.monthlyRent = t("shop.monthlyRentRequired");
     } else {
       const rent = parseFloat(shopFormData.monthlyRent);
       if (isNaN(rent) || rent <= 0) {
-        newErrors.monthlyRent = t('shop.monthlyRentInvalid');
+        newErrors.monthlyRent = t("shop.monthlyRentInvalid");
       }
     }
 
     if (!shopFormData.deposit.trim()) {
-      newErrors.deposit = t('shop.securityDepositRequired');
+      newErrors.deposit = t("shop.securityDepositRequired");
     } else {
       const deposit = parseFloat(shopFormData.deposit);
       if (isNaN(deposit) || deposit < 0) {
-        newErrors.deposit = t('shop.securityDepositInvalid');
+        newErrors.deposit = t("shop.securityDepositInvalid");
       }
     }
 
@@ -366,19 +392,19 @@ export default function RentManagement({
   // Handle shop form submission
   const handleAddShop = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!validateShopForm()) {
-      toast.error(t('shop.validationError'));
+      toast.error(t("shop.validationError"));
       return;
     }
 
-    const newShopData: Omit<Shop, 'id' | 'createdAt'> = {
+    const newShopData: Omit<Shop, "id" | "createdAt"> = {
       shopNumber: shopFormData.shopNumber.trim(),
       size: parseFloat(shopFormData.size),
       monthlyRent: parseFloat(shopFormData.monthlyRent),
       deposit: parseFloat(shopFormData.deposit),
-      status: 'Vacant',
-      description: shopFormData.description.trim()
+      status: "Vacant",
+      description: shopFormData.description.trim(),
     };
 
     onAddShop(newShopData);
@@ -387,11 +413,11 @@ export default function RentManagement({
 
     // Reset form
     setShopFormData({
-      shopNumber: '',
-      size: '',
-      monthlyRent: '',
-      deposit: '',
-      description: ''
+      shopNumber: "",
+      size: "",
+      monthlyRent: "",
+      deposit: "",
+      description: "",
     });
     setShopErrors({});
   };
@@ -401,27 +427,30 @@ export default function RentManagement({
     const newErrors: any = {};
 
     if (!tenantFormData.name.trim()) {
-      newErrors.name = t('tenant.tenantNameRequired');
+      newErrors.name = t("tenant.tenantNameRequired");
     } else if (tenantFormData.name.trim().length < 2) {
-      newErrors.name = t('tenant.tenantNameInvalid');
+      newErrors.name = t("tenant.tenantNameInvalid");
     }
 
     if (!tenantFormData.phone.trim()) {
-      newErrors.phone = t('tenant.tenantPhoneRequired');
+      newErrors.phone = t("tenant.tenantPhoneRequired");
     } else if (!/^\d{10}$/.test(tenantFormData.phone.trim())) {
-      newErrors.phone = t('tenant.tenantPhoneInvalid');
+      newErrors.phone = t("tenant.tenantPhoneInvalid");
     }
 
-    if (tenantFormData.email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(tenantFormData.email.trim())) {
-      newErrors.email = t('tenant.tenantEmailInvalid');
+    if (
+      tenantFormData.email.trim() &&
+      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(tenantFormData.email.trim())
+    ) {
+      newErrors.email = t("tenant.tenantEmailInvalid");
     }
 
     if (!tenantFormData.address.trim()) {
-      newErrors.address = t('tenant.tenantAddressRequired');
+      newErrors.address = t("tenant.tenantAddressRequired");
     }
 
     if (!tenantFormData.businessType.trim()) {
-      newErrors.businessType = t('tenant.businessTypeRequired');
+      newErrors.businessType = t("tenant.businessTypeRequired");
     }
 
     setTenantErrors(newErrors);
@@ -431,20 +460,20 @@ export default function RentManagement({
   // Handle tenant form submission
   const handleAddTenant = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!validateTenantForm()) {
-      toast.error(t('tenant.validationError'));
+      toast.error(t("tenant.validationError"));
       return;
     }
 
-    const newTenantData: Omit<Tenant, 'id' | 'createdAt'> = {
+    const newTenantData: Omit<Tenant, "id" | "createdAt"> = {
       name: tenantFormData.name.trim(),
       phone: tenantFormData.phone.trim(),
       email: tenantFormData.email.trim(),
       address: tenantFormData.address.trim(),
       businessType: tenantFormData.businessType.trim(),
-      status: 'Active',
-      idProof: tenantFormData.idProof.trim()
+      status: "Active",
+      idProof: tenantFormData.idProof.trim(),
     };
 
     onAddTenant(newTenantData);
@@ -453,12 +482,12 @@ export default function RentManagement({
 
     // Reset form
     setTenantFormData({
-      name: '',
-      phone: '',
-      email: '',
-      address: '',
-      businessType: '',
-      idProof: ''
+      name: "",
+      phone: "",
+      email: "",
+      address: "",
+      businessType: "",
+      idProof: "",
     });
     setTenantErrors({});
   };
@@ -468,41 +497,41 @@ export default function RentManagement({
     const newErrors: any = {};
 
     if (!agreementFormData.shopId) {
-      newErrors.shopId = t('agreement.shopRequired');
+      newErrors.shopId = t("agreement.shopRequired");
     }
 
     if (!agreementFormData.tenantId) {
-      newErrors.tenantId = t('agreement.tenantRequired');
+      newErrors.tenantId = t("agreement.tenantRequired");
     }
 
     if (!agreementFormData.agreementDate) {
-      newErrors.agreementDate = t('agreement.agreementDateRequired');
+      newErrors.agreementDate = t("agreement.agreementDateRequired");
     }
 
     if (!agreementFormData.duration.trim()) {
-      newErrors.duration = t('agreement.durationRequired');
+      newErrors.duration = t("agreement.durationRequired");
     } else {
       const duration = parseInt(agreementFormData.duration);
       if (isNaN(duration) || duration <= 0) {
-        newErrors.duration = t('agreement.durationInvalid');
+        newErrors.duration = t("agreement.durationInvalid");
       }
     }
 
     if (!agreementFormData.securityDeposit.trim()) {
-      newErrors.securityDeposit = t('agreement.securityDepositRequired');
+      newErrors.securityDeposit = t("agreement.securityDepositRequired");
     } else {
       const deposit = parseFloat(agreementFormData.securityDeposit);
       if (isNaN(deposit) || deposit < 0) {
-        newErrors.securityDeposit = t('agreement.securityDepositInvalid');
+        newErrors.securityDeposit = t("agreement.securityDepositInvalid");
       }
     }
 
     if (!agreementFormData.advanceRent.trim()) {
-      newErrors.advanceRent = t('agreement.advanceRentRequired');
+      newErrors.advanceRent = t("agreement.advanceRentRequired");
     } else {
       const advance = parseFloat(agreementFormData.advanceRent);
       if (isNaN(advance) || advance < 0) {
-        newErrors.advanceRent = t('agreement.advanceRentInvalid');
+        newErrors.advanceRent = t("agreement.advanceRentInvalid");
       }
     }
 
@@ -513,25 +542,32 @@ export default function RentManagement({
   // Handle agreement form submission
   const handleCreateAgreement = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!validateAgreementForm()) {
-      toast.error(t('agreement.validationError'));
+      toast.error(t("agreement.validationError"));
       return;
     }
 
     const selectedShop = getShopById(agreementFormData.shopId);
-    
-    const newAgreementData: Omit<Agreement, 'id' | 'createdAt' | 'nextDueDate'> = {
+
+    const newAgreementData: Omit<
+      Agreement,
+      "id" | "createdAt" | "nextDueDate"
+    > = {
       shopId: agreementFormData.shopId,
       tenantId: agreementFormData.tenantId,
-      agreementDate: agreementFormData.agreementDate!.toISOString().split('T')[0],
+      agreementDate: agreementFormData
+        .agreementDate!.toISOString()
+        .split("T")[0],
       duration: parseInt(agreementFormData.duration),
       monthlyRent: selectedShop?.monthlyRent || 0,
       securityDeposit: parseFloat(agreementFormData.securityDeposit),
       advanceRent: parseFloat(agreementFormData.advanceRent),
-      agreementType: agreementFormData.agreementType as 'Residential' | 'Commercial',
-      status: 'Active',
-      agreementDocument: agreementFormData.agreementDocument
+      agreementType: agreementFormData.agreementType as
+        | "Residential"
+        | "Commercial",
+      status: "Active",
+      agreementDocument: agreementFormData.agreementDocument,
     };
 
     onCreateAgreement(newAgreementData);
@@ -540,14 +576,14 @@ export default function RentManagement({
 
     // Reset form
     setAgreementFormData({
-      shopId: '',
-      tenantId: '',
+      shopId: "",
+      tenantId: "",
       agreementDate: null,
-      duration: '12',
-      agreementType: 'Commercial',
-      securityDeposit: '',
-      advanceRent: '',
-      agreementDocument: []
+      duration: "12",
+      agreementType: "Commercial",
+      securityDeposit: "",
+      advanceRent: "",
+      agreementDocument: [],
     });
     setAgreementErrors({});
   };
@@ -557,42 +593,42 @@ export default function RentManagement({
     const newErrors: any = {};
 
     if (!loanFormData.tenantId) {
-      newErrors.tenantId = t('loans.tenantRequired');
+      newErrors.tenantId = t("loans.tenantRequired");
     }
 
     if (!loanFormData.agreementId) {
-      newErrors.agreementId = t('loans.agreementRequired');
+      newErrors.agreementId = t("loans.agreementRequired");
     }
 
     if (!loanFormData.loanAmount.trim()) {
-      newErrors.loanAmount = t('loans.loanAmountRequired');
+      newErrors.loanAmount = t("loans.loanAmountRequired");
     } else {
       const amount = parseFloat(loanFormData.loanAmount);
       if (isNaN(amount) || amount <= 0) {
-        newErrors.loanAmount = t('loans.loanAmountInvalid');
+        newErrors.loanAmount = t("loans.loanAmountInvalid");
       }
     }
 
     if (!loanFormData.interestRate.trim()) {
-      newErrors.interestRate = t('loans.interestRateRequired');
+      newErrors.interestRate = t("loans.interestRateRequired");
     } else {
       const rate = parseFloat(loanFormData.interestRate);
       if (isNaN(rate) || rate <= 0) {
-        newErrors.interestRate = t('loans.interestRateInvalid');
+        newErrors.interestRate = t("loans.interestRateInvalid");
       }
     }
 
     if (!loanFormData.loanDuration.trim()) {
-      newErrors.loanDuration = t('loans.loanDurationRequired');
+      newErrors.loanDuration = t("loans.loanDurationRequired");
     } else {
       const duration = parseInt(loanFormData.loanDuration);
       if (isNaN(duration) || duration <= 0) {
-        newErrors.loanDuration = t('loans.loanDurationInvalid');
+        newErrors.loanDuration = t("loans.loanDurationInvalid");
       }
     }
 
     if (!loanFormData.disbursedDate) {
-      newErrors.disbursedDate = t('loans.disbursedDateRequired');
+      newErrors.disbursedDate = t("loans.disbursedDateRequired");
     }
 
     setLoanErrors(newErrors);
@@ -602,9 +638,9 @@ export default function RentManagement({
   // Handle loan form submission
   const handleAddLoan = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!validateLoanForm()) {
-      toast.error(t('loans.validationError'));
+      toast.error(t("loans.validationError"));
       return;
     }
 
@@ -612,27 +648,27 @@ export default function RentManagement({
     const loanAmount = parseFloat(loanFormData.loanAmount);
     const interestRate = parseFloat(loanFormData.interestRate);
     const loanDuration = parseInt(loanFormData.loanDuration);
-    
+
     const monthlyEmi = calculateEMI(loanAmount, interestRate, loanDuration);
-    
+
     // Calculate next EMI date (1 month from disbursed date)
     const nextEmiDate = new Date(loanFormData.disbursedDate!);
     nextEmiDate.setMonth(nextEmiDate.getMonth() + 1);
 
-    const newLoan: Omit<Loan, 'id' | 'createdAt'> = {
+    const newLoan: Omit<Loan, "id" | "createdAt"> = {
       tenantId: loanFormData.tenantId,
-      tenantName: selectedTenant?.name || '',
+      tenantName: selectedTenant?.name || "",
       agreementId: loanFormData.agreementId,
       loanAmount,
       interestRate,
-      disbursedDate: loanFormData.disbursedDate!.toISOString().split('T')[0],
+      disbursedDate: loanFormData.disbursedDate!.toISOString().split("T")[0],
       loanDuration,
       monthlyEmi,
       outstandingBalance: loanAmount,
       totalRepaid: 0,
-      status: 'Active',
-      nextEmiDate: nextEmiDate.toISOString().split('T')[0],
-      loanDocuments: loanFormData.loanDocuments
+      status: "Active",
+      nextEmiDate: nextEmiDate.toISOString().split("T")[0],
+      loanDocuments: loanFormData.loanDocuments,
     };
 
     onAddLoan(newLoan);
@@ -641,28 +677,29 @@ export default function RentManagement({
 
     // Reset form
     setLoanFormData({
-      tenantId: '',
-      agreementId: '',
-      loanAmount: '',
-      interestRate: '1',
-      loanDuration: '12',
+      tenantId: "",
+      agreementId: "",
+      loanAmount: "",
+      interestRate: "1",
+      loanDuration: "12",
       disbursedDate: null,
-      loanDocuments: []
+      loanDocuments: [],
     });
     setLoanErrors({});
   };
 
   // Get active loans for a specific agreement
   const getActiveLoansForAgreement = (agreementId: string) => {
-    return loans.filter(loan => 
-      loan.agreementId === agreementId && loan.status === 'Active'
+    return loans.filter(
+      (loan) => loan.agreementId === agreementId && loan.status === "Active"
     );
   };
 
   // Get pending penalties for a specific agreement
   const getPendingPenaltiesForAgreement = (agreementId: string) => {
-    return penalties.filter(penalty => 
-      penalty.agreementId === agreementId && penalty.status === 'Pending'
+    return penalties.filter(
+      (penalty) =>
+        penalty.agreementId === agreementId && penalty.status === "Pending"
     );
   };
 
@@ -677,12 +714,17 @@ export default function RentManagement({
         ...collectionFormData,
         agreementId,
         rentAmount: agreement.monthlyRent.toString(),
-        emiAmount: activeLoans.length > 0 ? activeLoans[0].monthlyEmi.toString() : '',
-        penaltyAmount: pendingPenalties.length > 0 ? pendingPenalties[0].penaltyAmount.toString() : '',
-        selectedLoanId: activeLoans.length > 0 ? activeLoans[0].id : '',
-        selectedPenaltyId: pendingPenalties.length > 0 ? pendingPenalties[0].id : '',
+        emiAmount:
+          activeLoans.length > 0 ? activeLoans[0].monthlyEmi.toString() : "",
+        penaltyAmount:
+          pendingPenalties.length > 0
+            ? pendingPenalties[0].penaltyAmount.toString()
+            : "",
+        selectedLoanId: activeLoans.length > 0 ? activeLoans[0].id : "",
+        selectedPenaltyId:
+          pendingPenalties.length > 0 ? pendingPenalties[0].id : "",
         collectEmi: activeLoans.length > 0,
-        collectPenalty: pendingPenalties.length > 0
+        collectPenalty: pendingPenalties.length > 0,
       });
     }
   };
@@ -698,34 +740,40 @@ export default function RentManagement({
     const selectedShop = getShopById(selectedAgreement.shopId);
 
     const collectionData = {
-      rentAmount: collectionFormData.collectRent ? parseFloat(collectionFormData.rentAmount) || 0 : 0,
-      emiAmount: collectionFormData.collectEmi ? parseFloat(collectionFormData.emiAmount) || 0 : 0,
-      penaltyAmount: collectionFormData.collectPenalty ? parseFloat(collectionFormData.penaltyAmount) || 0 : 0,
+      rentAmount: collectionFormData.collectRent
+        ? parseFloat(collectionFormData.rentAmount) || 0
+        : 0,
+      emiAmount: collectionFormData.collectEmi
+        ? parseFloat(collectionFormData.emiAmount) || 0
+        : 0,
+      penaltyAmount: collectionFormData.collectPenalty
+        ? parseFloat(collectionFormData.penaltyAmount) || 0
+        : 0,
       loanId: collectionFormData.selectedLoanId,
       penaltyId: collectionFormData.selectedPenaltyId,
       agreementId: collectionFormData.agreementId,
-      tenantName: selectedTenant?.name || '',
-      tenantContact: selectedTenant?.phone || '',
-      shopNumber: selectedShop?.shopNumber || ''
+      tenantName: selectedTenant?.name || "",
+      tenantContact: selectedTenant?.phone || "",
+      shopNumber: selectedShop?.shopNumber || "",
     };
 
     onRentCollection(collectionData);
     setShowCollectionSuccessDialog(true);
-    
+
     // Reset collection form
     setCollectionFormData({
-      agreementId: '',
-      rentAmount: '',
-      emiAmount: '',
-      penaltyAmount: '',
-      selectedLoanId: '',
-      selectedPenaltyId: '',
+      agreementId: "",
+      rentAmount: "",
+      emiAmount: "",
+      penaltyAmount: "",
+      selectedLoanId: "",
+      selectedPenaltyId: "",
       collectRent: true,
       collectEmi: false,
-      collectPenalty: false
+      collectPenalty: false,
     });
 
-    toast.success(t('rent.rentCollectionSuccess'));
+    toast.success(t("rent.rentCollectionSuccess"));
   };
 
   // Original rent income form handlers (keeping existing functionality)
@@ -733,14 +781,18 @@ export default function RentManagement({
     setRentIncomeFormData({
       ...rentIncomeFormData,
       category: value,
-      subCategory: '',
-      agreementId: '',
-      tenantName: '',
-      tenantContact: '',
-      rentAmount: ''
+      subCategory: "",
+      agreementId: "",
+      tenantName: "",
+      tenantContact: "",
+      rentAmount: "",
     });
     if (rentIncomeErrors.category) {
-      setRentIncomeErrors({...rentIncomeErrors, category: undefined, subCategory: undefined});
+      setRentIncomeErrors({
+        ...rentIncomeErrors,
+        category: undefined,
+        subCategory: undefined,
+      });
     }
   };
 
@@ -748,48 +800,53 @@ export default function RentManagement({
     const selectedAgreement = getAgreementById(agreementId);
     if (selectedAgreement) {
       const tenant = getTenantById(selectedAgreement.tenantId);
-      
+
       setRentIncomeFormData({
         ...rentIncomeFormData,
         agreementId: agreementId,
-        tenantName: tenant?.name || '',
-        tenantContact: tenant?.phone || '',
-        rentAmount: rentIncomeFormData.subCategory === 'bhade2Jama' ? '' : selectedAgreement.monthlyRent.toString()
+        tenantName: tenant?.name || "",
+        tenantContact: tenant?.phone || "",
+        rentAmount:
+          rentIncomeFormData.subCategory === "bhade2Jama"
+            ? ""
+            : selectedAgreement.monthlyRent.toString(),
       });
     } else {
       setRentIncomeFormData({
         ...rentIncomeFormData,
-        agreementId: '',
-        tenantName: '',
-        tenantContact: '',
-        rentAmount: ''
+        agreementId: "",
+        tenantName: "",
+        tenantContact: "",
+        rentAmount: "",
       });
     }
-    
+
     if (rentIncomeErrors.agreementId) {
-      setRentIncomeErrors({...rentIncomeErrors, agreementId: undefined});
+      setRentIncomeErrors({ ...rentIncomeErrors, agreementId: undefined });
     }
   };
 
   const handleSubCategoryChange = (value: string) => {
     const updatedFormData = {
       ...rentIncomeFormData,
-      subCategory: value
+      subCategory: value,
     };
 
-    if (rentIncomeFormData.agreementId && value !== 'bhade2Jama') {
-      const selectedAgreement = getAgreementById(rentIncomeFormData.agreementId);
+    if (rentIncomeFormData.agreementId && value !== "bhade2Jama") {
+      const selectedAgreement = getAgreementById(
+        rentIncomeFormData.agreementId
+      );
       if (selectedAgreement) {
         updatedFormData.rentAmount = selectedAgreement.monthlyRent.toString();
       }
-    } else if (value === 'bhade2Jama') {
-      updatedFormData.rentAmount = '';
+    } else if (value === "bhade2Jama") {
+      updatedFormData.rentAmount = "";
     }
 
     setRentIncomeFormData(updatedFormData);
-    
+
     if (rentIncomeErrors.subCategory) {
-      setRentIncomeErrors({...rentIncomeErrors, subCategory: undefined});
+      setRentIncomeErrors({ ...rentIncomeErrors, subCategory: undefined });
     }
   };
 
@@ -797,40 +854,43 @@ export default function RentManagement({
     const newErrors: any = {};
 
     if (!rentIncomeFormData.date) {
-      newErrors.date = t('donations.dateRequired');
+      newErrors.date = t("donations.dateRequired");
     }
 
     if (!rentIncomeFormData.category) {
-      newErrors.category = t('donations.categoryRequired');
+      newErrors.category = t("donations.categoryRequired");
     }
 
     if (!rentIncomeFormData.subCategory) {
-      newErrors.subCategory = t('donations.subCategoryRequired');
+      newErrors.subCategory = t("donations.subCategoryRequired");
     }
 
     if (!rentIncomeFormData.agreementId) {
-      newErrors.agreementId = t('rent.agreementRequired');
+      newErrors.agreementId = t("rent.agreementRequired");
     }
 
     if (!rentIncomeFormData.tenantName.trim()) {
-      newErrors.tenantName = t('rent.tenantNameRequired');
+      newErrors.tenantName = t("rent.tenantNameRequired");
     }
 
     if (!rentIncomeFormData.rentAmount.trim()) {
-      newErrors.rentAmount = t('rent.rentAmountRequired');
+      newErrors.rentAmount = t("rent.rentAmountRequired");
     } else {
       const amount = parseFloat(rentIncomeFormData.rentAmount);
       if (isNaN(amount) || amount <= 0) {
-        newErrors.rentAmount = t('rent.rentAmountInvalid');
+        newErrors.rentAmount = t("rent.rentAmountInvalid");
       }
     }
 
     if (!rentIncomeFormData.details.trim()) {
-      newErrors.details = t('rent.detailsRequired');
+      newErrors.details = t("rent.detailsRequired");
     }
 
-    if (rentIncomeFormData.tenantContact.trim() && !/^\d{10}$/.test(rentIncomeFormData.tenantContact.trim())) {
-      newErrors.tenantContact = t('donations.donorContactInvalid');
+    if (
+      rentIncomeFormData.tenantContact.trim() &&
+      !/^\d{10}$/.test(rentIncomeFormData.tenantContact.trim())
+    ) {
+      newErrors.tenantContact = t("donations.donorContactInvalid");
     }
 
     setRentIncomeErrors(newErrors);
@@ -839,7 +899,7 @@ export default function RentManagement({
 
   const handleRentAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
-    if (value === '' || /^\d*\.?\d*$/.test(value)) {
+    if (value === "" || /^\d*\.?\d*$/.test(value)) {
       setRentIncomeFormData({ ...rentIncomeFormData, rentAmount: value });
       if (rentIncomeErrors.rentAmount) {
         setRentIncomeErrors({ ...rentIncomeErrors, rentAmount: undefined });
@@ -847,9 +907,11 @@ export default function RentManagement({
     }
   };
 
-  const handleTenantContactChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleTenantContactChange = (
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
     const value = e.target.value;
-    if (value === '' || (/^\d+$/.test(value) && value.length <= 10)) {
+    if (value === "" || (/^\d+$/.test(value) && value.length <= 10)) {
       setRentIncomeFormData({ ...rentIncomeFormData, tenantContact: value });
       if (rentIncomeErrors.tenantContact) {
         setRentIncomeErrors({ ...rentIncomeErrors, tenantContact: undefined });
@@ -859,19 +921,21 @@ export default function RentManagement({
 
   const handleAddRentIncome = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!validateRentIncomeForm()) {
-      toast.error(t('rent.validationError'));
+      toast.error(t("rent.validationError"));
       return;
     }
 
     const selectedAgreement = getAgreementById(rentIncomeFormData.agreementId);
-    const shop = selectedAgreement ? getShopById(selectedAgreement.shopId) : null;
+    const shop = selectedAgreement
+      ? getShopById(selectedAgreement.shopId)
+      : null;
 
     const newRentIncome = {
       id: Date.now().toString(),
-      date: rentIncomeFormData.date!.toISOString().split('T')[0],
-      type: 'RentIncome',
+      date: rentIncomeFormData.date!.toISOString().split("T")[0],
+      type: "RentIncome",
       category: rentIncomeFormData.category,
       subCategory: rentIncomeFormData.subCategory,
       description: rentIncomeFormData.details.trim(),
@@ -880,94 +944,128 @@ export default function RentManagement({
       tenantName: rentIncomeFormData.tenantName.trim(),
       tenantContact: rentIncomeFormData.tenantContact.trim(),
       agreementId: rentIncomeFormData.agreementId,
-      shopNumber: shop?.shopNumber || ''
+      shopNumber: shop?.shopNumber || "",
     };
 
     onAddRentIncome(newRentIncome);
     setLastAddedRentIncome(newRentIncome);
     setShowRentSuccessDialog(true);
-    
+
     // Reset form
     setRentIncomeFormData({
       date: null,
-      category: '',
-      subCategory: '',
-      agreementId: '',
-      tenantName: '',
-      tenantContact: '',
-      rentAmount: '',
-      details: '',
-      receiptNumber: nextReceiptNumber
+      category: "",
+      subCategory: "",
+      agreementId: "",
+      tenantName: "",
+      tenantContact: "",
+      rentAmount: "",
+      details: "",
+      receiptNumber: nextReceiptNumber,
     });
     setRentIncomeErrors({});
   };
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'Vacant': return 'bg-gray-100 text-gray-800';
-      case 'Occupied': return 'bg-green-100 text-green-800';
-      case 'Maintenance': return 'bg-yellow-100 text-yellow-800';
-      case 'Active': return 'bg-green-100 text-green-800';
-      case 'Completed': return 'bg-blue-100 text-blue-800';
-      case 'Defaulted': return 'bg-red-100 text-red-800';
-      case 'Expired': return 'bg-red-100 text-red-800';
-      case 'Terminated': return 'bg-gray-100 text-gray-800';
-      case 'Paid': return 'bg-green-100 text-green-800';
-      case 'Pending': return 'bg-yellow-100 text-yellow-800';
-      case 'Overdue': return 'bg-red-100 text-red-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case "Vacant":
+        return "bg-gray-100 text-gray-800";
+      case "Occupied":
+        return "bg-green-100 text-green-800";
+      case "Maintenance":
+        return "bg-yellow-100 text-yellow-800";
+      case "Active":
+        return "bg-green-100 text-green-800";
+      case "Completed":
+        return "bg-blue-100 text-blue-800";
+      case "Defaulted":
+        return "bg-red-100 text-red-800";
+      case "Expired":
+        return "bg-red-100 text-red-800";
+      case "Terminated":
+        return "bg-gray-100 text-gray-800";
+      case "Paid":
+        return "bg-green-100 text-green-800";
+      case "Pending":
+        return "bg-yellow-100 text-yellow-800";
+      case "Overdue":
+        return "bg-red-100 text-red-800";
+      default:
+        return "bg-gray-100 text-gray-800";
     }
   };
 
   const getStatusLabel = (status: string) => {
     switch (status) {
-      case 'Vacant': return t('shop.vacant');
-      case 'Occupied': return t('shop.occupied');
-      case 'Maintenance': return t('shop.maintenance');
-      case 'Active': return t('loans.activeLoan');
-      case 'Completed': return t('loans.completedLoan');
-      case 'Defaulted': return t('loans.defaultedLoan');
-      case 'Expired': return 'Expired';
-      case 'Terminated': return 'Terminated';
-      case 'Paid': return t('penalties.paidPenalty');
-      case 'Pending': return t('penalties.pendingPenalty');
-      case 'Overdue': return t('rent.overdue');
-      default: return status;
+      case "Vacant":
+        return t("shop.vacant");
+      case "Occupied":
+        return t("shop.occupied");
+      case "Maintenance":
+        return t("shop.maintenance");
+      case "Active":
+        return t("loans.activeLoan");
+      case "Completed":
+        return t("loans.completedLoan");
+      case "Defaulted":
+        return t("loans.defaultedLoan");
+      case "Expired":
+        return "Expired";
+      case "Terminated":
+        return "Terminated";
+      case "Paid":
+        return t("penalties.paidPenalty");
+      case "Pending":
+        return t("penalties.pendingPenalty");
+      case "Overdue":
+        return t("rent.overdue");
+      default:
+        return status;
     }
   };
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-white">{t('rent.title')}</h1>
+        <h1 className="text-white">{t("rent.title")}</h1>
       </div>
 
       {/* Enhanced Tabs Navigation */}
-      <Tabs value={selectedTab} onValueChange={setSelectedTab} className="w-full">
+      <Tabs
+        value={selectedTab}
+        onValueChange={setSelectedTab}
+        className="w-full"
+      >
         <TabsList className="grid w-full grid-cols-7">
           <TabsTrigger value="shops" className="flex items-center gap-2">
             <Store className="h-4 w-4" />
-            {t('shop.title')}
+            {t("shop.title")}
           </TabsTrigger>
           <TabsTrigger value="tenants" className="flex items-center gap-2">
             <Users className="h-4 w-4" />
-            {t('tenant.title')}
+            {t("tenant.title")}
           </TabsTrigger>
           <TabsTrigger value="agreements" className="flex items-center gap-2">
             <FileSignature className="h-4 w-4" />
-            {t('agreement.title')}
+            {t("agreement.title")}
           </TabsTrigger>
           <TabsTrigger value="rent-income" className="flex items-center gap-2">
             <IndianRupee className="h-4 w-4" />
-            {t('rent.addRentIncome')}
+            {t("rent.addRentIncome")}
           </TabsTrigger>
-          <TabsTrigger value="loan-management" className="flex items-center gap-2">
+          <TabsTrigger
+            value="loan-management"
+            className="flex items-center gap-2"
+          >
             <CreditCard className="h-4 w-4" />
-            {t('rent.loanManagement')}
+            {t("rent.loanManagement")}
           </TabsTrigger>
-          <TabsTrigger value="rent-collection" className="flex items-center gap-2">
+          <TabsTrigger
+            value="rent-collection"
+            className="flex items-center gap-2"
+          >
             <Banknote className="h-4 w-4" />
-            {t('rent.rentAndEmiCollection')}
+            {t("rent.rentAndEmiCollection")}
           </TabsTrigger>
           <TabsTrigger value="overview" className="flex items-center gap-2">
             <FileText className="h-4 w-4" />
@@ -982,7 +1080,7 @@ export default function RentManagement({
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Plus className="h-5 w-5" />
-                {t('shop.addShop')}
+                {t("shop.addShop")}
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -990,19 +1088,25 @@ export default function RentManagement({
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {/* Shop Number */}
                   <div>
-                    <Label htmlFor="shopNumber">{t('shop.shopNumber')} *</Label>
+                    <Label htmlFor="shopNumber">{t("shop.shopNumber")} *</Label>
                     <Input
                       id="shopNumber"
                       type="text"
-                      placeholder={t('shop.enterShopNumber')}
+                      placeholder={t("shop.enterShopNumber")}
                       value={shopFormData.shopNumber}
                       onChange={(e) => {
-                        setShopFormData({...shopFormData, shopNumber: e.target.value});
+                        setShopFormData({
+                          ...shopFormData,
+                          shopNumber: e.target.value,
+                        });
                         if (shopErrors.shopNumber) {
-                          setShopErrors({...shopErrors, shopNumber: undefined});
+                          setShopErrors({
+                            ...shopErrors,
+                            shopNumber: undefined,
+                          });
                         }
                       }}
-                      className={shopErrors.shopNumber ? 'border-red-500' : ''}
+                      className={shopErrors.shopNumber ? "border-red-500" : ""}
                     />
                     {shopErrors.shopNumber && (
                       <p className="text-sm text-red-500 mt-1 flex items-center gap-1">
@@ -1014,22 +1118,22 @@ export default function RentManagement({
 
                   {/* Shop Size */}
                   <div>
-                    <Label htmlFor="shopSize">{t('shop.shopSize')} *</Label>
+                    <Label htmlFor="shopSize">{t("shop.shopSize")} *</Label>
                     <Input
                       id="shopSize"
                       type="text"
-                      placeholder={t('shop.enterShopSize')}
+                      placeholder={t("shop.enterShopSize")}
                       value={shopFormData.size}
                       onChange={(e) => {
                         const value = e.target.value;
-                        if (value === '' || /^\d*\.?\d*$/.test(value)) {
-                          setShopFormData({...shopFormData, size: value});
+                        if (value === "" || /^\d*\.?\d*$/.test(value)) {
+                          setShopFormData({ ...shopFormData, size: value });
                           if (shopErrors.size) {
-                            setShopErrors({...shopErrors, size: undefined});
+                            setShopErrors({ ...shopErrors, size: undefined });
                           }
                         }
                       }}
-                      className={shopErrors.size ? 'border-red-500' : ''}
+                      className={shopErrors.size ? "border-red-500" : ""}
                     />
                     {shopErrors.size && (
                       <p className="text-sm text-red-500 mt-1 flex items-center gap-1">
@@ -1041,22 +1145,30 @@ export default function RentManagement({
 
                   {/* Monthly Rent */}
                   <div>
-                    <Label htmlFor="monthlyRent">{t('shop.monthlyRent')} ({t('common.currency')}) *</Label>
+                    <Label htmlFor="monthlyRent">
+                      {t("shop.monthlyRent")} ({t("common.currency")}) *
+                    </Label>
                     <Input
                       id="monthlyRent"
                       type="text"
-                      placeholder={t('shop.enterMonthlyRent')}
+                      placeholder={t("shop.enterMonthlyRent")}
                       value={shopFormData.monthlyRent}
                       onChange={(e) => {
                         const value = e.target.value;
-                        if (value === '' || /^\d*\.?\d*$/.test(value)) {
-                          setShopFormData({...shopFormData, monthlyRent: value});
+                        if (value === "" || /^\d*\.?\d*$/.test(value)) {
+                          setShopFormData({
+                            ...shopFormData,
+                            monthlyRent: value,
+                          });
                           if (shopErrors.monthlyRent) {
-                            setShopErrors({...shopErrors, monthlyRent: undefined});
+                            setShopErrors({
+                              ...shopErrors,
+                              monthlyRent: undefined,
+                            });
                           }
                         }
                       }}
-                      className={shopErrors.monthlyRent ? 'border-red-500' : ''}
+                      className={shopErrors.monthlyRent ? "border-red-500" : ""}
                     />
                     {shopErrors.monthlyRent && (
                       <p className="text-sm text-red-500 mt-1 flex items-center gap-1">
@@ -1068,22 +1180,27 @@ export default function RentManagement({
 
                   {/* Security Deposit */}
                   <div>
-                    <Label htmlFor="deposit">{t('shop.securityDeposit')} ({t('common.currency')}) *</Label>
+                    <Label htmlFor="deposit">
+                      {t("shop.securityDeposit")} ({t("common.currency")}) *
+                    </Label>
                     <Input
                       id="deposit"
                       type="text"
-                      placeholder={t('shop.enterSecurityDeposit')}
+                      placeholder={t("shop.enterSecurityDeposit")}
                       value={shopFormData.deposit}
                       onChange={(e) => {
                         const value = e.target.value;
-                        if (value === '' || /^\d*\.?\d*$/.test(value)) {
-                          setShopFormData({...shopFormData, deposit: value});
+                        if (value === "" || /^\d*\.?\d*$/.test(value)) {
+                          setShopFormData({ ...shopFormData, deposit: value });
                           if (shopErrors.deposit) {
-                            setShopErrors({...shopErrors, deposit: undefined});
+                            setShopErrors({
+                              ...shopErrors,
+                              deposit: undefined,
+                            });
                           }
                         }
                       }}
-                      className={shopErrors.deposit ? 'border-red-500' : ''}
+                      className={shopErrors.deposit ? "border-red-500" : ""}
                     />
                     {shopErrors.deposit && (
                       <p className="text-sm text-red-500 mt-1 flex items-center gap-1">
@@ -1093,21 +1210,28 @@ export default function RentManagement({
                     )}
                   </div>
                 </div>
-                
+
                 {/* Description */}
                 <div>
-                  <Label htmlFor="description">{t('shop.shopDescription')}</Label>
+                  <Label htmlFor="description">
+                    {t("shop.shopDescription")}
+                  </Label>
                   <Textarea
                     id="description"
-                    placeholder={t('shop.enterShopDescription')}
+                    placeholder={t("shop.enterShopDescription")}
                     value={shopFormData.description}
                     onChange={(e) => {
-                      setShopFormData({...shopFormData, description: e.target.value});
+                      setShopFormData({
+                        ...shopFormData,
+                        description: e.target.value,
+                      });
                     }}
                   />
                 </div>
-                
-                <Button type="submit" className="w-full">{t('shop.addShop')}</Button>
+
+                <Button type="submit" className="w-full">
+                  {t("shop.addShop")}
+                </Button>
               </form>
             </CardContent>
           </Card>
@@ -1117,7 +1241,7 @@ export default function RentManagement({
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Building className="h-5 w-5" />
-                {t('shop.title')}
+                {t("shop.title")}
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -1133,20 +1257,24 @@ export default function RentManagement({
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>{t('shop.shopNumber')}</TableHead>
-                        <TableHead>{t('shop.shopSize')}</TableHead>
-                        <TableHead>{t('shop.monthlyRent')}</TableHead>
-                        <TableHead>{t('shop.securityDeposit')}</TableHead>
-                        <TableHead>{t('shop.shopStatus')}</TableHead>
-                        <TableHead>{t('common.actions')}</TableHead>
+                        <TableHead>{t("shop.shopNumber")}</TableHead>
+                        <TableHead>{t("shop.shopSize")}</TableHead>
+                        <TableHead>{t("shop.monthlyRent")}</TableHead>
+                        <TableHead>{t("shop.securityDeposit")}</TableHead>
+                        <TableHead>{t("shop.shopStatus")}</TableHead>
+                        <TableHead>{t("common.actions")}</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {shops.map((shop) => (
                         <TableRow key={shop.id}>
-                          <TableCell className="font-medium">{shop.shopNumber}</TableCell>
+                          <TableCell className="font-medium">
+                            {shop.shopNumber}
+                          </TableCell>
                           <TableCell>{shop.size} sq ft</TableCell>
-                          <TableCell>{formatCurrency(shop.monthlyRent)}</TableCell>
+                          <TableCell>
+                            {formatCurrency(shop.monthlyRent)}
+                          </TableCell>
                           <TableCell>{formatCurrency(shop.deposit)}</TableCell>
                           <TableCell>
                             <Badge className={getStatusColor(shop.status)}>
@@ -1168,7 +1296,7 @@ export default function RentManagement({
                                 size="sm"
                                 variant="outline"
                                 onClick={() => onDeleteShop(shop.id)}
-                                disabled={shop.status === 'Occupied'}
+                                disabled={shop.status === "Occupied"}
                               >
                                 <Trash2 className="h-4 w-4" />
                               </Button>
@@ -1191,7 +1319,7 @@ export default function RentManagement({
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <UserPlus className="h-5 w-5" />
-                {t('tenant.addTenant')}
+                {t("tenant.addTenant")}
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -1199,19 +1327,24 @@ export default function RentManagement({
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {/* Tenant Name */}
                   <div>
-                    <Label htmlFor="tenantName">{t('tenant.tenantName')} *</Label>
+                    <Label htmlFor="tenantName">
+                      {t("tenant.tenantName")} *
+                    </Label>
                     <Input
                       id="tenantName"
                       type="text"
-                      placeholder={t('tenant.enterTenantName')}
+                      placeholder={t("tenant.enterTenantName")}
                       value={tenantFormData.name}
                       onChange={(e) => {
-                        setTenantFormData({...tenantFormData, name: e.target.value});
+                        setTenantFormData({
+                          ...tenantFormData,
+                          name: e.target.value,
+                        });
                         if (tenantErrors.name) {
-                          setTenantErrors({...tenantErrors, name: undefined});
+                          setTenantErrors({ ...tenantErrors, name: undefined });
                         }
                       }}
-                      className={tenantErrors.name ? 'border-red-500' : ''}
+                      className={tenantErrors.name ? "border-red-500" : ""}
                     />
                     {tenantErrors.name && (
                       <p className="text-sm text-red-500 mt-1 flex items-center gap-1">
@@ -1223,22 +1356,33 @@ export default function RentManagement({
 
                   {/* Phone Number */}
                   <div>
-                    <Label htmlFor="tenantPhone">{t('tenant.tenantPhone')} *</Label>
+                    <Label htmlFor="tenantPhone">
+                      {t("tenant.tenantPhone")} *
+                    </Label>
                     <Input
                       id="tenantPhone"
                       type="text"
-                      placeholder={t('tenant.enterTenantPhone')}
+                      placeholder={t("tenant.enterTenantPhone")}
                       value={tenantFormData.phone}
                       onChange={(e) => {
                         const value = e.target.value;
-                        if (value === '' || (/^\d+$/.test(value) && value.length <= 10)) {
-                          setTenantFormData({...tenantFormData, phone: value});
+                        if (
+                          value === "" ||
+                          (/^\d+$/.test(value) && value.length <= 10)
+                        ) {
+                          setTenantFormData({
+                            ...tenantFormData,
+                            phone: value,
+                          });
                           if (tenantErrors.phone) {
-                            setTenantErrors({...tenantErrors, phone: undefined});
+                            setTenantErrors({
+                              ...tenantErrors,
+                              phone: undefined,
+                            });
                           }
                         }
                       }}
-                      className={tenantErrors.phone ? 'border-red-500' : ''}
+                      className={tenantErrors.phone ? "border-red-500" : ""}
                     />
                     {tenantErrors.phone && (
                       <p className="text-sm text-red-500 mt-1 flex items-center gap-1">
@@ -1250,19 +1394,27 @@ export default function RentManagement({
 
                   {/* Email Address */}
                   <div>
-                    <Label htmlFor="tenantEmail">{t('tenant.tenantEmail')}</Label>
+                    <Label htmlFor="tenantEmail">
+                      {t("tenant.tenantEmail")}
+                    </Label>
                     <Input
                       id="tenantEmail"
                       type="email"
-                      placeholder={t('tenant.enterTenantEmail')}
+                      placeholder={t("tenant.enterTenantEmail")}
                       value={tenantFormData.email}
                       onChange={(e) => {
-                        setTenantFormData({...tenantFormData, email: e.target.value});
+                        setTenantFormData({
+                          ...tenantFormData,
+                          email: e.target.value,
+                        });
                         if (tenantErrors.email) {
-                          setTenantErrors({...tenantErrors, email: undefined});
+                          setTenantErrors({
+                            ...tenantErrors,
+                            email: undefined,
+                          });
                         }
                       }}
-                      className={tenantErrors.email ? 'border-red-500' : ''}
+                      className={tenantErrors.email ? "border-red-500" : ""}
                     />
                     {tenantErrors.email && (
                       <p className="text-sm text-red-500 mt-1 flex items-center gap-1">
@@ -1274,19 +1426,29 @@ export default function RentManagement({
 
                   {/* Business Type */}
                   <div>
-                    <Label htmlFor="businessType">{t('tenant.businessType')} *</Label>
+                    <Label htmlFor="businessType">
+                      {t("tenant.businessType")} *
+                    </Label>
                     <Input
                       id="businessType"
                       type="text"
-                      placeholder={t('tenant.enterBusinessType')}
+                      placeholder={t("tenant.enterBusinessType")}
                       value={tenantFormData.businessType}
                       onChange={(e) => {
-                        setTenantFormData({...tenantFormData, businessType: e.target.value});
+                        setTenantFormData({
+                          ...tenantFormData,
+                          businessType: e.target.value,
+                        });
                         if (tenantErrors.businessType) {
-                          setTenantErrors({...tenantErrors, businessType: undefined});
+                          setTenantErrors({
+                            ...tenantErrors,
+                            businessType: undefined,
+                          });
                         }
                       }}
-                      className={tenantErrors.businessType ? 'border-red-500' : ''}
+                      className={
+                        tenantErrors.businessType ? "border-red-500" : ""
+                      }
                     />
                     {tenantErrors.businessType && (
                       <p className="text-sm text-red-500 mt-1 flex items-center gap-1">
@@ -1296,21 +1458,29 @@ export default function RentManagement({
                     )}
                   </div>
                 </div>
-                
+
                 {/* Address */}
                 <div>
-                  <Label htmlFor="tenantAddress">{t('tenant.tenantAddress')} *</Label>
+                  <Label htmlFor="tenantAddress">
+                    {t("tenant.tenantAddress")} *
+                  </Label>
                   <Textarea
                     id="tenantAddress"
-                    placeholder={t('tenant.enterTenantAddress')}
+                    placeholder={t("tenant.enterTenantAddress")}
                     value={tenantFormData.address}
                     onChange={(e) => {
-                      setTenantFormData({...tenantFormData, address: e.target.value});
+                      setTenantFormData({
+                        ...tenantFormData,
+                        address: e.target.value,
+                      });
                       if (tenantErrors.address) {
-                        setTenantErrors({...tenantErrors, address: undefined});
+                        setTenantErrors({
+                          ...tenantErrors,
+                          address: undefined,
+                        });
                       }
                     }}
-                    className={tenantErrors.address ? 'border-red-500' : ''}
+                    className={tenantErrors.address ? "border-red-500" : ""}
                   />
                   {tenantErrors.address && (
                     <p className="text-sm text-red-500 mt-1 flex items-center gap-1">
@@ -1322,19 +1492,24 @@ export default function RentManagement({
 
                 {/* ID Proof */}
                 <div>
-                  <Label htmlFor="idProof">{t('tenant.idProof')}</Label>
+                  <Label htmlFor="idProof">{t("tenant.idProof")}</Label>
                   <Input
                     id="idProof"
                     type="text"
-                    placeholder={t('tenant.enterIdProof')}
+                    placeholder={t("tenant.enterIdProof")}
                     value={tenantFormData.idProof}
                     onChange={(e) => {
-                      setTenantFormData({...tenantFormData, idProof: e.target.value});
+                      setTenantFormData({
+                        ...tenantFormData,
+                        idProof: e.target.value,
+                      });
                     }}
                   />
                 </div>
-                
-                <Button type="submit" className="w-full">{t('tenant.addTenant')}</Button>
+
+                <Button type="submit" className="w-full">
+                  {t("tenant.addTenant")}
+                </Button>
               </form>
             </CardContent>
           </Card>
@@ -1344,7 +1519,7 @@ export default function RentManagement({
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Users className="h-5 w-5" />
-                {t('tenant.title')}
+                {t("tenant.title")}
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -1360,18 +1535,20 @@ export default function RentManagement({
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>{t('tenant.tenantName')}</TableHead>
-                        <TableHead>{t('tenant.tenantPhone')}</TableHead>
-                        <TableHead>{t('tenant.tenantEmail')}</TableHead>
-                        <TableHead>{t('tenant.businessType')}</TableHead>
-                        <TableHead>{t('tenant.tenantStatus')}</TableHead>
-                        <TableHead>{t('common.actions')}</TableHead>
+                        <TableHead>{t("tenant.tenantName")}</TableHead>
+                        <TableHead>{t("tenant.tenantPhone")}</TableHead>
+                        <TableHead>{t("tenant.tenantEmail")}</TableHead>
+                        <TableHead>{t("tenant.businessType")}</TableHead>
+                        <TableHead>{t("tenant.tenantStatus")}</TableHead>
+                        <TableHead>{t("common.actions")}</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {tenants.map((tenant) => (
                         <TableRow key={tenant.id}>
-                          <TableCell className="font-medium">{tenant.name}</TableCell>
+                          <TableCell className="font-medium">
+                            {tenant.name}
+                          </TableCell>
                           <TableCell>{tenant.phone}</TableCell>
                           <TableCell>{tenant.email}</TableCell>
                           <TableCell>{tenant.businessType}</TableCell>
@@ -1417,7 +1594,7 @@ export default function RentManagement({
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <FileSignature className="h-5 w-5" />
-                {t('agreement.createAgreement')}
+                {t("agreement.createAgreement")}
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -1425,25 +1602,41 @@ export default function RentManagement({
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {/* Shop Selection */}
                   <div>
-                    <Label htmlFor="shopId">{t('agreement.selectShop')} *</Label>
-                    <Select 
-                      value={agreementFormData.shopId} 
+                    <Label htmlFor="shopId">
+                      {t("agreement.selectShop")} *
+                    </Label>
+                    <Select
+                      value={agreementFormData.shopId}
                       onValueChange={(value) => {
-                        setAgreementFormData({...agreementFormData, shopId: value});
+                        setAgreementFormData({
+                          ...agreementFormData,
+                          shopId: value,
+                        });
                         if (agreementErrors.shopId) {
-                          setAgreementErrors({...agreementErrors, shopId: undefined});
+                          setAgreementErrors({
+                            ...agreementErrors,
+                            shopId: undefined,
+                          });
                         }
                       }}
                     >
-                      <SelectTrigger className={agreementErrors.shopId ? 'border-red-500' : ''}>
-                        <SelectValue placeholder={t('agreement.selectShop')} />
+                      <SelectTrigger
+                        className={
+                          agreementErrors.shopId ? "border-red-500" : ""
+                        }
+                      >
+                        <SelectValue placeholder={t("agreement.selectShop")} />
                       </SelectTrigger>
                       <SelectContent>
-                        {shops.filter(shop => shop.status === 'Vacant').map(shop => (
-                          <SelectItem key={shop.id} value={shop.id}>
-                            {shop.shopNumber} - {formatCurrency(shop.monthlyRent)} - {shop.size} sq ft
-                          </SelectItem>
-                        ))}
+                        {shops
+                          .filter((shop) => shop.status === "Vacant")
+                          .map((shop) => (
+                            <SelectItem key={shop.id} value={shop.id}>
+                              {shop.shopNumber} -{" "}
+                              {formatCurrency(shop.monthlyRent)} - {shop.size}{" "}
+                              sq ft
+                            </SelectItem>
+                          ))}
                       </SelectContent>
                     </Select>
                     {agreementErrors.shopId && (
@@ -1456,25 +1649,42 @@ export default function RentManagement({
 
                   {/* Tenant Selection */}
                   <div>
-                    <Label htmlFor="tenantId">{t('agreement.selectTenant')} *</Label>
-                    <Select 
-                      value={agreementFormData.tenantId} 
+                    <Label htmlFor="tenantId">
+                      {t("agreement.selectTenant")} *
+                    </Label>
+                    <Select
+                      value={agreementFormData.tenantId}
                       onValueChange={(value) => {
-                        setAgreementFormData({...agreementFormData, tenantId: value});
+                        setAgreementFormData({
+                          ...agreementFormData,
+                          tenantId: value,
+                        });
                         if (agreementErrors.tenantId) {
-                          setAgreementErrors({...agreementErrors, tenantId: undefined});
+                          setAgreementErrors({
+                            ...agreementErrors,
+                            tenantId: undefined,
+                          });
                         }
                       }}
                     >
-                      <SelectTrigger className={agreementErrors.tenantId ? 'border-red-500' : ''}>
-                        <SelectValue placeholder={t('agreement.selectTenant')} />
+                      <SelectTrigger
+                        className={
+                          agreementErrors.tenantId ? "border-red-500" : ""
+                        }
+                      >
+                        <SelectValue
+                          placeholder={t("agreement.selectTenant")}
+                        />
                       </SelectTrigger>
                       <SelectContent>
-                        {tenants.filter(tenant => tenant.status === 'Active').map(tenant => (
-                          <SelectItem key={tenant.id} value={tenant.id}>
-                            {tenant.name} - {tenant.phone} - {tenant.businessType}
-                          </SelectItem>
-                        ))}
+                        {tenants
+                          .filter((tenant) => tenant.status === "Active")
+                          .map((tenant) => (
+                            <SelectItem key={tenant.id} value={tenant.id}>
+                              {tenant.name} - {tenant.phone} -{" "}
+                              {tenant.businessType}
+                            </SelectItem>
+                          ))}
                       </SelectContent>
                     </Select>
                     {agreementErrors.tenantId && (
@@ -1487,13 +1697,21 @@ export default function RentManagement({
 
                   {/* Agreement Date */}
                   <div>
-                    <Label htmlFor="agreementDate">{t('agreement.agreementDate')} *</Label>
+                    <Label htmlFor="agreementDate">
+                      {t("agreement.agreementDate")} *
+                    </Label>
                     <DatePicker
                       date={agreementFormData.agreementDate || undefined}
                       onDateChange={(date) => {
-                        setAgreementFormData({...agreementFormData, agreementDate: date || null});
+                        setAgreementFormData({
+                          ...agreementFormData,
+                          agreementDate: date || null,
+                        });
                         if (agreementErrors.agreementDate) {
-                          setAgreementErrors({...agreementErrors, agreementDate: undefined});
+                          setAgreementErrors({
+                            ...agreementErrors,
+                            agreementDate: undefined,
+                          });
                         }
                       }}
                     />
@@ -1507,22 +1725,32 @@ export default function RentManagement({
 
                   {/* Duration */}
                   <div>
-                    <Label htmlFor="duration">{t('agreement.agreementDuration')} *</Label>
+                    <Label htmlFor="duration">
+                      {t("agreement.agreementDuration")} *
+                    </Label>
                     <Input
                       id="duration"
                       type="text"
-                      placeholder={t('agreement.enterDuration')}
+                      placeholder={t("agreement.enterDuration")}
                       value={agreementFormData.duration}
                       onChange={(e) => {
                         const value = e.target.value;
-                        if (value === '' || /^\d*$/.test(value)) {
-                          setAgreementFormData({...agreementFormData, duration: value});
+                        if (value === "" || /^\d*$/.test(value)) {
+                          setAgreementFormData({
+                            ...agreementFormData,
+                            duration: value,
+                          });
                           if (agreementErrors.duration) {
-                            setAgreementErrors({...agreementErrors, duration: undefined});
+                            setAgreementErrors({
+                              ...agreementErrors,
+                              duration: undefined,
+                            });
                           }
                         }
                       }}
-                      className={agreementErrors.duration ? 'border-red-500' : ''}
+                      className={
+                        agreementErrors.duration ? "border-red-500" : ""
+                      }
                     />
                     {agreementErrors.duration && (
                       <p className="text-sm text-red-500 mt-1 flex items-center gap-1">
@@ -1534,41 +1762,62 @@ export default function RentManagement({
 
                   {/* Agreement Type */}
                   <div>
-                    <Label htmlFor="agreementType">{t('agreement.agreementType')} *</Label>
-                    <Select 
-                      value={agreementFormData.agreementType} 
+                    <Label htmlFor="agreementType">
+                      {t("agreement.agreementType")} *
+                    </Label>
+                    <Select
+                      value={agreementFormData.agreementType}
                       onValueChange={(value) => {
-                        setAgreementFormData({...agreementFormData, agreementType: value});
+                        setAgreementFormData({
+                          ...agreementFormData,
+                          agreementType: value,
+                        });
                       }}
                     >
                       <SelectTrigger>
-                        <SelectValue placeholder={t('agreement.agreementType')} />
+                        <SelectValue
+                          placeholder={t("agreement.agreementType")}
+                        />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="Commercial">{t('agreement.commercial')}</SelectItem>
-                        <SelectItem value="Residential">{t('agreement.residential')}</SelectItem>
+                        <SelectItem value="Commercial">
+                          {t("agreement.commercial")}
+                        </SelectItem>
+                        <SelectItem value="Residential">
+                          {t("agreement.residential")}
+                        </SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
 
                   {/* Security Deposit */}
                   <div>
-                    <Label htmlFor="securityDeposit">{t('shop.securityDeposit')} ({t('common.currency')}) *</Label>
+                    <Label htmlFor="securityDeposit">
+                      {t("shop.securityDeposit")} ({t("common.currency")}) *
+                    </Label>
                     <Input
                       id="securityDeposit"
                       type="text"
-                      placeholder={t('shop.enterSecurityDeposit')}
+                      placeholder={t("shop.enterSecurityDeposit")}
                       value={agreementFormData.securityDeposit}
                       onChange={(e) => {
                         const value = e.target.value;
-                        if (value === '' || /^\d*\.?\d*$/.test(value)) {
-                          setAgreementFormData({...agreementFormData, securityDeposit: value});
+                        if (value === "" || /^\d*\.?\d*$/.test(value)) {
+                          setAgreementFormData({
+                            ...agreementFormData,
+                            securityDeposit: value,
+                          });
                           if (agreementErrors.securityDeposit) {
-                            setAgreementErrors({...agreementErrors, securityDeposit: undefined});
+                            setAgreementErrors({
+                              ...agreementErrors,
+                              securityDeposit: undefined,
+                            });
                           }
                         }
                       }}
-                      className={agreementErrors.securityDeposit ? 'border-red-500' : ''}
+                      className={
+                        agreementErrors.securityDeposit ? "border-red-500" : ""
+                      }
                     />
                     {agreementErrors.securityDeposit && (
                       <p className="text-sm text-red-500 mt-1 flex items-center gap-1">
@@ -1580,22 +1829,32 @@ export default function RentManagement({
 
                   {/* Advance Rent */}
                   <div>
-                    <Label htmlFor="advanceRent">{t('agreement.advanceRent')} ({t('common.currency')}) *</Label>
+                    <Label htmlFor="advanceRent">
+                      {t("agreement.advanceRent")} ({t("common.currency")}) *
+                    </Label>
                     <Input
                       id="advanceRent"
                       type="text"
-                      placeholder={t('agreement.enterAdvanceRent')}
+                      placeholder={t("agreement.enterAdvanceRent")}
                       value={agreementFormData.advanceRent}
                       onChange={(e) => {
                         const value = e.target.value;
-                        if (value === '' || /^\d*\.?\d*$/.test(value)) {
-                          setAgreementFormData({...agreementFormData, advanceRent: value});
+                        if (value === "" || /^\d*\.?\d*$/.test(value)) {
+                          setAgreementFormData({
+                            ...agreementFormData,
+                            advanceRent: value,
+                          });
                           if (agreementErrors.advanceRent) {
-                            setAgreementErrors({...agreementErrors, advanceRent: undefined});
+                            setAgreementErrors({
+                              ...agreementErrors,
+                              advanceRent: undefined,
+                            });
                           }
                         }
                       }}
-                      className={agreementErrors.advanceRent ? 'border-red-500' : ''}
+                      className={
+                        agreementErrors.advanceRent ? "border-red-500" : ""
+                      }
                     />
                     {agreementErrors.advanceRent && (
                       <p className="text-sm text-red-500 mt-1 flex items-center gap-1">
@@ -1606,38 +1865,49 @@ export default function RentManagement({
                   </div>
 
                   {/* Total Deposit Display */}
-                  {agreementFormData.securityDeposit && agreementFormData.advanceRent && (
-                    <div>
-                      <Label>{t('agreement.totalDeposit')} ({t('common.currency')})</Label>
-                      <div className="relative">
-                        <IndianRupee className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                        <Input
-                          value={formatCurrency(
-                            (parseFloat(agreementFormData.securityDeposit) || 0) +
-                            (parseFloat(agreementFormData.advanceRent) || 0)
-                          )}
-                          disabled
-                          className="pl-10 bg-gray-50"
-                        />
+                  {agreementFormData.securityDeposit &&
+                    agreementFormData.advanceRent && (
+                      <div>
+                        <Label>
+                          {t("agreement.totalDeposit")} ({t("common.currency")})
+                        </Label>
+                        <div className="relative">
+                          <IndianRupee className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                          <Input
+                            value={formatCurrency(
+                              (parseFloat(agreementFormData.securityDeposit) ||
+                                0) +
+                                (parseFloat(agreementFormData.advanceRent) || 0)
+                            )}
+                            disabled
+                            className="pl-10 bg-gray-50"
+                          />
+                        </div>
                       </div>
-                    </div>
-                  )}
+                    )}
                 </div>
 
                 {/* Agreement Documents Upload */}
                 <div>
-                  <Label>{t('agreement.agreementDocument')}</Label>
+                  <Label>{t("agreement.agreementDocument")}</Label>
                   <FileUpload
                     files={agreementFormData.agreementDocument}
-                    onFilesChange={(files) => setAgreementFormData({...agreementFormData, agreementDocument: files})}
+                    onFilesChange={(files) =>
+                      setAgreementFormData({
+                        ...agreementFormData,
+                        agreementDocument: files,
+                      })
+                    }
                     accept="image/*,.pdf"
                     maxFiles={5}
                     maxSize={300 * 1024}
-                    label={t('agreement.uploadAgreementDocument')}
+                    label={t("agreement.uploadAgreementDocument")}
                   />
                 </div>
-                
-                <Button type="submit" className="w-full">{t('agreement.createAgreement')}</Button>
+
+                <Button type="submit" className="w-full">
+                  {t("agreement.createAgreement")}
+                </Button>
               </form>
             </CardContent>
           </Card>
@@ -1647,7 +1917,7 @@ export default function RentManagement({
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <FileText className="h-5 w-5" />
-                {t('agreement.activeAgreements')}
+                {t("agreement.activeAgreements")}
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -1663,13 +1933,13 @@ export default function RentManagement({
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>{t('shop.shopNumber')}</TableHead>
-                        <TableHead>{t('tenant.tenantName')}</TableHead>
-                        <TableHead>{t('agreement.agreementDate')}</TableHead>
-                        <TableHead>{t('shop.monthlyRent')}</TableHead>
-                        <TableHead>{t('agreement.agreementType')}</TableHead>
-                        <TableHead>{t('common.status')}</TableHead>
-                        <TableHead>{t('common.actions')}</TableHead>
+                        <TableHead>{t("shop.shopNumber")}</TableHead>
+                        <TableHead>{t("tenant.tenantName")}</TableHead>
+                        <TableHead>{t("agreement.agreementDate")}</TableHead>
+                        <TableHead>{t("shop.monthlyRent")}</TableHead>
+                        <TableHead>{t("agreement.agreementType")}</TableHead>
+                        <TableHead>{t("common.status")}</TableHead>
+                        <TableHead>{t("common.actions")}</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -1678,13 +1948,21 @@ export default function RentManagement({
                         const tenant = getTenantById(agreement.tenantId);
                         return (
                           <TableRow key={agreement.id}>
-                            <TableCell className="font-medium">{shop?.shopNumber}</TableCell>
+                            <TableCell className="font-medium">
+                              {shop?.shopNumber}
+                            </TableCell>
                             <TableCell>{tenant?.name}</TableCell>
-                            <TableCell>{formatDate(agreement.agreementDate)}</TableCell>
-                            <TableCell>{formatCurrency(agreement.monthlyRent)}</TableCell>
+                            <TableCell>
+                              {formatDate(agreement.agreementDate)}
+                            </TableCell>
+                            <TableCell>
+                              {formatCurrency(agreement.monthlyRent)}
+                            </TableCell>
                             <TableCell>{agreement.agreementType}</TableCell>
                             <TableCell>
-                              <Badge className={getStatusColor(agreement.status)}>
+                              <Badge
+                                className={getStatusColor(agreement.status)}
+                              >
                                 {getStatusLabel(agreement.status)}
                               </Badge>
                             </TableCell>
@@ -1725,14 +2003,16 @@ export default function RentManagement({
         <TabsContent value="rent-income" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>{t('rent.addRentIncome')}</CardTitle>
+              <CardTitle>{t("rent.addRentIncome")}</CardTitle>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleAddRentIncome} className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {/* Receipt Number */}
                   <div>
-                    <Label htmlFor="receiptNumber">{t('donations.receiptNumber')} *</Label>
+                    <Label htmlFor="receiptNumber">
+                      {t("donations.receiptNumber")} *
+                    </Label>
                     <Input
                       id="receiptNumber"
                       value={rentIncomeFormData.receiptNumber}
@@ -1743,13 +2023,19 @@ export default function RentManagement({
 
                   {/* Date */}
                   <div>
-                    <Label htmlFor="date">{t('donations.date')} *</Label>
+                    <Label htmlFor="date">{t("donations.date")} *</Label>
                     <DatePicker
                       date={rentIncomeFormData.date || undefined}
                       onDateChange={(date) => {
-                        setRentIncomeFormData({...rentIncomeFormData, date: date || null});
+                        setRentIncomeFormData({
+                          ...rentIncomeFormData,
+                          date: date || null,
+                        });
                         if (rentIncomeErrors.date) {
-                          setRentIncomeErrors({...rentIncomeErrors, date: undefined});
+                          setRentIncomeErrors({
+                            ...rentIncomeErrors,
+                            date: undefined,
+                          });
                         }
                       }}
                     />
@@ -1760,19 +2046,29 @@ export default function RentManagement({
                       </p>
                     )}
                   </div>
-                  
+
                   {/* Category */}
                   <div>
-                    <Label htmlFor="category">{t('donations.category')} *</Label>
-                    <Select 
-                      value={rentIncomeFormData.category} 
+                    <Label htmlFor="category">
+                      {t("donations.category")} *
+                    </Label>
+                    <Select
+                      value={rentIncomeFormData.category}
                       onValueChange={handleRentCategoryChange}
                     >
-                      <SelectTrigger className={rentIncomeErrors.category ? 'border-red-500' : ''}>
-                        <SelectValue placeholder={t('donations.selectCategory')} />
+                      <SelectTrigger
+                        className={
+                          rentIncomeErrors.category ? "border-red-500" : ""
+                        }
+                      >
+                        <SelectValue
+                          placeholder={t("donations.selectCategory")}
+                        />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="Bhade Jama">{t('rent.bhadeJama')}</SelectItem>
+                        <SelectItem value="Bhade Jama">
+                          {t("rent.bhadeJama")}
+                        </SelectItem>
                       </SelectContent>
                     </Select>
                     {rentIncomeErrors.category && (
@@ -1786,16 +2082,26 @@ export default function RentManagement({
                   {/* Sub-Category */}
                   {rentIncomeFormData.category && (
                     <div>
-                      <Label htmlFor="subCategory">{t('donations.subCategory')} *</Label>
-                      <Select 
-                        value={rentIncomeFormData.subCategory} 
+                      <Label htmlFor="subCategory">
+                        {t("donations.subCategory")} *
+                      </Label>
+                      <Select
+                        value={rentIncomeFormData.subCategory}
                         onValueChange={handleSubCategoryChange}
                       >
-                        <SelectTrigger className={rentIncomeErrors.subCategory ? 'border-red-500' : ''}>
-                          <SelectValue placeholder={t('donations.selectSubCategory')} />
+                        <SelectTrigger
+                          className={
+                            rentIncomeErrors.subCategory ? "border-red-500" : ""
+                          }
+                        >
+                          <SelectValue
+                            placeholder={t("donations.selectSubCategory")}
+                          />
                         </SelectTrigger>
                         <SelectContent>
-                          {rentCategorySubCategories[rentIncomeFormData.category as keyof typeof rentCategorySubCategories]?.map((subCat) => (
+                          {rentCategorySubCategories[
+                            rentIncomeFormData.category as keyof typeof rentCategorySubCategories
+                          ]?.map((subCat) => (
                             <SelectItem key={subCat} value={subCat}>
                               {t(`rent.${subCat}`)}
                             </SelectItem>
@@ -1814,24 +2120,38 @@ export default function RentManagement({
                   {/* Agreement Selection */}
                   {rentIncomeFormData.subCategory && (
                     <div>
-                      <Label htmlFor="agreementId">{t('rent.agreement')} *</Label>
-                      <Select 
-                        value={rentIncomeFormData.agreementId} 
+                      <Label htmlFor="agreementId">
+                        {t("rent.agreement")} *
+                      </Label>
+                      <Select
+                        value={rentIncomeFormData.agreementId}
                         onValueChange={handleAgreementChange}
                       >
-                        <SelectTrigger className={rentIncomeErrors.agreementId ? 'border-red-500' : ''}>
-                          <SelectValue placeholder={t('rent.selectAgreement')} />
+                        <SelectTrigger
+                          className={
+                            rentIncomeErrors.agreementId ? "border-red-500" : ""
+                          }
+                        >
+                          <SelectValue
+                            placeholder={t("rent.selectAgreement")}
+                          />
                         </SelectTrigger>
                         <SelectContent>
-                          {agreements.filter(a => a.status === 'Active').map(agreement => {
-                            const shop = getShopById(agreement.shopId);
-                            const tenant = getTenantById(agreement.tenantId);
-                            return (
-                              <SelectItem key={agreement.id} value={agreement.id}>
-                                {shop?.shopNumber} - {tenant?.name} - {formatCurrency(agreement.monthlyRent)}
-                              </SelectItem>
-                            );
-                          })}
+                          {agreements
+                            .filter((a) => a.status === "Active")
+                            .map((agreement) => {
+                              const shop = getShopById(agreement.shopId);
+                              const tenant = getTenantById(agreement.tenantId);
+                              return (
+                                <SelectItem
+                                  key={agreement.id}
+                                  value={agreement.id}
+                                >
+                                  {shop?.shopNumber} - {tenant?.name} -{" "}
+                                  {formatCurrency(agreement.monthlyRent)}
+                                </SelectItem>
+                              );
+                            })}
                         </SelectContent>
                       </Select>
                       {rentIncomeErrors.agreementId && (
@@ -1846,7 +2166,9 @@ export default function RentManagement({
                   {/* Tenant Name */}
                   {rentIncomeFormData.agreementId && (
                     <div>
-                      <Label htmlFor="tenantName">{t('rent.tenantName')} *</Label>
+                      <Label htmlFor="tenantName">
+                        {t("rent.tenantName")} *
+                      </Label>
                       <Input
                         id="tenantName"
                         value={rentIncomeFormData.tenantName}
@@ -1859,7 +2181,9 @@ export default function RentManagement({
                   {/* Tenant Contact */}
                   {rentIncomeFormData.agreementId && (
                     <div>
-                      <Label htmlFor="tenantContact">{t('rent.tenantContact')}</Label>
+                      <Label htmlFor="tenantContact">
+                        {t("rent.tenantContact")}
+                      </Label>
                       <Input
                         id="tenantContact"
                         value={rentIncomeFormData.tenantContact}
@@ -1872,26 +2196,34 @@ export default function RentManagement({
                   {/* Rent Amount */}
                   {rentIncomeFormData.agreementId && (
                     <div>
-                      <Label htmlFor="rentAmount">{t('rent.rentAmount')} ({t('common.currency')}) *</Label>
+                      <Label htmlFor="rentAmount">
+                        {t("rent.rentAmount")} ({t("common.currency")}) *
+                      </Label>
                       <Input
                         id="rentAmount"
                         type="text"
-                        placeholder={t('rent.enterRentAmount')}
+                        placeholder={t("rent.enterRentAmount")}
                         value={rentIncomeFormData.rentAmount}
                         onChange={handleRentAmountChange}
-                        disabled={rentIncomeFormData.subCategory !== 'bhade2Jama'}
-                        className={`${rentIncomeErrors.rentAmount ? 'border-red-500' : ''} ${
-                          rentIncomeFormData.subCategory !== 'bhade2Jama' ? 'bg-gray-50' : ''
+                        disabled={
+                          rentIncomeFormData.subCategory !== "bhade2Jama"
+                        }
+                        className={`${
+                          rentIncomeErrors.rentAmount ? "border-red-500" : ""
+                        } ${
+                          rentIncomeFormData.subCategory !== "bhade2Jama"
+                            ? "bg-gray-50"
+                            : ""
                         }`}
                       />
-                      {rentIncomeFormData.subCategory !== 'bhade2Jama' && (
+                      {rentIncomeFormData.subCategory !== "bhade2Jama" && (
                         <p className="text-xs text-gray-500 mt-1">
-                          {t('rent.amountAutoPopulated')}
+                          {t("rent.amountAutoPopulated")}
                         </p>
                       )}
-                      {rentIncomeFormData.subCategory === 'bhade2Jama' && (
+                      {rentIncomeFormData.subCategory === "bhade2Jama" && (
                         <p className="text-xs text-blue-600 mt-1">
-                          {t('rent.amountEditable')}
+                          {t("rent.amountEditable")}
                         </p>
                       )}
                       {rentIncomeErrors.rentAmount && (
@@ -1903,21 +2235,27 @@ export default function RentManagement({
                     </div>
                   )}
                 </div>
-                
+
                 {/* Details */}
                 <div>
-                  <Label htmlFor="details">{t('rent.details')} *</Label>
+                  <Label htmlFor="details">{t("rent.details")} *</Label>
                   <Textarea
                     id="details"
-                    placeholder={t('rent.enterDetails')}
+                    placeholder={t("rent.enterDetails")}
                     value={rentIncomeFormData.details}
                     onChange={(e) => {
-                      setRentIncomeFormData({...rentIncomeFormData, details: e.target.value});
+                      setRentIncomeFormData({
+                        ...rentIncomeFormData,
+                        details: e.target.value,
+                      });
                       if (rentIncomeErrors.details) {
-                        setRentIncomeErrors({...rentIncomeErrors, details: undefined});
+                        setRentIncomeErrors({
+                          ...rentIncomeErrors,
+                          details: undefined,
+                        });
                       }
                     }}
-                    className={rentIncomeErrors.details ? 'border-red-500' : ''}
+                    className={rentIncomeErrors.details ? "border-red-500" : ""}
                   />
                   {rentIncomeErrors.details && (
                     <p className="text-sm text-red-500 mt-1 flex items-center gap-1">
@@ -1926,8 +2264,10 @@ export default function RentManagement({
                     </p>
                   )}
                 </div>
-                
-                <Button type="submit" className="w-full">{t('common.submit')}</Button>
+
+                <Button type="submit" className="w-full">
+                  {t("common.submit")}
+                </Button>
               </form>
             </CardContent>
           </Card>
@@ -1940,7 +2280,7 @@ export default function RentManagement({
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <CreditCard className="h-5 w-5" />
-                {t('loans.addLoan')}
+                {t("loans.addLoan")}
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -1948,21 +2288,29 @@ export default function RentManagement({
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {/* Tenant Selection */}
                   <div>
-                    <Label htmlFor="tenantId">{t('loans.selectTenant')} *</Label>
-                    <Select 
-                      value={loanFormData.tenantId} 
+                    <Label htmlFor="tenantId">
+                      {t("loans.selectTenant")} *
+                    </Label>
+                    <Select
+                      value={loanFormData.tenantId}
                       onValueChange={(value) => {
-                        setLoanFormData({...loanFormData, tenantId: value, agreementId: ''});
+                        setLoanFormData({
+                          ...loanFormData,
+                          tenantId: value,
+                          agreementId: "",
+                        });
                         if (loanErrors.tenantId) {
-                          setLoanErrors({...loanErrors, tenantId: undefined});
+                          setLoanErrors({ ...loanErrors, tenantId: undefined });
                         }
                       }}
                     >
-                      <SelectTrigger className={loanErrors.tenantId ? 'border-red-500' : ''}>
-                        <SelectValue placeholder={t('loans.selectTenant')} />
+                      <SelectTrigger
+                        className={loanErrors.tenantId ? "border-red-500" : ""}
+                      >
+                        <SelectValue placeholder={t("loans.selectTenant")} />
                       </SelectTrigger>
                       <SelectContent>
-                        {tenants.map(tenant => (
+                        {tenants.map((tenant) => (
                           <SelectItem key={tenant.id} value={tenant.id}>
                             {tenant.name} - {tenant.phone}
                           </SelectItem>
@@ -1979,27 +2327,47 @@ export default function RentManagement({
 
                   {/* Agreement Selection */}
                   <div>
-                    <Label htmlFor="agreementId">{t('loans.selectAgreement')} *</Label>
-                    <Select 
-                      value={loanFormData.agreementId} 
+                    <Label htmlFor="agreementId">
+                      {t("loans.selectAgreement")} *
+                    </Label>
+                    <Select
+                      value={loanFormData.agreementId}
                       onValueChange={(value) => {
-                        setLoanFormData({...loanFormData, agreementId: value});
+                        setLoanFormData({
+                          ...loanFormData,
+                          agreementId: value,
+                        });
                         if (loanErrors.agreementId) {
-                          setLoanErrors({...loanErrors, agreementId: undefined});
+                          setLoanErrors({
+                            ...loanErrors,
+                            agreementId: undefined,
+                          });
                         }
                       }}
                     >
-                      <SelectTrigger className={loanErrors.agreementId ? 'border-red-500' : ''}>
-                        <SelectValue placeholder={t('loans.selectAgreement')} />
+                      <SelectTrigger
+                        className={
+                          loanErrors.agreementId ? "border-red-500" : ""
+                        }
+                      >
+                        <SelectValue placeholder={t("loans.selectAgreement")} />
                       </SelectTrigger>
                       <SelectContent>
                         {agreements
-                          .filter(a => a.status === 'Active' && a.tenantId === loanFormData.tenantId)
-                          .map(agreement => {
+                          .filter(
+                            (a) =>
+                              a.status === "Active" &&
+                              a.tenantId === loanFormData.tenantId
+                          )
+                          .map((agreement) => {
                             const shop = getShopById(agreement.shopId);
                             return (
-                              <SelectItem key={agreement.id} value={agreement.id}>
-                                {shop?.shopNumber} - {formatCurrency(agreement.monthlyRent)}
+                              <SelectItem
+                                key={agreement.id}
+                                value={agreement.id}
+                              >
+                                {shop?.shopNumber} -{" "}
+                                {formatCurrency(agreement.monthlyRent)}
                               </SelectItem>
                             );
                           })}
@@ -2015,22 +2383,30 @@ export default function RentManagement({
 
                   {/* Loan Amount */}
                   <div>
-                    <Label htmlFor="loanAmount">{t('loans.loanAmount')} ({t('common.currency')}) *</Label>
+                    <Label htmlFor="loanAmount">
+                      {t("loans.loanAmount")} ({t("common.currency")}) *
+                    </Label>
                     <Input
                       id="loanAmount"
                       type="text"
-                      placeholder={t('loans.enterLoanAmount')}
+                      placeholder={t("loans.enterLoanAmount")}
                       value={loanFormData.loanAmount}
                       onChange={(e) => {
                         const value = e.target.value;
-                        if (value === '' || /^\d*\.?\d*$/.test(value)) {
-                          setLoanFormData({...loanFormData, loanAmount: value});
+                        if (value === "" || /^\d*\.?\d*$/.test(value)) {
+                          setLoanFormData({
+                            ...loanFormData,
+                            loanAmount: value,
+                          });
                           if (loanErrors.loanAmount) {
-                            setLoanErrors({...loanErrors, loanAmount: undefined});
+                            setLoanErrors({
+                              ...loanErrors,
+                              loanAmount: undefined,
+                            });
                           }
                         }
                       }}
-                      className={loanErrors.loanAmount ? 'border-red-500' : ''}
+                      className={loanErrors.loanAmount ? "border-red-500" : ""}
                     />
                     {loanErrors.loanAmount && (
                       <p className="text-sm text-red-500 mt-1 flex items-center gap-1">
@@ -2042,22 +2418,32 @@ export default function RentManagement({
 
                   {/* Interest Rate */}
                   <div>
-                    <Label htmlFor="interestRate">{t('loans.interestRate')} *</Label>
+                    <Label htmlFor="interestRate">
+                      {t("loans.interestRate")} *
+                    </Label>
                     <Input
                       id="interestRate"
                       type="text"
-                      placeholder={t('loans.enterInterestRate')}
+                      placeholder={t("loans.enterInterestRate")}
                       value={loanFormData.interestRate}
                       onChange={(e) => {
                         const value = e.target.value;
-                        if (value === '' || /^\d*\.?\d*$/.test(value)) {
-                          setLoanFormData({...loanFormData, interestRate: value});
+                        if (value === "" || /^\d*\.?\d*$/.test(value)) {
+                          setLoanFormData({
+                            ...loanFormData,
+                            interestRate: value,
+                          });
                           if (loanErrors.interestRate) {
-                            setLoanErrors({...loanErrors, interestRate: undefined});
+                            setLoanErrors({
+                              ...loanErrors,
+                              interestRate: undefined,
+                            });
                           }
                         }
                       }}
-                      className={loanErrors.interestRate ? 'border-red-500' : ''}
+                      className={
+                        loanErrors.interestRate ? "border-red-500" : ""
+                      }
                     />
                     {loanErrors.interestRate && (
                       <p className="text-sm text-red-500 mt-1 flex items-center gap-1">
@@ -2069,22 +2455,32 @@ export default function RentManagement({
 
                   {/* Loan Duration */}
                   <div>
-                    <Label htmlFor="loanDuration">{t('loans.loanDuration')} *</Label>
+                    <Label htmlFor="loanDuration">
+                      {t("loans.loanDuration")} *
+                    </Label>
                     <Input
                       id="loanDuration"
                       type="text"
-                      placeholder={t('loans.enterLoanDuration')}
+                      placeholder={t("loans.enterLoanDuration")}
                       value={loanFormData.loanDuration}
                       onChange={(e) => {
                         const value = e.target.value;
-                        if (value === '' || /^\d*$/.test(value)) {
-                          setLoanFormData({...loanFormData, loanDuration: value});
+                        if (value === "" || /^\d*$/.test(value)) {
+                          setLoanFormData({
+                            ...loanFormData,
+                            loanDuration: value,
+                          });
                           if (loanErrors.loanDuration) {
-                            setLoanErrors({...loanErrors, loanDuration: undefined});
+                            setLoanErrors({
+                              ...loanErrors,
+                              loanDuration: undefined,
+                            });
                           }
                         }
                       }}
-                      className={loanErrors.loanDuration ? 'border-red-500' : ''}
+                      className={
+                        loanErrors.loanDuration ? "border-red-500" : ""
+                      }
                     />
                     {loanErrors.loanDuration && (
                       <p className="text-sm text-red-500 mt-1 flex items-center gap-1">
@@ -2096,13 +2492,21 @@ export default function RentManagement({
 
                   {/* Disbursed Date */}
                   <div>
-                    <Label htmlFor="disbursedDate">{t('loans.disbursedDate')} *</Label>
+                    <Label htmlFor="disbursedDate">
+                      {t("loans.disbursedDate")} *
+                    </Label>
                     <DatePicker
                       date={loanFormData.disbursedDate || undefined}
                       onDateChange={(date) => {
-                        setLoanFormData({...loanFormData, disbursedDate: date || null});
+                        setLoanFormData({
+                          ...loanFormData,
+                          disbursedDate: date || null,
+                        });
                         if (loanErrors.disbursedDate) {
-                          setLoanErrors({...loanErrors, disbursedDate: undefined});
+                          setLoanErrors({
+                            ...loanErrors,
+                            disbursedDate: undefined,
+                          });
                         }
                       }}
                     />
@@ -2115,41 +2519,49 @@ export default function RentManagement({
                   </div>
 
                   {/* Calculated EMI Display */}
-                  {loanFormData.loanAmount && loanFormData.interestRate && loanFormData.loanDuration && (
-                    <div>
-                      <Label>{t('loans.monthlyEmi')} ({t('common.currency')})</Label>
-                      <div className="relative">
-                        <Calculator className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                        <Input
-                          value={formatCurrency(
-                            calculateEMI(
-                              parseFloat(loanFormData.loanAmount) || 0,
-                              parseFloat(loanFormData.interestRate) || 0,
-                              parseInt(loanFormData.loanDuration) || 0
-                            )
-                          )}
-                          disabled
-                          className="pl-10 bg-gray-50"
-                        />
+                  {loanFormData.loanAmount &&
+                    loanFormData.interestRate &&
+                    loanFormData.loanDuration && (
+                      <div>
+                        <Label>
+                          {t("loans.monthlyEmi")} ({t("common.currency")})
+                        </Label>
+                        <div className="relative">
+                          <Calculator className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                          <Input
+                            value={formatCurrency(
+                              calculateEMI(
+                                parseFloat(loanFormData.loanAmount) || 0,
+                                parseFloat(loanFormData.interestRate) || 0,
+                                parseInt(loanFormData.loanDuration) || 0
+                              )
+                            )}
+                            disabled
+                            className="pl-10 bg-gray-50"
+                          />
+                        </div>
                       </div>
-                    </div>
-                  )}
+                    )}
                 </div>
 
                 {/* Loan Documents Upload */}
                 <div>
-                  <Label>{t('loans.loanAgreement')}</Label>
+                  <Label>{t("loans.loanAgreement")}</Label>
                   <FileUpload
                     files={loanFormData.loanDocuments}
-                    onFilesChange={(files) => setLoanFormData({...loanFormData, loanDocuments: files})}
+                    onFilesChange={(files) =>
+                      setLoanFormData({ ...loanFormData, loanDocuments: files })
+                    }
                     accept="image/*,.pdf"
                     maxFiles={5}
                     maxSize={300 * 1024}
-                    label={t('loans.uploadLoanAgreement')}
+                    label={t("loans.uploadLoanAgreement")}
                   />
                 </div>
-                
-                <Button type="submit" className="w-full">{t('loans.addLoan')}</Button>
+
+                <Button type="submit" className="w-full">
+                  {t("loans.addLoan")}
+                </Button>
               </form>
             </CardContent>
           </Card>
@@ -2159,38 +2571,42 @@ export default function RentManagement({
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <DollarSign className="h-5 w-5" />
-                {t('rent.activeLoans')}
+                {t("rent.activeLoans")}
               </CardTitle>
             </CardHeader>
             <CardContent>
               {loans.length === 0 ? (
                 <Alert>
                   <AlertCircle className="h-4 w-4" />
-                  <AlertDescription>
-                    {t('rent.noActiveLoans')}
-                  </AlertDescription>
+                  <AlertDescription>{t("rent.noActiveLoans")}</AlertDescription>
                 </Alert>
               ) : (
                 <div className="overflow-x-auto">
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>{t('rent.tenantName')}</TableHead>
-                        <TableHead>{t('loans.loanAmount')}</TableHead>
-                        <TableHead>{t('loans.monthlyEmi')}</TableHead>
-                        <TableHead>{t('loans.outstandingBalance')}</TableHead>
-                        <TableHead>{t('loans.nextEmiDate')}</TableHead>
-                        <TableHead>{t('loans.loanStatus')}</TableHead>
-                        <TableHead>{t('common.actions')}</TableHead>
+                        <TableHead>{t("rent.tenantName")}</TableHead>
+                        <TableHead>{t("loans.loanAmount")}</TableHead>
+                        <TableHead>{t("loans.monthlyEmi")}</TableHead>
+                        <TableHead>{t("loans.outstandingBalance")}</TableHead>
+                        <TableHead>{t("loans.nextEmiDate")}</TableHead>
+                        <TableHead>{t("loans.loanStatus")}</TableHead>
+                        <TableHead>{t("common.actions")}</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {loans.map((loan) => (
                         <TableRow key={loan.id}>
                           <TableCell>{loan.tenantName}</TableCell>
-                          <TableCell>{formatCurrency(loan.loanAmount)}</TableCell>
-                          <TableCell>{formatCurrency(loan.monthlyEmi)}</TableCell>
-                          <TableCell>{formatCurrency(loan.outstandingBalance)}</TableCell>
+                          <TableCell>
+                            {formatCurrency(loan.loanAmount)}
+                          </TableCell>
+                          <TableCell>
+                            {formatCurrency(loan.monthlyEmi)}
+                          </TableCell>
+                          <TableCell>
+                            {formatCurrency(loan.outstandingBalance)}
+                          </TableCell>
                           <TableCell>{formatDate(loan.nextEmiDate)}</TableCell>
                           <TableCell>
                             <Badge className={getStatusColor(loan.status)}>
@@ -2204,25 +2620,40 @@ export default function RentManagement({
                                 variant="outline"
                                 onClick={() => {
                                   const emiAmount = loan.monthlyEmi;
-                                  const newBalance = Math.max(0, loan.outstandingBalance - emiAmount);
-                                  const newTotalRepaid = loan.totalRepaid + emiAmount;
+                                  const newBalance = Math.max(
+                                    0,
+                                    loan.outstandingBalance - emiAmount
+                                  );
+                                  const newTotalRepaid =
+                                    loan.totalRepaid + emiAmount;
                                   const nextEmiDate = new Date();
-                                  nextEmiDate.setMonth(nextEmiDate.getMonth() + 1);
-                                  
+                                  nextEmiDate.setMonth(
+                                    nextEmiDate.getMonth() + 1
+                                  );
+
                                   onUpdateLoan(loan.id, {
                                     outstandingBalance: newBalance,
                                     totalRepaid: newTotalRepaid,
-                                    lastPaymentDate: new Date().toISOString().split('T')[0],
-                                    nextEmiDate: nextEmiDate.toISOString().split('T')[0],
-                                    status: newBalance <= 0 ? 'Completed' : 'Active'
+                                    lastPaymentDate: new Date()
+                                      .toISOString()
+                                      .split("T")[0],
+                                    nextEmiDate: nextEmiDate
+                                      .toISOString()
+                                      .split("T")[0],
+                                    status:
+                                      newBalance <= 0 ? "Completed" : "Active",
                                   });
-                                  
-                                  toast.success(`EMI payment of ${formatCurrency(emiAmount)} recorded`);
+
+                                  toast.success(
+                                    `EMI payment of ${formatCurrency(
+                                      emiAmount
+                                    )} recorded`
+                                  );
                                 }}
-                                disabled={loan.status !== 'Active'}
+                                disabled={loan.status !== "Active"}
                               >
                                 <CreditCard className="h-4 w-4" />
-                                {t('loans.payEmi')}
+                                {t("loans.payEmi")}
                               </Button>
                             </div>
                           </TableCell>
@@ -2242,31 +2673,36 @@ export default function RentManagement({
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Banknote className="h-5 w-5" />
-                {t('rent.collectRentWithLoan')}
+                {t("rent.collectRentWithLoan")}
               </CardTitle>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleRentCollection} className="space-y-4">
                 {/* Agreement Selection */}
                 <div>
-                  <Label htmlFor="collectionAgreementId">{t('rent.selectAgreement')} *</Label>
-                  <Select 
-                    value={collectionFormData.agreementId} 
+                  <Label htmlFor="collectionAgreementId">
+                    {t("rent.selectAgreement")} *
+                  </Label>
+                  <Select
+                    value={collectionFormData.agreementId}
                     onValueChange={handleCollectionAgreementChange}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder={t('rent.selectAgreement')} />
+                      <SelectValue placeholder={t("rent.selectAgreement")} />
                     </SelectTrigger>
                     <SelectContent>
-                      {agreements.filter(a => a.status === 'Active').map(agreement => {
-                        const shop = getShopById(agreement.shopId);
-                        const tenant = getTenantById(agreement.tenantId);
-                        return (
-                          <SelectItem key={agreement.id} value={agreement.id}>
-                            {shop?.shopNumber} - {tenant?.name} - {formatCurrency(agreement.monthlyRent)}
-                          </SelectItem>
-                        );
-                      })}
+                      {agreements
+                        .filter((a) => a.status === "Active")
+                        .map((agreement) => {
+                          const shop = getShopById(agreement.shopId);
+                          const tenant = getTenantById(agreement.tenantId);
+                          return (
+                            <SelectItem key={agreement.id} value={agreement.id}>
+                              {shop?.shopNumber} - {tenant?.name} -{" "}
+                              {formatCurrency(agreement.monthlyRent)}
+                            </SelectItem>
+                          );
+                        })}
                     </SelectContent>
                   </Select>
                 </div>
@@ -2280,10 +2716,12 @@ export default function RentManagement({
                           <input
                             type="checkbox"
                             checked={collectionFormData.collectRent}
-                            onChange={(e) => setCollectionFormData({
-                              ...collectionFormData,
-                              collectRent: e.target.checked
-                            })}
+                            onChange={(e) =>
+                              setCollectionFormData({
+                                ...collectionFormData,
+                                collectRent: e.target.checked,
+                              })
+                            }
                           />
                           <IndianRupee className="h-4 w-4" />
                           Rent Collection
@@ -2291,21 +2729,25 @@ export default function RentManagement({
                       </CardHeader>
                       <CardContent>
                         <div className="space-y-2">
-                          <Label>{t('rent.rentAmount')}</Label>
+                          <Label>{t("rent.rentAmount")}</Label>
                           <Input
                             type="text"
                             value={collectionFormData.rentAmount}
                             onChange={(e) => {
                               const value = e.target.value;
-                              if (value === '' || /^\d*\.?\d*$/.test(value)) {
+                              if (value === "" || /^\d*\.?\d*$/.test(value)) {
                                 setCollectionFormData({
                                   ...collectionFormData,
-                                  rentAmount: value
+                                  rentAmount: value,
                                 });
                               }
                             }}
                             disabled={!collectionFormData.collectRent}
-                            className={!collectionFormData.collectRent ? 'bg-gray-50' : ''}
+                            className={
+                              !collectionFormData.collectRent
+                                ? "bg-gray-50"
+                                : ""
+                            }
                           />
                           <p className="text-sm text-gray-500">
                             Monthly rent payment
@@ -2321,32 +2763,36 @@ export default function RentManagement({
                           <input
                             type="checkbox"
                             checked={collectionFormData.collectEmi}
-                            onChange={(e) => setCollectionFormData({
-                              ...collectionFormData,
-                              collectEmi: e.target.checked
-                            })}
+                            onChange={(e) =>
+                              setCollectionFormData({
+                                ...collectionFormData,
+                                collectEmi: e.target.checked,
+                              })
+                            }
                           />
                           <CreditCard className="h-4 w-4" />
-                          {t('rent.emiAmount')}
+                          {t("rent.emiAmount")}
                         </CardTitle>
                       </CardHeader>
                       <CardContent>
                         <div className="space-y-2">
-                          <Label>{t('loans.emiPayment')}</Label>
+                          <Label>{t("loans.emiPayment")}</Label>
                           <Input
                             type="text"
                             value={collectionFormData.emiAmount}
                             onChange={(e) => {
                               const value = e.target.value;
-                              if (value === '' || /^\d*\.?\d*$/.test(value)) {
+                              if (value === "" || /^\d*\.?\d*$/.test(value)) {
                                 setCollectionFormData({
                                   ...collectionFormData,
-                                  emiAmount: value
+                                  emiAmount: value,
                                 });
                               }
                             }}
                             disabled={!collectionFormData.collectEmi}
-                            className={!collectionFormData.collectEmi ? 'bg-gray-50' : ''}
+                            className={
+                              !collectionFormData.collectEmi ? "bg-gray-50" : ""
+                            }
                           />
                           <p className="text-sm text-gray-500">
                             Loan EMI payment (1% interest)
@@ -2362,32 +2808,38 @@ export default function RentManagement({
                           <input
                             type="checkbox"
                             checked={collectionFormData.collectPenalty}
-                            onChange={(e) => setCollectionFormData({
-                              ...collectionFormData,
-                              collectPenalty: e.target.checked
-                            })}
+                            onChange={(e) =>
+                              setCollectionFormData({
+                                ...collectionFormData,
+                                collectPenalty: e.target.checked,
+                              })
+                            }
                           />
                           <AlertTriangle className="h-4 w-4" />
-                          {t('penalties.penaltyAmount')}
+                          {t("penalties.penaltyAmount")}
                         </CardTitle>
                       </CardHeader>
                       <CardContent>
                         <div className="space-y-2">
-                          <Label>{t('penalties.lateFee')}</Label>
+                          <Label>{t("penalties.lateFee")}</Label>
                           <Input
                             type="text"
                             value={collectionFormData.penaltyAmount}
                             onChange={(e) => {
                               const value = e.target.value;
-                              if (value === '' || /^\d*\.?\d*$/.test(value)) {
+                              if (value === "" || /^\d*\.?\d*$/.test(value)) {
                                 setCollectionFormData({
                                   ...collectionFormData,
-                                  penaltyAmount: value
+                                  penaltyAmount: value,
                                 });
                               }
                             }}
                             disabled={!collectionFormData.collectPenalty}
-                            className={!collectionFormData.collectPenalty ? 'bg-gray-50' : ''}
+                            className={
+                              !collectionFormData.collectPenalty
+                                ? "bg-gray-50"
+                                : ""
+                            }
                           />
                           <p className="text-sm text-gray-500">
                             Late payment penalty (1% rate)
@@ -2401,25 +2853,38 @@ export default function RentManagement({
                 {collectionFormData.agreementId && (
                   <div className="mt-6">
                     <div className="bg-gray-50 p-4 rounded-lg">
-                      <h4 className="font-medium mb-2">{t('rent.totalCollection')}</h4>
+                      <h4 className="font-medium mb-2">
+                        {t("rent.totalCollection")}
+                      </h4>
                       <div className="text-2xl font-bold text-green-600">
                         {formatCurrency(
-                          (collectionFormData.collectRent ? parseFloat(collectionFormData.rentAmount) || 0 : 0) +
-                          (collectionFormData.collectEmi ? parseFloat(collectionFormData.emiAmount) || 0 : 0) +
-                          (collectionFormData.collectPenalty ? parseFloat(collectionFormData.penaltyAmount) || 0 : 0)
+                          (collectionFormData.collectRent
+                            ? parseFloat(collectionFormData.rentAmount) || 0
+                            : 0) +
+                            (collectionFormData.collectEmi
+                              ? parseFloat(collectionFormData.emiAmount) || 0
+                              : 0) +
+                            (collectionFormData.collectPenalty
+                              ? parseFloat(collectionFormData.penaltyAmount) ||
+                                0
+                              : 0)
                         )}
                       </div>
                     </div>
                   </div>
                 )}
 
-                <Button 
-                  type="submit" 
+                <Button
+                  type="submit"
                   className="w-full"
-                  disabled={!collectionFormData.agreementId || 
-                    (!collectionFormData.collectRent && !collectionFormData.collectEmi && !collectionFormData.collectPenalty)}
+                  disabled={
+                    !collectionFormData.agreementId ||
+                    (!collectionFormData.collectRent &&
+                      !collectionFormData.collectEmi &&
+                      !collectionFormData.collectPenalty)
+                  }
                 >
-                  {t('rent.rentAndEmiCollection')}
+                  {t("rent.rentAndEmiCollection")}
                 </Button>
               </form>
             </CardContent>
@@ -2430,7 +2895,7 @@ export default function RentManagement({
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Clock className="h-5 w-5" />
-                {t('rent.pendingPenalties')}
+                {t("rent.pendingPenalties")}
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -2438,7 +2903,7 @@ export default function RentManagement({
                 <Alert>
                   <CheckCircle className="h-4 w-4" />
                   <AlertDescription>
-                    {t('rent.noPendingPenalties')}
+                    {t("rent.noPendingPenalties")}
                   </AlertDescription>
                 </Alert>
               ) : (
@@ -2446,21 +2911,25 @@ export default function RentManagement({
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>{t('rent.tenantName')}</TableHead>
-                        <TableHead>{t('penalties.rentAmount')}</TableHead>
-                        <TableHead>{t('penalties.dueDate')}</TableHead>
-                        <TableHead>{t('penalties.penaltyAmount')}</TableHead>
-                        <TableHead>{t('penalties.penaltyStatus')}</TableHead>
-                        <TableHead>{t('common.actions')}</TableHead>
+                        <TableHead>{t("rent.tenantName")}</TableHead>
+                        <TableHead>{t("penalties.rentAmount")}</TableHead>
+                        <TableHead>{t("penalties.dueDate")}</TableHead>
+                        <TableHead>{t("penalties.penaltyAmount")}</TableHead>
+                        <TableHead>{t("penalties.penaltyStatus")}</TableHead>
+                        <TableHead>{t("common.actions")}</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {penalties.map((penalty) => (
                         <TableRow key={penalty.id}>
                           <TableCell>{penalty.tenantName}</TableCell>
-                          <TableCell>{formatCurrency(penalty.rentAmount)}</TableCell>
+                          <TableCell>
+                            {formatCurrency(penalty.rentAmount)}
+                          </TableCell>
                           <TableCell>{formatDate(penalty.dueDate)}</TableCell>
-                          <TableCell>{formatCurrency(penalty.penaltyAmount)}</TableCell>
+                          <TableCell>
+                            {formatCurrency(penalty.penaltyAmount)}
+                          </TableCell>
                           <TableCell>
                             <Badge className={getStatusColor(penalty.status)}>
                               {getStatusLabel(penalty.status)}
@@ -2473,15 +2942,21 @@ export default function RentManagement({
                               onClick={() => {
                                 onUpdatePenalty(penalty.id, {
                                   penaltyPaid: true,
-                                  penaltyPaidDate: new Date().toISOString().split('T')[0],
-                                  status: 'Paid'
+                                  penaltyPaidDate: new Date()
+                                    .toISOString()
+                                    .split("T")[0],
+                                  status: "Paid",
                                 });
-                                toast.success(`Penalty of ${formatCurrency(penalty.penaltyAmount)} paid`);
+                                toast.success(
+                                  `Penalty of ${formatCurrency(
+                                    penalty.penaltyAmount
+                                  )} paid`
+                                );
                               }}
-                              disabled={penalty.status === 'Paid'}
+                              disabled={penalty.status === "Paid"}
                             >
                               <CheckCircle className="h-4 w-4" />
-                              {t('penalties.payPenalty')}
+                              {t("penalties.payPenalty")}
                             </Button>
                           </TableCell>
                         </TableRow>
@@ -2501,15 +2976,16 @@ export default function RentManagement({
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Store className="h-5 w-5" />
-                  {t('shop.title')}
+                  {t("shop.title")}
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
-                  {shops.filter(s => s.status === 'Occupied').length} / {shops.length}
+                  {shops.filter((s) => s.status === "Occupied").length} /{" "}
+                  {shops.length}
                 </div>
                 <p className="text-sm text-gray-500">
-                  {t('dashboard.activeShops')}
+                  {t("dashboard.activeShops")}
                 </p>
               </CardContent>
             </Card>
@@ -2518,16 +2994,14 @@ export default function RentManagement({
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Users className="h-5 w-5" />
-                  {t('tenant.title')}
+                  {t("tenant.title")}
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
-                  {tenants.filter(t => t.status === 'Active').length}
+                  {tenants.filter((t) => t.status === "Active").length}
                 </div>
-                <p className="text-sm text-gray-500">
-                  Active Tenants
-                </p>
+                <p className="text-sm text-gray-500">Active Tenants</p>
               </CardContent>
             </Card>
 
@@ -2535,15 +3009,15 @@ export default function RentManagement({
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <FileSignature className="h-5 w-5" />
-                  {t('agreement.title')}
+                  {t("agreement.title")}
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
-                  {agreements.filter(a => a.status === 'Active').length}
+                  {agreements.filter((a) => a.status === "Active").length}
                 </div>
                 <p className="text-sm text-gray-500">
-                  {t('agreement.activeAgreements')}
+                  {t("agreement.activeAgreements")}
                 </p>
               </CardContent>
             </Card>
@@ -2557,11 +3031,17 @@ export default function RentManagement({
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
-                  {formatCurrency(agreements.reduce((sum, agreement) => agreement.status === 'Active' ? sum + agreement.monthlyRent : sum, 0))}
+                  {formatCurrency(
+                    agreements.reduce(
+                      (sum, agreement) =>
+                        agreement.status === "Active"
+                          ? sum + agreement.monthlyRent
+                          : sum,
+                      0
+                    )
+                  )}
                 </div>
-                <p className="text-sm text-gray-500">
-                  Total Monthly Income
-                </p>
+                <p className="text-sm text-gray-500">Total Monthly Income</p>
               </CardContent>
             </Card>
           </div>
@@ -2572,15 +3052,21 @@ export default function RentManagement({
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <DollarSign className="h-5 w-5" />
-                  {t('rent.activeLoans')}
+                  {t("rent.activeLoans")}
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
-                  {loans.filter(l => l.status === 'Active').length}
+                  {loans.filter((l) => l.status === "Active").length}
                 </div>
                 <p className="text-sm text-gray-500">
-                  Outstanding: {formatCurrency(loans.reduce((sum, loan) => sum + loan.outstandingBalance, 0))}
+                  Outstanding:{" "}
+                  {formatCurrency(
+                    loans.reduce(
+                      (sum, loan) => sum + loan.outstandingBalance,
+                      0
+                    )
+                  )}
                 </p>
               </CardContent>
             </Card>
@@ -2589,15 +3075,24 @@ export default function RentManagement({
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <AlertTriangle className="h-5 w-5" />
-                  {t('rent.pendingPenalties')}
+                  {t("rent.pendingPenalties")}
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
-                  {penalties.filter(p => p.status === 'Pending').length}
+                  {penalties.filter((p) => p.status === "Pending").length}
                 </div>
                 <p className="text-sm text-gray-500">
-                  Total: {formatCurrency(penalties.reduce((sum, penalty) => penalty.status === 'Pending' ? sum + penalty.penaltyAmount : sum, 0))}
+                  Total:{" "}
+                  {formatCurrency(
+                    penalties.reduce(
+                      (sum, penalty) =>
+                        penalty.status === "Pending"
+                          ? sum + penalty.penaltyAmount
+                          : sum,
+                      0
+                    )
+                  )}
                 </p>
               </CardContent>
             </Card>
@@ -2608,7 +3103,10 @@ export default function RentManagement({
       {/* Success Dialogs */}
 
       {/* Shop Success Dialog */}
-      <Dialog open={showShopSuccessDialog} onOpenChange={setShowShopSuccessDialog}>
+      <Dialog
+        open={showShopSuccessDialog}
+        onOpenChange={setShowShopSuccessDialog}
+      >
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <div className="flex items-center gap-2 mb-2">
@@ -2616,54 +3114,67 @@ export default function RentManagement({
                 <Check className="h-6 w-6 text-green-600" />
               </div>
               <DialogTitle className="text-green-800">
-                {t('shop.successTitle')}
+                {t("shop.successTitle")}
               </DialogTitle>
             </div>
             <DialogDescription className="text-base">
-              {t('shop.successMessage')}
+              {t("shop.successMessage")}
             </DialogDescription>
           </DialogHeader>
-          
+
           {lastAddedShop && (
             <div className="mt-4 p-4 bg-gray-50 rounded-lg border">
               <div className="flex items-center gap-2 mb-3">
                 <Store className="h-5 w-5 text-blue-500" />
-                <h4 className="font-medium">{t('shop.shopDetails')}</h4>
+                <h4 className="font-medium">{t("shop.shopDetails")}</h4>
               </div>
-              
+
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
-                  <span className="text-gray-600">{t('shop.shopNumber')}:</span>
-                  <span className="font-medium">{lastAddedShop.shopNumber}</span>
+                  <span className="text-gray-600">{t("shop.shopNumber")}:</span>
+                  <span className="font-medium">
+                    {lastAddedShop.shopNumber}
+                  </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-600">{t('shop.shopSize')}:</span>
-                  <span className="font-medium">{lastAddedShop.size} sq ft</span>
+                  <span className="text-gray-600">{t("shop.shopSize")}:</span>
+                  <span className="font-medium">
+                    {lastAddedShop.size} sq ft
+                  </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-600">{t('shop.monthlyRent')}:</span>
+                  <span className="text-gray-600">
+                    {t("shop.monthlyRent")}:
+                  </span>
                   <span className="font-medium text-blue-600">
                     {formatCurrency(lastAddedShop.monthlyRent)}
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-600">{t('shop.securityDeposit')}:</span>
-                  <span className="font-medium">{formatCurrency(lastAddedShop.deposit)}</span>
+                  <span className="text-gray-600">
+                    {t("shop.securityDeposit")}:
+                  </span>
+                  <span className="font-medium">
+                    {formatCurrency(lastAddedShop.deposit)}
+                  </span>
                 </div>
               </div>
             </div>
           )}
-          
+
           <div className="flex justify-end mt-6">
             <Button onClick={() => setShowShopSuccessDialog(false)}>
-              {t('common.close')}
+              {t("common.close")}
             </Button>
           </div>
         </DialogContent>
       </Dialog>
 
       {/* Tenant Success Dialog */}
-      <Dialog open={showTenantSuccessDialog} onOpenChange={setShowTenantSuccessDialog}>
+      <Dialog
+        open={showTenantSuccessDialog}
+        onOpenChange={setShowTenantSuccessDialog}
+      >
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <div className="flex items-center gap-2 mb-2">
@@ -2671,48 +3182,59 @@ export default function RentManagement({
                 <Check className="h-6 w-6 text-green-600" />
               </div>
               <DialogTitle className="text-green-800">
-                {t('tenant.successTitle')}
+                {t("tenant.successTitle")}
               </DialogTitle>
             </div>
             <DialogDescription className="text-base">
-              {t('tenant.successMessage')}
+              {t("tenant.successMessage")}
             </DialogDescription>
           </DialogHeader>
-          
+
           {lastAddedTenant && (
             <div className="mt-4 p-4 bg-gray-50 rounded-lg border">
               <div className="flex items-center gap-2 mb-3">
                 <Users className="h-5 w-5 text-blue-500" />
-                <h4 className="font-medium">{t('tenant.tenantDetails')}</h4>
+                <h4 className="font-medium">{t("tenant.tenantDetails")}</h4>
               </div>
-              
+
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
-                  <span className="text-gray-600">{t('tenant.tenantName')}:</span>
+                  <span className="text-gray-600">
+                    {t("tenant.tenantName")}:
+                  </span>
                   <span className="font-medium">{lastAddedTenant.name}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-600">{t('tenant.tenantPhone')}:</span>
+                  <span className="text-gray-600">
+                    {t("tenant.tenantPhone")}:
+                  </span>
                   <span className="font-medium">{lastAddedTenant.phone}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-600">{t('tenant.businessType')}:</span>
-                  <span className="font-medium">{lastAddedTenant.businessType}</span>
+                  <span className="text-gray-600">
+                    {t("tenant.businessType")}:
+                  </span>
+                  <span className="font-medium">
+                    {lastAddedTenant.businessType}
+                  </span>
                 </div>
               </div>
             </div>
           )}
-          
+
           <div className="flex justify-end mt-6">
             <Button onClick={() => setShowTenantSuccessDialog(false)}>
-              {t('common.close')}
+              {t("common.close")}
             </Button>
           </div>
         </DialogContent>
       </Dialog>
 
       {/* Agreement Success Dialog */}
-      <Dialog open={showAgreementSuccessDialog} onOpenChange={setShowAgreementSuccessDialog}>
+      <Dialog
+        open={showAgreementSuccessDialog}
+        onOpenChange={setShowAgreementSuccessDialog}
+      >
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <div className="flex items-center gap-2 mb-2">
@@ -2720,56 +3242,74 @@ export default function RentManagement({
                 <Check className="h-6 w-6 text-green-600" />
               </div>
               <DialogTitle className="text-green-800">
-                {t('agreement.successTitle')}
+                {t("agreement.successTitle")}
               </DialogTitle>
             </div>
             <DialogDescription className="text-base">
-              {t('agreement.successMessage')}
+              {t("agreement.successMessage")}
             </DialogDescription>
           </DialogHeader>
-          
+
           {lastCreatedAgreement && (
             <div className="mt-4 p-4 bg-gray-50 rounded-lg border">
               <div className="flex items-center gap-2 mb-3">
                 <FileSignature className="h-5 w-5 text-blue-500" />
-                <h4 className="font-medium">{t('agreement.agreementDetails')}</h4>
+                <h4 className="font-medium">
+                  {t("agreement.agreementDetails")}
+                </h4>
               </div>
-              
+
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
-                  <span className="text-gray-600">{t('shop.shopNumber')}:</span>
-                  <span className="font-medium">{getShopById(lastCreatedAgreement.shopId)?.shopNumber}</span>
+                  <span className="text-gray-600">{t("shop.shopNumber")}:</span>
+                  <span className="font-medium">
+                    {getShopById(lastCreatedAgreement.shopId)?.shopNumber}
+                  </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-600">{t('tenant.tenantName')}:</span>
-                  <span className="font-medium">{getTenantById(lastCreatedAgreement.tenantId)?.name}</span>
+                  <span className="text-gray-600">
+                    {t("tenant.tenantName")}:
+                  </span>
+                  <span className="font-medium">
+                    {getTenantById(lastCreatedAgreement.tenantId)?.name}
+                  </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-600">{t('shop.monthlyRent')}:</span>
+                  <span className="text-gray-600">
+                    {t("shop.monthlyRent")}:
+                  </span>
                   <span className="font-medium text-blue-600">
                     {formatCurrency(lastCreatedAgreement.monthlyRent)}
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-600">{t('agreement.totalDeposit')}:</span>
+                  <span className="text-gray-600">
+                    {t("agreement.totalDeposit")}:
+                  </span>
                   <span className="font-medium">
-                    {formatCurrency(lastCreatedAgreement.securityDeposit + lastCreatedAgreement.advanceRent)}
+                    {formatCurrency(
+                      lastCreatedAgreement.securityDeposit +
+                        lastCreatedAgreement.advanceRent
+                    )}
                   </span>
                 </div>
               </div>
             </div>
           )}
-          
+
           <div className="flex justify-end mt-6">
             <Button onClick={() => setShowAgreementSuccessDialog(false)}>
-              {t('common.close')}
+              {t("common.close")}
             </Button>
           </div>
         </DialogContent>
       </Dialog>
 
       {/* Loan Success Dialog */}
-      <Dialog open={showLoanSuccessDialog} onOpenChange={setShowLoanSuccessDialog}>
+      <Dialog
+        open={showLoanSuccessDialog}
+        onOpenChange={setShowLoanSuccessDialog}
+      >
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <div className="flex items-center gap-2 mb-2">
@@ -2777,56 +3317,69 @@ export default function RentManagement({
                 <Check className="h-6 w-6 text-green-600" />
               </div>
               <DialogTitle className="text-green-800">
-                {t('loans.successTitle')}
+                {t("loans.successTitle")}
               </DialogTitle>
             </div>
             <DialogDescription className="text-base">
-              {t('loans.successMessage')}
+              {t("loans.successMessage")}
             </DialogDescription>
           </DialogHeader>
-          
+
           {lastAddedLoan && (
             <div className="mt-4 p-4 bg-gray-50 rounded-lg border">
               <div className="flex items-center gap-2 mb-3">
                 <CreditCard className="h-5 w-5 text-blue-500" />
-                <h4 className="font-medium">{t('loans.loanDetails')}</h4>
+                <h4 className="font-medium">{t("loans.loanDetails")}</h4>
               </div>
-              
+
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
-                  <span className="text-gray-600">{t('rent.tenantName')}:</span>
-                  <span className="font-medium">{lastAddedLoan.tenantName}</span>
+                  <span className="text-gray-600">{t("rent.tenantName")}:</span>
+                  <span className="font-medium">
+                    {lastAddedLoan.tenantName}
+                  </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-600">{t('loans.loanAmount')}:</span>
+                  <span className="text-gray-600">
+                    {t("loans.loanAmount")}:
+                  </span>
                   <span className="font-medium text-blue-600">
                     {formatCurrency(lastAddedLoan.loanAmount)}
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-600">{t('loans.monthlyEmi')}:</span>
+                  <span className="text-gray-600">
+                    {t("loans.monthlyEmi")}:
+                  </span>
                   <span className="font-medium">
                     {formatCurrency(lastAddedLoan.monthlyEmi)}
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-600">{t('loans.nextEmiDate')}:</span>
-                  <span className="font-medium">{formatDate(lastAddedLoan.nextEmiDate)}</span>
+                  <span className="text-gray-600">
+                    {t("loans.nextEmiDate")}:
+                  </span>
+                  <span className="font-medium">
+                    {formatDate(lastAddedLoan.nextEmiDate)}
+                  </span>
                 </div>
               </div>
             </div>
           )}
-          
+
           <div className="flex justify-end mt-6">
             <Button onClick={() => setShowLoanSuccessDialog(false)}>
-              {t('common.close')}
+              {t("common.close")}
             </Button>
           </div>
         </DialogContent>
       </Dialog>
 
       {/* Collection Success Dialog */}
-      <Dialog open={showCollectionSuccessDialog} onOpenChange={setShowCollectionSuccessDialog}>
+      <Dialog
+        open={showCollectionSuccessDialog}
+        onOpenChange={setShowCollectionSuccessDialog}
+      >
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <div className="flex items-center gap-2 mb-2">
@@ -2838,20 +3391,23 @@ export default function RentManagement({
               </DialogTitle>
             </div>
             <DialogDescription className="text-base">
-              {t('rent.rentCollectionSuccess')}
+              {t("rent.rentCollectionSuccess")}
             </DialogDescription>
           </DialogHeader>
-          
+
           <div className="flex justify-end mt-6">
             <Button onClick={() => setShowCollectionSuccessDialog(false)}>
-              {t('common.close')}
+              {t("common.close")}
             </Button>
           </div>
         </DialogContent>
       </Dialog>
 
       {/* Original Rent Success Dialog */}
-      <Dialog open={showRentSuccessDialog} onOpenChange={setShowRentSuccessDialog}>
+      <Dialog
+        open={showRentSuccessDialog}
+        onOpenChange={setShowRentSuccessDialog}
+      >
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <div className="flex items-center gap-2 mb-2">
@@ -2859,51 +3415,69 @@ export default function RentManagement({
                 <Check className="h-6 w-6 text-green-600" />
               </div>
               <DialogTitle className="text-green-800">
-                {t('rent.successTitle')}
+                {t("rent.successTitle")}
               </DialogTitle>
             </div>
             <DialogDescription className="text-base">
-              {t('rent.successMessage')}
+              {t("rent.successMessage")}
             </DialogDescription>
           </DialogHeader>
-          
+
           {lastAddedRentIncome && (
             <div className="mt-4 p-4 bg-gray-50 rounded-lg border">
               <div className="flex items-center gap-2 mb-3">
                 <Heart className="h-5 w-5 text-red-500" />
-                <h4 className="font-medium">{t('rent.rentDetails')}</h4>
+                <h4 className="font-medium">{t("rent.rentDetails")}</h4>
               </div>
-              
+
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
-                  <span className="text-gray-600">{t('donations.receiptNumber')}:</span>
-                  <span className="font-medium">{lastAddedRentIncome.receiptNumber}</span>
+                  <span className="text-gray-600">
+                    {t("donations.receiptNumber")}:
+                  </span>
+                  <span className="font-medium">
+                    {lastAddedRentIncome.receiptNumber}
+                  </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-600">{t('donations.date')}:</span>
-                  <span className="font-medium">{formatDate(lastAddedRentIncome.date)}</span>
+                  <span className="text-gray-600">{t("donations.date")}:</span>
+                  <span className="font-medium">
+                    {formatDate(lastAddedRentIncome.date)}
+                  </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-600">{t('donations.category')}:</span>
-                  <span className="font-medium">{t(`rent.${lastAddedRentIncome.category.toLowerCase().replace(' ', '')}`)}</span>
+                  <span className="text-gray-600">
+                    {t("donations.category")}:
+                  </span>
+                  <span className="font-medium">
+                    {t(
+                      `rent.${lastAddedRentIncome.category
+                        .toLowerCase()
+                        .replace(" ", "")}`
+                    )}
+                  </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-600">{t('donations.amount')}:</span>
+                  <span className="text-gray-600">
+                    {t("donations.amount")}:
+                  </span>
                   <span className="font-medium text-green-600">
                     {formatCurrency(lastAddedRentIncome.amount)}
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-600">{t('rent.tenantName')}:</span>
-                  <span className="font-medium">{lastAddedRentIncome.tenantName}</span>
+                  <span className="text-gray-600">{t("rent.tenantName")}:</span>
+                  <span className="font-medium">
+                    {lastAddedRentIncome.tenantName}
+                  </span>
                 </div>
               </div>
             </div>
           )}
-          
+
           <div className="flex justify-end mt-6">
             <Button onClick={() => setShowRentSuccessDialog(false)}>
-              {t('common.close')}
+              {t("common.close")}
             </Button>
           </div>
         </DialogContent>
