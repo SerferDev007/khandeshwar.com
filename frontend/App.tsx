@@ -8,7 +8,7 @@ import Login from "./components/Login";
 import UserManagement from "./components/UserManagement";
 import RentManagement from "./components/RentManagement";
 import { LanguageProvider, useLanguage } from "./components/LanguageContext";
-import templeImage from "../frontend/public/pics/templeImage.jpg";
+import templeImage from "/pics/templeImage.jpg";
 import { Alert, AlertDescription } from "./components/ui/alert";
 import { toast } from "sonner";
 
