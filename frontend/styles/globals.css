@@ -329,7 +329,6 @@ html {
   [data-slot="card"] {
     background: var(--card);
     box-shadow: var(--card-shadow);
-    border: 1px solid var(--card-border);
     border-radius: var(--radius-lg);
     backdrop-filter: blur(10px);
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -337,7 +336,6 @@ html {
 
   [data-slot="card"]:hover {
     box-shadow: var(--card-shadow-hover);
-    border-color: var(--border-hover);
     transform: translateY(-2px);
   }
 
@@ -349,7 +347,6 @@ html {
       var(--temple-blue-light) 100%
     );
     backdrop-filter: blur(20px);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
     box-shadow: 0 8px 32px rgba(30, 64, 175, 0.1);
   }
 
@@ -424,7 +421,6 @@ html {
   textarea,
   select {
     border-radius: var(--radius);
-    border: 1px solid var(--input-border);
     background: var(--input-background);
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   }
@@ -432,7 +428,6 @@ html {
   input:focus,
   textarea:focus,
   select:focus {
-    border-color: var(--input-border-focus);
     box-shadow: var(--input-shadow-focus);
     outline: none;
   }
@@ -442,7 +437,6 @@ html {
     border-radius: var(--radius-lg);
     overflow: hidden;
     box-shadow: var(--card-shadow);
-    border: 1px solid var(--card-border);
     background: var(--card);
     width: 100%;
   }
@@ -467,7 +461,6 @@ html {
 
   table tbody tr {
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    border-bottom: 1px solid var(--border);
     background: var(--card);
   }
 
@@ -487,13 +480,10 @@ html {
 
   table tbody td {
     padding: 0.875rem 1rem;
-    border-bottom: 1px solid var(--border);
     font-size: 0.875rem;
   }
 
-  table tbody tr:last-child td {
-    border-bottom: none;
-  }
+
 
   /* Enhanced Badge Styling */
   [class*="badge"],
@@ -539,7 +529,6 @@ html {
   .login [data-slot="card"] {
     background: rgba(255, 255, 255, 0.95);
     backdrop-filter: blur(20px);
-    border: 1px solid rgba(255, 165, 0, 0.2);
     box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
   }
 
@@ -564,7 +553,6 @@ html {
   [data-slot="card"] textarea,
   [data-slot="card"] select {
     background: rgba(255, 255, 255, 0.8);
-    border: 1px solid rgba(203, 213, 225, 0.6);
     backdrop-filter: blur(5px);
   }
 
@@ -572,7 +560,6 @@ html {
   [data-slot="card"] textarea:focus,
   [data-slot="card"] select:focus {
     background: rgba(255, 255, 255, 0.95);
-    border-color: var(--temple-saffron);
     box-shadow: 0 0 0 3px rgba(255, 123, 0, 0.1);
   }
 
@@ -581,7 +568,6 @@ html {
   [data-slot="popover-content"] {
     background: rgba(255, 255, 255, 0.95);
     backdrop-filter: blur(20px);
-    border: 1px solid var(--card-border);
     box-shadow: var(--popover-shadow);
     border-radius: var(--radius-lg);
   }
