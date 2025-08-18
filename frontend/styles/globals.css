@@ -416,32 +416,39 @@ html {
     outline: none;
   }
   
-  /* Modern Table Styling */
+  /* Enhanced Table Styling */
   table {
     border-radius: var(--radius-lg);
     overflow: hidden;
     box-shadow: var(--card-shadow);
     border: 1px solid var(--card-border);
+    background: var(--card);
+    width: 100%;
   }
   
   table thead {
-    background: linear-gradient(135deg, var(--muted) 0%, var(--accent) 100%);
+    background: linear-gradient(135deg, var(--temple-saffron-light) 0%, var(--temple-saffron) 100%);
   }
   
   table thead th {
     font-weight: var(--font-weight-semibold);
-    color: var(--accent-foreground);
+    color: var(--primary-foreground);
     padding: 1rem;
-    border-bottom: 1px solid var(--border);
+    border-bottom: none;
+    font-size: 0.875rem;
+    letter-spacing: 0.025em;
+    text-transform: uppercase;
   }
   
   table tbody tr {
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     border-bottom: 1px solid var(--border);
+    background: var(--card);
   }
   
   table tbody tr:hover {
     background: var(--accent);
+    transform: scale(1.01);
   }
   
   table tbody tr:nth-child(even) {
@@ -450,17 +457,52 @@ html {
   
   table tbody tr:nth-child(even):hover {
     background: var(--accent);
+    transform: scale(1.01);
   }
   
   table tbody td {
-    padding: 0.75rem 1rem;
+    padding: 0.875rem 1rem;
+    border-bottom: 1px solid var(--border);
+    font-size: 0.875rem;
+  }
+  
+  table tbody tr:last-child td {
+    border-bottom: none;
   }
   
   /* Enhanced Badge Styling */
   [class*="badge"], [class*="Badge"] {
     border-radius: var(--radius);
     font-weight: var(--font-weight-medium);
+    font-size: 0.75rem;
+    padding: 0.25rem 0.5rem;
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  
+  /* Status-specific badge colors */
+  [class*="badge"]:has-text("Donations"),
+  [class*="badge"]:contains("Donations") {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    color: white;
+    box-shadow: 0 2px 4px rgba(16, 185, 129, 0.3);
+  }
+  
+  [class*="badge"]:has-text("Expenses"),
+  [class*="badge"]:contains("Expenses"),
+  [class*="badge"]:has-text("Utilities"),
+  [class*="badge"]:contains("Utilities"),
+  [class*="badge"]:has-text("Salary"),
+  [class*="badge"]:contains("Salary") {
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+    color: white;
+    box-shadow: 0 2px 4px rgba(239, 68, 68, 0.3);
+  }
+  
+  [class*="badge"]:has-text("Admin"),
+  [class*="badge"]:contains("Admin") {
+    background: linear-gradient(135deg, var(--temple-saffron) 0%, var(--temple-saffron-dark) 100%);
+    color: white;
+    box-shadow: 0 2px 4px rgba(255, 123, 0, 0.3);
   }
   
   /* Login Card Specific Styling */
@@ -555,6 +597,68 @@ html {
   @keyframes spin {
     to {
       transform: rotate(360deg);
+    }
+  }
+  
+  /* Mobile Responsive Improvements */
+  @media (max-width: 768px) {
+    [data-slot="card"] {
+      margin: 0.5rem;
+      padding: 1rem;
+    }
+    
+    .header {
+      padding: 1rem;
+    }
+    
+    .header nav {
+      gap: 0.5rem;
+    }
+    
+    .header [data-slot="button"] {
+      padding: 0.5rem 0.75rem;
+      font-size: 0.875rem;
+    }
+    
+    table {
+      font-size: 0.8rem;
+    }
+    
+    table tbody td,
+    table thead th {
+      padding: 0.5rem 0.75rem;
+    }
+  }
+  
+  /* Enhanced Focus States */
+  [data-slot="button"]:focus-visible,
+  input:focus-visible,
+  textarea:focus-visible,
+  select:focus-visible {
+    outline: 2px solid var(--temple-saffron);
+    outline-offset: 2px;
+  }
+  
+  /* Improved Animation Performance */
+  * {
+    scroll-behavior: smooth;
+  }
+  
+  [data-slot="card"],
+  [data-slot="button"],
+  table tbody tr {
+    will-change: transform, box-shadow;
+  }
+  
+  /* Dark Mode Support (Basic) */
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+      --card: #1e293b;
+      --card-border: rgba(255, 165, 0, 0.2);
+      --foreground: #f1f5f9;
+      --muted: #334155;
+      --muted-foreground: #94a3b8;
     }
   }
 }
