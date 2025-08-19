@@ -18,7 +18,7 @@ const logger = pino(
 
 let server;
 
-async function startServer() {
+const startServer = async () => {
   try {
     // Try to initialize database
     logger.info('Initializing database...');
@@ -57,10 +57,10 @@ async function startServer() {
     logger.error('❌ Failed to start server:', error);
     process.exit(1);
   }
-}
+};
 
 // Graceful shutdown
-async function gracefulShutdown(signal) {
+const gracefulShutdown = async (signal) => {
   logger.info(`🛑 Received ${signal}. Starting graceful shutdown...`);
 
   if (server) {
@@ -82,7 +82,7 @@ async function gracefulShutdown(signal) {
 
   logger.info('✅ Graceful shutdown completed');
   process.exit(0);
-}
+};
 
 // Handle shutdown signals
 process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
