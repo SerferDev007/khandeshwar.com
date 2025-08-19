@@ -38,6 +38,7 @@ const corsOptions = {
     'X-Per-Page',
   ],
   maxAge: 86400, // 24 hours preflight cache
+  preflightContinue: false, // Pass control to next handler after successful preflight
 };
 
 export default cors(corsOptions);
