@@ -6,7 +6,7 @@ import pino from 'pino';
 const logger = pino({ name: 'auth' });
 
 // JWT Authentication middleware
-export async function authenticate(req, res, next) {
+export const authenticate = async (req, res, next) => {
   try {
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -56,10 +56,10 @@ export async function authenticate(req, res, next) {
       error: 'Authentication error'
     });
   }
-}
+};
 
 // Role-based authorization middleware
-export function authorize(roles = []) {
+export const authorize = (roles = []) => {
   return (req, res, next) => {
     if (!req.user) {
       return res.status(401).json({
@@ -83,10 +83,10 @@ export function authorize(roles = []) {
 
     next();
   };
-}
+};
 
 // Optional authentication (for endpoints that work with or without auth)
-export async function optionalAuth(req, res, next) {
+export const optionalAuth = async (req, res, next) => {
   try {
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -110,4 +110,4 @@ export async function optionalAuth(req, res, next) {
     // For optional auth, we continue even if token is invalid
     next();
   }
-}
+};

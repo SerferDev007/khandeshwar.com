@@ -17,11 +17,13 @@ export const getAllUsers = asyncHandler(async (req, res) => {
     status,
   });
 
+  const { users, pagination } = result;
+
   res.json({
     success: true,
     data: {
-      users: result.users.map(user => user.toSafeObject()),
-      pagination: result.pagination,
+      users: users.map(user => user.toSafeObject()),
+      pagination,
     },
   });
 });

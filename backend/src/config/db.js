@@ -19,7 +19,7 @@ const dbConfig = {
 let pool;
 
 // Initialize database connection pool
-export async function initializeDatabase() {
+export const initializeDatabase = async () => {
   try {
     pool = mysql.createPool(dbConfig);
     
@@ -36,10 +36,10 @@ export async function initializeDatabase() {
     logger.error('❌ Database connection failed:', error);
     throw error;
   }
-}
+};
 
 // Database query helper with error handling
-export async function query(sql, params = []) {
+export const query = async (sql, params = []) => {
   try {
     const [results] = await pool.execute(sql, params);
     return results;
@@ -47,10 +47,10 @@ export async function query(sql, params = []) {
     logger.error('Database query failed:', { sql, params, error });
     throw error;
   }
-}
+};
 
 // Transaction helper
-export async function transaction(callback) {
+export const transaction = async (callback) => {
   const connection = await pool.getConnection();
   try {
     await connection.beginTransaction();
@@ -63,10 +63,10 @@ export async function transaction(callback) {
   } finally {
     connection.release();
   }
-}
+};
 
 // Database migrations
-async function runMigrations() {
+const runMigrations = async () => {
   logger.info('Running database migrations...');
   
   const migrations = [
@@ -133,14 +133,14 @@ async function runMigrations() {
   }
   
   logger.info('✅ Database migrations completed');
-}
+};
 
 // Graceful shutdown
-export async function closeDatabaseConnection() {
+export const closeDatabaseConnection = async () => {
   if (pool) {
     await pool.end();
     logger.info('Database connection pool closed');
   }
-}
+};
 
 export default pool;
