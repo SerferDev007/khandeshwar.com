@@ -29,7 +29,7 @@ import type {
 
 function AppContent() {
   const { t } = useLanguage();
-  const { isAuthenticated, user, isLoading: authLoading, error: authError } = useAuth();
+  const { isAuthenticated, user, isLoading: authLoading, error: authError, logout } = useAuth();
   const { 
     users,
     shops, 
@@ -314,8 +314,9 @@ function AppContent() {
     <div className="min-h-screen bg-gradient-to-br from-orange-50 via-red-50 to-pink-50">
       <Header
         activeTab={activeTab}
-        setActiveTab={setActiveTab}
-        user={user}
+        onTabChange={setActiveTab}
+        currentUser={user}
+        onLogout={() => logout()}
       />
 
       <main className="container mx-auto px-4 py-6">
@@ -325,23 +326,7 @@ function AppContent() {
             totalExpenses={totalExpenses}
             totalRentIncome={totalRentIncome}
             netBalance={netBalance}
-            recentTransactions={transactions.slice(0, 5)}
-            totalShops={shops.length}
-            occupiedShops={shops.filter((s) => s.status === "Occupied").length}
-            totalTenants={tenants.filter((t) => t.status === "Active").length}
-            activeAgreements={
-              agreements.filter((a) => a.status === "Active").length
-            }
-            activeLoans={loans.filter((l) => l.status === "Active").length}
-            totalLoanAmount={loans
-              .filter((l) => l.status === "Active")
-              .reduce((sum, l) => sum + l.outstandingBalance, 0)}
-            pendingPenalties={
-              penalties.filter((p) => p.status === "Pending").length
-            }
-            totalPenaltyAmount={penalties
-              .filter((p) => p.status === "Pending")
-              .reduce((sum, p) => sum + p.penaltyAmount, 0)}
+            transactions={transactions}
           />
         )}
 
