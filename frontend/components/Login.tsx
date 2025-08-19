@@ -44,7 +44,7 @@ export default function Login() {
             {t("login.welcome")}
           </CardTitle>
           <p
-            className={`text-sm text-gray-600 mt-2 ${
+            className={`text-xl sm:text-xl md:text-[20px] font-yatra font-bold text-gray-600 leading-tight mt-2 ${
               language === "mr" ? "temple-title-marathi" : ""
             }`}
           >
