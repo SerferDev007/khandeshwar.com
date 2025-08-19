@@ -1,0 +1,151 @@
+import { v4 as uuidv4 } from 'uuid';
+
+// Generate UUID v4
+export function generateId() {
+  return uuidv4();
+}
+
+// Generate random string
+export function generateRandomString(length = 32) {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  let result = '';
+  for (let i = 0; i < length; i++) {
+    result += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return result;
+}
+
+// Format file size in human readable format
+export function formatFileSize(bytes) {
+  if (bytes === 0) return '0 Bytes';
+  
+  const k = 1024;
+  const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
+
+// Sanitize filename for storage
+export function sanitizeFilename(filename) {
+  return filename
+    .replace(/[^a-zA-Z0-9.-]/g, '_') // Replace special chars with underscore
+    .replace(/_{2,}/g, '_') // Replace multiple underscores with single
+    .replace(/^_+|_+$/g, ''); // Remove leading/trailing underscores
+}
+
+// Generate unique filename with timestamp
+export function generateUniqueFilename(originalName) {
+  const extension = originalName.split('.').pop();
+  const nameWithoutExt = originalName.replace(/\.[^/.]+$/, '');
+  const sanitizedName = sanitizeFilename(nameWithoutExt);
+  const timestamp = Date.now();
+  const randomString = generateRandomString(8);
+  
+  return `${sanitizedName}_${timestamp}_${randomString}.${extension}`;
+}
+
+// Check if email is valid format
+export function isValidEmail(email) {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailRegex.test(email);
+}
+
+// Check if password meets requirements
+export function isValidPassword(password) {
+  // At least 8 chars, 1 uppercase, 1 lowercase, 1 number
+  const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/;
+  return passwordRegex.test(password);
+}
+
+// Parse pagination parameters
+export function parsePagination(query) {
+  const page = Math.max(1, parseInt(query.page) || 1);
+  const limit = Math.min(100, Math.max(1, parseInt(query.limit) || 10));
+  const offset = (page - 1) * limit;
+  
+  return {
+    page,
+    limit,
+    offset,
+    sort: query.sort || 'created_at',
+    order: ['asc', 'desc'].includes(query.order?.toLowerCase()) ? query.order.toLowerCase() : 'desc'
+  };
+}
+
+// Create pagination info object
+export function createPaginationInfo(page, limit, total) {
+  return {
+    page: parseInt(page),
+    limit: parseInt(limit),
+    total: parseInt(total),
+    pages: Math.ceil(total / limit),
+    hasNext: page < Math.ceil(total / limit),
+    hasPrev: page > 1
+  };
+}
+
+// Delay execution (for testing/demos)
+export function delay(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+// Deep clone object
+export function deepClone(obj) {
+  if (obj === null || typeof obj !== 'object') {
+    return obj;
+  }
+  
+  if (obj instanceof Date) {
+    return new Date(obj.getTime());
+  }
+  
+  if (obj instanceof Array) {
+    return obj.map(item => deepClone(item));
+  }
+  
+  if (typeof obj === 'object') {
+    const cloned = {};
+    Object.keys(obj).forEach(key => {
+      cloned[key] = deepClone(obj[key]);
+    });
+    return cloned;
+  }
+}
+
+// Remove sensitive fields from object
+export function sanitizeObject(obj, sensitiveFields = ['password', 'passwordHash', 'token', 'secret']) {
+  const sanitized = { ...obj };
+  
+  sensitiveFields.forEach(field => {
+    if (sanitized[field] !== undefined) {
+      delete sanitized[field];
+    }
+  });
+  
+  return sanitized;
+}
+
+// Convert database row naming (snake_case) to camelCase
+export function dbRowToCamelCase(row) {
+  const camelCased = {};
+  
+  Object.keys(row).forEach(key => {
+    const camelKey = key.replace(/_([a-z])/g, (match, letter) => letter.toUpperCase());
+    camelCased[camelKey] = row[key];
+  });
+  
+  return camelCased;
+}
+
+// Convert camelCase object to snake_case for database
+export function camelCaseToDbRow(obj) {
+  const snakeCased = {};
+  
+  Object.keys(obj).forEach(key => {
+    const snakeKey = key.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);
+    snakeCased[snakeKey] = obj[key];
+  });
+  
+  return snakeCased;
+}
