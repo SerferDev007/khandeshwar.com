@@ -15,7 +15,7 @@ export class ApiError extends Error {
 }
 
 // Error handler middleware
-export function errorHandler(error, req, res, next) {
+export const errorHandler = (error, req, res, next) => {
   let { statusCode = 500, message } = error;
 
   // Log error
@@ -75,34 +75,35 @@ export function errorHandler(error, req, res, next) {
 }
 
 // Handle unhandled promise rejections
-export function handleUnhandledRejection(reason, promise) {
+// Handle unhandled promise rejections
+export const handleUnhandledRejection = (reason, promise) => {
   logger.error('Unhandled Promise Rejection:', reason);
   // Don't exit process in production, just log the error
   if (process.env.NODE_ENV !== 'production') {
     process.exit(1);
   }
-}
+};
 
 // Handle uncaught exceptions
-export function handleUncaughtException(error) {
+export const handleUncaughtException = (error) => {
   logger.error('Uncaught Exception:', error);
   process.exit(1);
-}
+};
 
 // 404 handler
-export function notFoundHandler(req, res) {
+export const notFoundHandler = (req, res) => {
   res.status(404).json({
     success: false,
     error: `Route ${req.originalUrl} not found`,
   });
-}
+};
 
 // Async error wrapper
-export function asyncHandler(fn) {
+export const asyncHandler = (fn) => {
   return (req, res, next) => {
     Promise.resolve(fn(req, res, next)).catch(next);
   };
-}
+};
 
 // Common error responses
 export const errors = {
