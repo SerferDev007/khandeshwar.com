@@ -1627,7 +1627,7 @@ export default function RentManagement({
                       >
                         <SelectValue placeholder={t("agreement.selectShop")} />
                       </SelectTrigger>
-                      <SelectContent>
+                      <SelectContent className="bg-white text-black border border-gray-200 shadow-lg">
                         {shops
                           .filter((shop) => shop.status === "Vacant")
                           .map((shop) => (
@@ -1676,7 +1676,7 @@ export default function RentManagement({
                           placeholder={t("agreement.selectTenant")}
                         />
                       </SelectTrigger>
-                      <SelectContent>
+                      <SelectContent className="bg-white text-black border border-gray-200 shadow-lg">
                         {tenants
                           .filter((tenant) => tenant.status === "Active")
                           .map((tenant) => (
@@ -1779,11 +1779,17 @@ export default function RentManagement({
                           placeholder={t("agreement.agreementType")}
                         />
                       </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Commercial">
+                      <SelectContent className="bg-white text-black border border-gray-200 shadow-lg">
+                        <SelectItem
+                          className="hover:font-bold hover:bg-gray-100"
+                          value="Commercial"
+                        >
                           {t("agreement.commercial")}
                         </SelectItem>
-                        <SelectItem value="Residential">
+                        <SelectItem
+                          className="hover:font-bold hover:bg-gray-100"
+                          value="Residential"
+                        >
                           {t("agreement.residential")}
                         </SelectItem>
                       </SelectContent>
@@ -2065,8 +2071,11 @@ export default function RentManagement({
                           placeholder={t("donations.selectCategory")}
                         />
                       </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Bhade Jama">
+                      <SelectContent className="bg-white text-black border border-gray-200 shadow-lg">
+                        <SelectItem
+                          className="hover:font-bold hover:bg-gray-100"
+                          value="Bhade Jama"
+                        >
                           {t("rent.bhadeJama")}
                         </SelectItem>
                       </SelectContent>
@@ -2098,7 +2107,7 @@ export default function RentManagement({
                             placeholder={t("donations.selectSubCategory")}
                           />
                         </SelectTrigger>
-                        <SelectContent>
+                        <SelectContent className="bg-white text-black border border-gray-200 shadow-lg">
                           {rentCategorySubCategories[
                             rentIncomeFormData.category as keyof typeof rentCategorySubCategories
                           ]?.map((subCat) => (
@@ -2136,7 +2145,7 @@ export default function RentManagement({
                             placeholder={t("rent.selectAgreement")}
                           />
                         </SelectTrigger>
-                        <SelectContent>
+                        <SelectContent className="bg-white text-black border border-gray-200 shadow-lg">
                           {agreements
                             .filter((a) => a.status === "Active")
                             .map((agreement) => {
@@ -2309,7 +2318,7 @@ export default function RentManagement({
                       >
                         <SelectValue placeholder={t("loans.selectTenant")} />
                       </SelectTrigger>
-                      <SelectContent>
+                      <SelectContent className="bg-white text-black border border-gray-200 shadow-lg">
                         {tenants.map((tenant) => (
                           <SelectItem key={tenant.id} value={tenant.id}>
                             {tenant.name} - {tenant.phone}
@@ -2352,7 +2361,7 @@ export default function RentManagement({
                       >
                         <SelectValue placeholder={t("loans.selectAgreement")} />
                       </SelectTrigger>
-                      <SelectContent>
+                      <SelectContent className="bg-white text-black border border-gray-200 shadow-lg">
                         {agreements
                           .filter(
                             (a) =>
@@ -2690,7 +2699,7 @@ export default function RentManagement({
                     <SelectTrigger>
                       <SelectValue placeholder={t("rent.selectAgreement")} />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="bg-white text-black border border-gray-200 shadow-lg">
                       {agreements
                         .filter((a) => a.status === "Active")
                         .map((agreement) => {

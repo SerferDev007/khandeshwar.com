@@ -1474,9 +1474,19 @@ export default function Reports({
                       <SelectTrigger>
                         <SelectValue />
                       </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="csv">CSV</SelectItem>
-                        <SelectItem value="pdf">PDF</SelectItem>
+                      <SelectContent className="bg-white text-black border border-gray-200 shadow-lg">
+                        <SelectItem
+                          className="hover:font-bold hover:bg-gray-100"
+                          value="csv"
+                        >
+                          CSV
+                        </SelectItem>
+                        <SelectItem
+                          className="hover:font-bold hover:bg-gray-100"
+                          value="pdf"
+                        >
+                          PDF
+                        </SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -1492,17 +1502,29 @@ export default function Reports({
                       <SelectTrigger>
                         <SelectValue />
                       </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="transactions">
+                      <SelectContent className="bg-white text-black border border-gray-200 shadow-lg">
+                        <SelectItem
+                          className="hover:font-bold hover:bg-gray-100"
+                          value="transactions"
+                        >
                           {t("reports.exportTransactions")}
                         </SelectItem>
-                        <SelectItem value="summary">
+                        <SelectItem
+                          className="hover:font-bold hover:bg-gray-100"
+                          value="summary"
+                        >
                           {t("reports.exportSummary")}
                         </SelectItem>
-                        <SelectItem value="categoryBreakdown">
+                        <SelectItem
+                          className="hover:font-bold hover:bg-gray-100"
+                          value="categoryBreakdown"
+                        >
                           {t("reports.exportCategorySummary")}
                         </SelectItem>
-                        <SelectItem value="monthly">
+                        <SelectItem
+                          className="hover:font-bold hover:bg-gray-100"
+                          value="monthly"
+                        >
                           {t("reports.monthlyTrend")}
                         </SelectItem>
                       </SelectContent>
@@ -1522,11 +1544,17 @@ export default function Reports({
                       <SelectTrigger>
                         <SelectValue />
                       </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="en">
+                      <SelectContent className="bg-white text-black border border-gray-200 shadow-lg">
+                        <SelectItem
+                          className="hover:font-bold hover:bg-gray-100"
+                          value="en"
+                        >
                           {t("reports.englishPDF")}
                         </SelectItem>
-                        <SelectItem value="mr">
+                        <SelectItem
+                          className="hover:font-bold hover:bg-gray-100"
+                          value="mr"
+                        >
                           {t("reports.marathiPDF")}
                         </SelectItem>
                       </SelectContent>
@@ -1566,17 +1594,29 @@ export default function Reports({
                         <SelectTrigger>
                           <SelectValue placeholder={t("reports.allTypes")} />
                         </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all">
+                        <SelectContent className="bg-white text-black border border-gray-200 shadow-lg">
+                          <SelectItem
+                            className="hover:font-bold hover:bg-gray-100"
+                            value="all"
+                          >
                             {t("reports.allTypes")}
                           </SelectItem>
-                          <SelectItem value="donations">
+                          <SelectItem
+                            className="hover:font-bold hover:bg-gray-100"
+                            value="donations"
+                          >
                             {t("reports.donations")}
                           </SelectItem>
-                          <SelectItem value="expenses">
+                          <SelectItem
+                            className="hover:font-bold hover:bg-gray-100"
+                            value="expenses"
+                          >
                             {t("reports.expenses")}
                           </SelectItem>
-                          <SelectItem value="rentIncome">
+                          <SelectItem
+                            className="hover:font-bold hover:bg-gray-100"
+                            value="rentIncome"
+                          >
                             Rent Income
                           </SelectItem>
                         </SelectContent>
@@ -1587,6 +1627,7 @@ export default function Reports({
                     <div>
                       <Label>{t("reports.filterByCategory")}</Label>
                       <Select
+                        className="hover:font-bold hover:bg-gray-100"
                         value={exportFilters.category}
                         onValueChange={(value) =>
                           handleExportFilterChange("category", value)
@@ -1594,15 +1635,23 @@ export default function Reports({
                       >
                         <SelectTrigger>
                           <SelectValue
+                            className="hover:font-bold hover:bg-gray-100"
                             placeholder={t("reports.allCategories")}
                           />
                         </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all">
+                        <SelectContent className="bg-white text-black border border-gray-200 shadow-lg ">
+                          <SelectItem
+                            className="hover:font-bold hover:bg-gray-100"
+                            value="all"
+                          >
                             {t("reports.allCategories")}
                           </SelectItem>
                           {getExportUniqueCategories.map((category) => (
-                            <SelectItem key={category} value={category}>
+                            <SelectItem
+                              className="hover:font-bold hover:bg-gray-100"
+                              key={category}
+                              value={category}
+                            >
                               {category}
                             </SelectItem>
                           ))}
@@ -1625,8 +1674,11 @@ export default function Reports({
                             placeholder={t("reports.allSubCategories")}
                           />
                         </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all">
+                        <SelectContent className="bg-white text-black border border-gray-200 shadow-lg">
+                          <SelectItem
+                            className="hover:font-bold hover:bg-gray-100"
+                            value="all"
+                          >
                             {t("reports.allSubCategories")}
                           </SelectItem>
                           {getExportUniqueSubCategories.map((subCategory) => (
@@ -1650,12 +1702,23 @@ export default function Reports({
                         <SelectTrigger>
                           <SelectValue />
                         </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all">All Dates</SelectItem>
-                          <SelectItem value="month">
+                        <SelectContent className="bg-white text-black border border-gray-200 shadow-lg">
+                          <SelectItem
+                            className="hover:font-bold hover:bg-gray-100"
+                            value="all"
+                          >
+                            All Dates
+                          </SelectItem>
+                          <SelectItem
+                            className="hover:font-bold hover:bg-gray-100"
+                            value="month"
+                          >
                             {t("reports.filterByMonth")}
                           </SelectItem>
-                          <SelectItem value="range">
+                          <SelectItem
+                            className="hover:font-bold hover:bg-gray-100"
+                            value="range"
+                          >
                             {t("reports.filterByDateRange")}
                           </SelectItem>
                         </SelectContent>
@@ -1679,7 +1742,7 @@ export default function Reports({
                               placeholder={t("reports.selectMonth")}
                             />
                           </SelectTrigger>
-                          <SelectContent>
+                          <SelectContent className="bg-white text-black border border-gray-200 shadow-lg">
                             {Array.from({ length: 12 }, (_, i) => {
                               const month = i + 1;
                               const monthName = new Date(
@@ -1712,7 +1775,7 @@ export default function Reports({
                               placeholder={t("reports.selectYear")}
                             />
                           </SelectTrigger>
-                          <SelectContent>
+                          <SelectContent className="bg-white text-black border border-gray-200 shadow-lg">
                             {getUniqueYears.map((year) => (
                               <SelectItem key={year} value={year}>
                                 {year}
@@ -1982,15 +2045,31 @@ export default function Reports({
                   <SelectTrigger>
                     <SelectValue placeholder={t("reports.allTypes")} />
                   </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">{t("reports.allTypes")}</SelectItem>
-                    <SelectItem value="donations">
+                  <SelectContent className="bg-white text-black border border-gray-200 shadow-lg">
+                    <SelectItem
+                      className="hover:font-bold hover:bg-gray-100"
+                      value="all"
+                    >
+                      {t("reports.allTypes")}
+                    </SelectItem>
+                    <SelectItem
+                      className="hover:font-bold hover:bg-gray-100"
+                      value="donations"
+                    >
                       {t("reports.donations")}
                     </SelectItem>
-                    <SelectItem value="expenses">
+                    <SelectItem
+                      className="hover:font-bold hover:bg-gray-100"
+                      value="expenses"
+                    >
                       {t("reports.expenses")}
                     </SelectItem>
-                    <SelectItem value="rentIncome">Rent Income</SelectItem>
+                    <SelectItem
+                      className="hover:font-bold hover:bg-gray-100"
+                      value="rentIncome"
+                    >
+                      Rent Income
+                    </SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -2007,8 +2086,11 @@ export default function Reports({
                   <SelectTrigger>
                     <SelectValue placeholder={t("reports.allCategories")} />
                   </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">
+                  <SelectContent className="bg-white text-black border border-gray-200 shadow-lg">
+                    <SelectItem
+                      className="hover:font-bold hover:bg-gray-100"
+                      value="all"
+                    >
                       {t("reports.allCategories")}
                     </SelectItem>
                     {getUniqueCategories.map((category) => (
@@ -2033,8 +2115,11 @@ export default function Reports({
                   <SelectTrigger>
                     <SelectValue placeholder={t("reports.allSubCategories")} />
                   </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">
+                  <SelectContent className="bg-white text-black border border-gray-200 shadow-lg">
+                    <SelectItem
+                      className="hover:font-bold hover:bg-gray-100"
+                      value="all"
+                    >
                       {t("reports.allSubCategories")}
                     </SelectItem>
                     {getUniqueSubCategories.map((subCategory) => (
@@ -2058,12 +2143,23 @@ export default function Reports({
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Dates</SelectItem>
-                    <SelectItem value="month">
+                  <SelectContent className="bg-white text-black border border-gray-200 shadow-lg">
+                    <SelectItem
+                      className="hover:font-bold hover:bg-gray-100"
+                      value="all"
+                    >
+                      All Dates
+                    </SelectItem>
+                    <SelectItem
+                      className="hover:font-bold hover:bg-gray-100"
+                      value="month"
+                    >
                       {t("reports.filterByMonth")}
                     </SelectItem>
-                    <SelectItem value="range">
+                    <SelectItem
+                      className="hover:font-bold hover:bg-gray-100"
+                      value="range"
+                    >
                       {t("reports.filterByDateRange")}
                     </SelectItem>
                   </SelectContent>
@@ -2085,7 +2181,7 @@ export default function Reports({
                     <SelectTrigger>
                       <SelectValue placeholder={t("reports.selectMonth")} />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="bg-white text-black border border-gray-200 shadow-lg">
                       {Array.from({ length: 12 }, (_, i) => {
                         const month = i + 1;
                         const monthName = new Date(2024, i, 1).toLocaleString(
@@ -2110,7 +2206,7 @@ export default function Reports({
                     <SelectTrigger>
                       <SelectValue placeholder={t("reports.selectYear")} />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="bg-white text-black border border-gray-200 shadow-lg">
                       {getUniqueYears.map((year) => (
                         <SelectItem key={year} value={year}>
                           {year}
@@ -2262,9 +2358,17 @@ export default function Reports({
               <SelectTrigger className="w-32">
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="table">{t("reports.tableView")}</SelectItem>
-                <SelectItem value="summary">
+              <SelectContent className="bg-white text-black border border-gray-200 shadow-lg">
+                <SelectItem
+                  className="hover:font-bold hover:bg-gray-100"
+                  value="table"
+                >
+                  {t("reports.tableView")}
+                </SelectItem>
+                <SelectItem
+                  className="hover:font-bold hover:bg-gray-100"
+                  value="summary"
+                >
                   {t("reports.summaryView")}
                 </SelectItem>
               </SelectContent>

@@ -419,14 +419,23 @@ export default function Donations({
                   >
                     <SelectValue placeholder={t("donations.selectCategory")} />
                   </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Vargani">
+                  <SelectContent className="bg-white text-black border border-gray-200 shadow-lg">
+                    <SelectItem
+                      className="hover:font-bold hover:bg-gray-100"
+                      value="Vargani"
+                    >
                       {t("donations.vargani")}
                     </SelectItem>
-                    <SelectItem value="Dengi">
+                    <SelectItem
+                      className="hover:font-bold hover:bg-gray-100"
+                      value="Dengi"
+                    >
                       {t("donations.dengi")}
                     </SelectItem>
-                    <SelectItem value="Shaskiy Nidhi">
+                    <SelectItem
+                      className="hover:font-bold hover:bg-gray-100"
+                      value="Shaskiy Nidhi"
+                    >
                       {t("donations.shaskiyNighi")}
                     </SelectItem>
                   </SelectContent>
@@ -461,7 +470,7 @@ export default function Donations({
                         placeholder={t("donations.selectSubCategory")}
                       />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="bg-white text-black border border-gray-200 shadow-lg">
                       {categorySubCategories[
                         formData.category as keyof typeof categorySubCategories
                       ]?.map((subCat) => (

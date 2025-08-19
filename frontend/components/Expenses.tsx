@@ -289,12 +289,23 @@ export default function Expenses({ expenses, onAddExpense }: ExpensesProps) {
                   >
                     <SelectValue placeholder={t("donations.selectCategory")} />
                   </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Utsav">{t("expenses.utsav")}</SelectItem>
-                    <SelectItem value="Gala Kharch">
+                  <SelectContent className="bg-white text-black border border-gray-200 shadow-lg">
+                    <SelectItem
+                      className="hover:font-bold hover:bg-gray-100"
+                      value="Utsav"
+                    >
+                      {t("expenses.utsav")}
+                    </SelectItem>
+                    <SelectItem
+                      className="hover:font-bold hover:bg-gray-100"
+                      value="Gala Kharch"
+                    >
                       {t("expenses.galaKharch")}
                     </SelectItem>
-                    <SelectItem value="Mandir Dekhbhal">
+                    <SelectItem
+                      className="hover:font-bold hover:bg-gray-100"
+                      value="Mandir Dekhbhal"
+                    >
                       {t("expenses.mandirDekhbhal")}
                     </SelectItem>
                   </SelectContent>
@@ -329,7 +340,7 @@ export default function Expenses({ expenses, onAddExpense }: ExpensesProps) {
                         placeholder={t("donations.selectSubCategory")}
                       />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="bg-white text-black border border-gray-200 shadow-lg">
                       {expenseCategorySubCategories[
                         formData.category as keyof typeof expenseCategorySubCategories
                       ]?.map((subCat) => (
