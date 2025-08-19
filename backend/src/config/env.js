@@ -8,7 +8,7 @@ dotenv.config();
 const envSchema = z.object({
   // Server
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
-  PORT: z.string().transform(Number).pipe(z.number().min(1000)).default('3001'),
+  PORT: z.string().transform(Number).pipe(z.number().min(1000)).default('8081'),
   
   // Database
   DB_HOST: z.string().default('localhost'),
@@ -33,7 +33,7 @@ const envSchema = z.object({
   SES_FROM_EMAIL: z.string().email().optional(),
   
   // CORS
-  CORS_ORIGIN: z.string().default('http://localhost:3000'),
+  CORS_ORIGINS: z.string().default('http://localhost:5173'),
   
   // Rate Limiting
   RATE_LIMIT_WINDOW_MS: z.string().transform(Number).default('900000'), // 15 minutes

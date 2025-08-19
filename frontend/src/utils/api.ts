@@ -72,6 +72,7 @@ class ApiClient {
       const response = await fetch(url, {
         ...options,
         headers,
+        credentials: 'include', // Include cookies and credentials for CORS
       });
 
       const data: ApiResponse<T> = await response.json();
