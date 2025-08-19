@@ -7,26 +7,29 @@ import { Alert, AlertDescription } from "./ui/alert";
 import { Eye, EyeOff, User, Lock } from "lucide-react";
 import LanguageSwitcher from "./LanguageSwitcher";
 import { useLanguage } from "./LanguageContext";
-import { useAuth } from "../src/context/AuthContext";
 
-export default function Login() {
+interface LoginProps {
+  onLogin: (username: string, password: string) => void;
+  error?: string;
+}
+
+export default function Login({ onLogin, error }: LoginProps) {
   const { t, language } = useLanguage();
-  const { login, isLoading, error } = useAuth();
-  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email || !password) {
+    if (!username || !password) {
       return;
     }
     
-    try {
-      await login({ email, password });
-    } catch (error) {
-      // Error is handled by the auth context and displayed via toast
-    }
+    setIsLoading(true);
+    await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate API call
+    onLogin(username, password);
+    setIsLoading(false);
   };
 
   return (
@@ -46,35 +49,33 @@ export default function Login() {
           }`}>
             {t('header.title')}
           </p>
+          <p className="text-xs text-gray-500">{t('header.subtitle')}</p>
         </CardHeader>
-        
-        <CardContent>
+        <CardContent className="space-y-4">
           {error && (
-            <Alert className="mb-4 border-red-200 bg-red-50">
-              <AlertDescription className="text-red-600">
-                {error}
-              </AlertDescription>
+            <Alert className="border-red-200 bg-red-50">
+              <AlertDescription className="text-red-600">{t('login.invalidCredentials')}</AlertDescription>
             </Alert>
           )}
           
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <Label htmlFor="email">{t('login.email')}</Label>
+            <div className="space-y-2">
+              <Label htmlFor="username">{t('login.username')}</Label>
               <div className="relative">
                 <User className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                 <Input
-                  id="email"
-                  type="email"
-                  placeholder={t('login.enterEmail')}
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  id="username"
+                  type="text"
+                  placeholder={t('login.enterUsername')}
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
                   className="pl-10"
                   required
                 />
               </div>
             </div>
             
-            <div>
+            <div className="space-y-2">
               <Label htmlFor="password">{t('login.password')}</Label>
               <div className="relative">
                 <Lock className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
@@ -107,9 +108,10 @@ export default function Login() {
           </form>
           
           <div className="mt-6 text-center text-xs text-gray-500">
-            <p>{t('login.testCredentials')}</p>
-            <p>Email: admin@example.com</p>
-            <p>Password: admin123</p>
+            <p>{t('login.demoCredentials')}</p>
+            <p>Admin: admin / admin123</p>
+            <p>Treasurer: treasurer / treasurer123</p>
+            <p>Viewer: viewer / viewer123</p>
           </div>
         </CardContent>
       </Card>
