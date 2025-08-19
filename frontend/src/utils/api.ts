@@ -3,7 +3,7 @@
  * Handles all communication with the backend API
  */
 
-const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001';
+const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8081';
 
 interface ApiResponse<T = any> {
   success: boolean;
@@ -22,7 +22,8 @@ class ApiClient {
   private token: string | null = null;
 
   constructor(baseURL: string) {
-    this.baseURL = baseURL;
+    // Normalize base URL by removing trailing slashes
+    this.baseURL = baseURL.replace(/\/+$/, '');
     // Initialize token from localStorage if available
     this.token = localStorage.getItem('auth_token');
   }
@@ -53,7 +54,9 @@ class ApiClient {
     endpoint: string,
     options: RequestInit = {}
   ): Promise<T> {
-    const url = `${this.baseURL}${endpoint}`;
+    // Ensure endpoint starts with slash and normalize multiple slashes
+    const normalizedEndpoint = ('/' + endpoint).replace(/\/+/g, '/');
+    const url = `${this.baseURL}${normalizedEndpoint}`;
     
     const headers: HeadersInit = {
       'Content-Type': 'application/json',
@@ -149,7 +152,7 @@ class ApiClient {
 
   // Health check
   async getHealth() {
-    return this.get('/health');
+    return this.get('/api/health');
   }
 
   // User endpoints
