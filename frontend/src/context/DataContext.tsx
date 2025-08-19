@@ -66,7 +66,7 @@ interface DataContextType {
   deleteUser: (id: string) => Promise<void>;
   
   // Clear errors
-  clearError: (entity: keyof ErrorState) => void;
+  clearError: (entity: string) => void;
   clearAllErrors: () => void;
 }
 
@@ -125,18 +125,18 @@ export function DataProvider({ children }: DataProviderProps) {
   });
 
   // Helper function to set loading state for a specific entity
-  const setLoadingState = (entity: keyof LoadingState, isLoading: boolean) => {
+  const setLoadingState = (entity: string, isLoading: boolean) => {
     setLoading(prev => ({ ...prev, [entity]: isLoading }));
   };
 
   // Helper function to set error state for a specific entity
-  const setErrorState = (entity: keyof ErrorState, error: string | null) => {
+  const setErrorState = (entity: string, error: string | null) => {
     setErrors(prev => ({ ...prev, [entity]: error }));
   };
 
   // Generic fetch function
   const fetchData = async (
-    entity: keyof LoadingState,
+    entity: string,
     fetchFn: () => Promise<any>,
     setter: (data: any) => void
   ) => {
@@ -270,7 +270,7 @@ export function DataProvider({ children }: DataProviderProps) {
   };
 
   // Error management
-  const clearError = (entity: keyof ErrorState) => {
+  const clearError = (entity: string) => {
     setErrorState(entity, null);
   };
 
