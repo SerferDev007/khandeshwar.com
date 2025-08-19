@@ -64,6 +64,9 @@ app.use(
   })
 );
 
+// Trust proxy for proper IP forwarding in production
+app.set('trust proxy', 1);
+
 // CORS
 app.use(corsMiddleware);
 
