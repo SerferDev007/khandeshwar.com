@@ -4,7 +4,7 @@ import pino from 'pino';
 const logger = pino({ name: 'validation' });
 
 // Generic validation middleware factory
-export function validate(schema) {
+export const validate = (schema) => {
   return (req, res, next) => {
     try {
       // Validate request body, query, and params
@@ -112,7 +112,7 @@ export const schemas = {
 };
 
 // Validate file upload parameters
-export function validateFileUpload(req, res, next) {
+export const validateFileUpload = (req, res, next) => {
   const schema = z.object({
     filename: z.string().min(1, 'Filename is required'),
     contentType: z.string().min(1, 'Content type is required'),
@@ -142,4 +142,4 @@ export function validateFileUpload(req, res, next) {
       error: 'Validation error',
     });
   }
-}
+};

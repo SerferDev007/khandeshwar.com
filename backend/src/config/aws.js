@@ -37,7 +37,7 @@ if (env.AWS_ACCESS_KEY_ID && env.AWS_SECRET_ACCESS_KEY) {
 }
 
 // Generate pre-signed URL for file upload
-export async function generateUploadUrl(key, contentType, expiresIn = 3600) {
+export const generateUploadUrl = async (key, contentType, expiresIn = 3600) => {
   if (!s3Client || !env.AWS_S3_BUCKET) {
     throw new Error('S3 not configured');
   }
@@ -61,10 +61,10 @@ export async function generateUploadUrl(key, contentType, expiresIn = 3600) {
     logger.error('Failed to generate upload URL:', error);
     throw error;
   }
-}
+};
 
 // Generate pre-signed URL for file download
-export async function generateDownloadUrl(key, expiresIn = 3600) {
+export const generateDownloadUrl = async (key, expiresIn = 3600) => {
   if (!s3Client || !env.AWS_S3_BUCKET) {
     throw new Error('S3 not configured');
   }
@@ -83,10 +83,10 @@ export async function generateDownloadUrl(key, expiresIn = 3600) {
     logger.error('Failed to generate download URL:', error);
     throw error;
   }
-}
+};
 
 // Delete file from S3
-export async function deleteFile(key) {
+export const deleteFile = async (key) => {
   if (!s3Client || !env.AWS_S3_BUCKET) {
     throw new Error('S3 not configured');
   }
@@ -103,10 +103,10 @@ export async function deleteFile(key) {
     logger.error('Failed to delete file from S3:', error);
     throw error;
   }
-}
+};
 
 // Send email using SES
-export async function sendEmail({ to, subject, html, text }) {
+export const sendEmail = async ({ to, subject, html, text }) => {
   if (!sesClient || !env.SES_FROM_EMAIL) {
     logger.warn('SES not configured, email not sent');
     return;
@@ -143,6 +143,6 @@ export async function sendEmail({ to, subject, html, text }) {
     logger.error('Failed to send email:', error);
     throw error;
   }
-}
+};
 
 export { s3Client, sesClient };

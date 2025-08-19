@@ -9,18 +9,19 @@ import pino from 'pino';
 const logger = pino({ name: 'AuthController' });
 
 // Generate access token
-function generateAccessToken(user) {
+const generateAccessToken = (user) => {
+  const { id: userId, username, email, role } = user;
   return jwt.sign(
     {
-      userId: user.id,
-      username: user.username,
-      email: user.email,
-      role: user.role,
+      userId,
+      username,
+      email,
+      role,
     },
     env.JWT_SECRET,
     { expiresIn: env.JWT_EXPIRES_IN }
   );
-}
+};
 
 // Register new user
 export const register = asyncHandler(async (req, res) => {

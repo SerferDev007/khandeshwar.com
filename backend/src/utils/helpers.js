@@ -1,41 +1,41 @@
 import { v4 as uuidv4 } from 'uuid';
 
 // Generate UUID v4
-export function generateId() {
+export const generateId = () => {
   return uuidv4();
-}
+};
 
 // Generate random string
-export function generateRandomString(length = 32) {
+export const generateRandomString = (length = 32) => {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
   let result = '';
   for (let i = 0; i < length; i++) {
     result += chars.charAt(Math.floor(Math.random() * chars.length));
   }
   return result;
-}
+};
 
 // Format file size in human readable format
-export function formatFileSize(bytes) {
+export const formatFileSize = (bytes) => {
   if (bytes === 0) return '0 Bytes';
   
   const k = 1024;
   const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
   
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-}
+  return `${parseFloat((bytes / Math.pow(k, i)).toFixed(2))} ${sizes[i]}`;
+};
 
 // Sanitize filename for storage
-export function sanitizeFilename(filename) {
+export const sanitizeFilename = (filename) => {
   return filename
     .replace(/[^a-zA-Z0-9.-]/g, '_') // Replace special chars with underscore
     .replace(/_{2,}/g, '_') // Replace multiple underscores with single
     .replace(/^_+|_+$/g, ''); // Remove leading/trailing underscores
-}
+};
 
 // Generate unique filename with timestamp
-export function generateUniqueFilename(originalName) {
+export const generateUniqueFilename = (originalName) => {
   const extension = originalName.split('.').pop();
   const nameWithoutExt = originalName.replace(/\.[^/.]+$/, '');
   const sanitizedName = sanitizeFilename(nameWithoutExt);
@@ -43,23 +43,23 @@ export function generateUniqueFilename(originalName) {
   const randomString = generateRandomString(8);
   
   return `${sanitizedName}_${timestamp}_${randomString}.${extension}`;
-}
+};
 
 // Check if email is valid format
-export function isValidEmail(email) {
+export const isValidEmail = (email) => {
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   return emailRegex.test(email);
-}
+};
 
 // Check if password meets requirements
-export function isValidPassword(password) {
+export const isValidPassword = (password) => {
   // At least 8 chars, 1 uppercase, 1 lowercase, 1 number
   const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/;
   return passwordRegex.test(password);
-}
+};
 
 // Parse pagination parameters
-export function parsePagination(query) {
+export const parsePagination = (query) => {
   const page = Math.max(1, parseInt(query.page) || 1);
   const limit = Math.min(100, Math.max(1, parseInt(query.limit) || 10));
   const offset = (page - 1) * limit;
@@ -71,27 +71,32 @@ export function parsePagination(query) {
     sort: query.sort || 'created_at',
     order: ['asc', 'desc'].includes(query.order?.toLowerCase()) ? query.order.toLowerCase() : 'desc'
   };
-}
+};
 
 // Create pagination info object
-export function createPaginationInfo(page, limit, total) {
+export const createPaginationInfo = (page, limit, total) => {
+  const parsedPage = parseInt(page);
+  const parsedLimit = parseInt(limit);
+  const parsedTotal = parseInt(total);
+  const totalPages = Math.ceil(parsedTotal / parsedLimit);
+  
   return {
-    page: parseInt(page),
-    limit: parseInt(limit),
-    total: parseInt(total),
-    pages: Math.ceil(total / limit),
-    hasNext: page < Math.ceil(total / limit),
-    hasPrev: page > 1
+    page: parsedPage,
+    limit: parsedLimit,
+    total: parsedTotal,
+    pages: totalPages,
+    hasNext: parsedPage < totalPages,
+    hasPrev: parsedPage > 1
   };
-}
+};
 
 // Delay execution (for testing/demos)
-export function delay(ms) {
+export const delay = (ms) => {
   return new Promise(resolve => setTimeout(resolve, ms));
-}
+};
 
 // Deep clone object
-export function deepClone(obj) {
+export const deepClone = (obj) => {
   if (obj === null || typeof obj !== 'object') {
     return obj;
   }
@@ -111,10 +116,10 @@ export function deepClone(obj) {
     });
     return cloned;
   }
-}
+};
 
 // Remove sensitive fields from object
-export function sanitizeObject(obj, sensitiveFields = ['password', 'passwordHash', 'token', 'secret']) {
+export const sanitizeObject = (obj, sensitiveFields = ['password', 'passwordHash', 'token', 'secret']) => {
   const sanitized = { ...obj };
   
   sensitiveFields.forEach(field => {
@@ -124,10 +129,10 @@ export function sanitizeObject(obj, sensitiveFields = ['password', 'passwordHash
   });
   
   return sanitized;
-}
+};
 
 // Convert database row naming (snake_case) to camelCase
-export function dbRowToCamelCase(row) {
+export const dbRowToCamelCase = (row) => {
   const camelCased = {};
   
   Object.keys(row).forEach(key => {
@@ -136,10 +141,10 @@ export function dbRowToCamelCase(row) {
   });
   
   return camelCased;
-}
+};
 
 // Convert camelCase object to snake_case for database
-export function camelCaseToDbRow(obj) {
+export const camelCaseToDbRow = (obj) => {
   const snakeCased = {};
   
   Object.keys(obj).forEach(key => {
@@ -148,4 +153,4 @@ export function camelCaseToDbRow(obj) {
   });
   
   return snakeCased;
-}
+};

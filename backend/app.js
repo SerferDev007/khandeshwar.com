@@ -2,14 +2,14 @@ import express from "express";
 import cors from "cors";
 import mysql from "mysql2/promise";
 import dotenv from "dotenv";
-import { User } from "./models/User.js";
-import { UploadedFile } from "./models/UploadedFile.js";
-import { Shop } from "./models/Shop.js";
-import { Tenant } from "./models/Tenant.js";
-import { Agreement } from "./models/Agreement.js";
-import { Loan } from "./models/Loan.js";
-import { RentPenalty } from "./models/RentPenalty.js";
-import { Transaction } from "./models/Transaction.js";
+import { User } from "./src/models/User.js";
+import { UploadedFile } from "./src/models/UploadedFile.js";
+import { Shop } from "./src/models/Shop.js";
+import { Tenant } from "./src/models/Tenant.js";
+import { Agreement } from "./src/models/Agreement.js";
+import { Loan } from "./src/models/Loan.js";
+import { RentPenalty } from "./src/models/RentPenalty.js";
+import { Transaction } from "./src/models/Transaction.js";
 
 dotenv.config();
 
@@ -33,7 +33,7 @@ const dbConfig = {
 let connection;
 
 // Initialize database connection
-async function initializeDatabase() {
+const initializeDatabase = async () => {
   try {
     connection = await mysql.createConnection(dbConfig);
     console.log("Connected to MySQL database");
@@ -51,10 +51,10 @@ async function initializeDatabase() {
     console.error("Database connection failed:", error);
     process.exit(1);
   }
-}
+};
 
 // Create all tables
-async function createTables() {
+const createTables = async () => {
   const schemas = [
     User.getTableSchema(),
     Tenant.getTableSchema(),
@@ -69,12 +69,12 @@ async function createTables() {
   for (const schema of schemas) {
     await connection.execute(schema);
   }
-}
+};
 
 // Utility function to generate UUID
-function generateId() {
+const generateId = () => {
   return Date.now().toString() + Math.random().toString(36).substr(2, 9);
-}
+};
 
 // Error handler middleware
 const errorHandler = (error, req, res, next) => {
@@ -413,7 +413,7 @@ app.use("*", (req, res) => {
 });
 
 // Start server
-async function startServer() {
+const startServer = async () => {
   try {
     await initializeDatabase();
     app.listen(PORT, () => {
@@ -424,7 +424,7 @@ async function startServer() {
     console.error("Failed to start server:", error);
     process.exit(1);
   }
-}
+};
 
 // Graceful shutdown
 process.on("SIGINT", async () => {
