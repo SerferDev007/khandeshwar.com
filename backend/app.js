@@ -1,7 +1,24 @@
 import express from "express";
-import cors from "cors";
+import helmet from "helmet";
+import pino from "pino";
+import pinoPretty from "pino-pretty";
 import mysql from "mysql2/promise";
-import dotenv from "dotenv";
+import env from "./src/config/env.js";
+import corsMiddleware from "./src/middleware/cors.js";
+import { defaultRateLimit } from "./src/middleware/rateLimit.js";
+import {
+  errorHandler,
+  notFoundHandler,
+  handleUncaughtException,
+  handleUnhandledRejection,
+} from "./src/middleware/error.js";
+
+// Import routes
+import authRoutes from "./src/routes/auth.js";
+import userRoutes from "./src/routes/user.js";
+import fileRoutes from "./src/routes/files.js";
+
+// Import models
 import { User } from "./src/models/User.js";
 import { UploadedFile } from "./src/models/UploadedFile.js";
 import { Shop } from "./src/models/Shop.js";
@@ -11,54 +28,91 @@ import { Loan } from "./src/models/Loan.js";
 import { RentPenalty } from "./src/models/RentPenalty.js";
 import { Transaction } from "./src/models/Transaction.js";
 
-dotenv.config();
+// Create logger
+const logger = pino(
+  env.NODE_ENV === "development"
+    ? pinoPretty({
+        translateTime: "yyyy-mm-dd HH:MM:ss",
+        ignore: "pid,hostname",
+        colorize: true,
+      })
+    : {}
+);
+
+// Global error handlers
+process.on("uncaughtException", handleUncaughtException);
+process.on("unhandledRejection", handleUnhandledRejection);
 
 const app = express();
-const PORT = process.env.PORT || 3001;
 
-// Middleware
-app.use(cors());
-app.use(express.json({ limit: "50mb" }));
-app.use(express.urlencoded({ extended: true, limit: "50mb" }));
+// Security middleware
+app.use(
+  helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        styleSrc: ["'self'", "'unsafe-inline'"],
+        scriptSrc: ["'self'"],
+        imgSrc: ["'self'", "data:", "https:"],
+      },
+    },
+    hsts: {
+      maxAge: 31536000,
+      includeSubDomains: true,
+      preload: true,
+    },
+  })
+);
+
+// CORS
+app.use(corsMiddleware);
+
+// Rate limiting
+app.use(defaultRateLimit);
+
+// Body parsing middleware
+app.use(express.json({ limit: "10mb" }));
+app.use(express.urlencoded({ extended: true, limit: "10mb" }));
+
+// Request logging
+app.use((req, res, next) => {
+  logger.info(
+    {
+      method: req.method,
+      url: req.url,
+      ip: req.ip,
+      userAgent: req.get("User-Agent"),
+    },
+    "Incoming request"
+  );
+  next();
+});
 
 // Database configuration
-const dbConfig = {
-  host: process.env.DB_HOST || "localhost",
-  user: process.env.DB_USER || "root",
-  password: process.env.DB_PASSWORD || "",
-  database: process.env.DB_NAME || "khandeshwar_db",
-  port: process.env.DB_PORT || 3306,
-};
+import { initializeDatabase, query } from "./src/config/db.js";
 
 let connection;
 
-// Initialize database connection
-const initializeDatabase = async () => {
+// Initialize database connection and additional tables
+const initializeDatabaseWithModels = async () => {
   try {
-    connection = await mysql.createConnection(dbConfig);
-    console.log("Connected to MySQL database");
-
-    // Create database if it doesn't exist
-    // await connection.execute(
-    //   `CREATE DATABASE IF NOT EXISTS ${dbConfig.database}`
-    // );
-    // await connection.execute(`USE ${dbConfig.database}`);
-
-    // Create tables
-    await createTables();
-    console.log("Database tables created successfully");
+    // Initialize the main database
+    await initializeDatabase();
+    
+    // Create additional tables for the temple management models
+    await createAdditionalTables();
+    logger.info("✅ All database tables created successfully");
   } catch (error) {
-    console.error("Database connection failed:", error);
-    process.exit(1);
+    logger.error("❌ Database initialization failed:", error);
+    throw error;
   }
 };
 
-// Create all tables
-const createTables = async () => {
-  const schemas = [
-    User.getTableSchema(),
-    Tenant.getTableSchema(),
+// Create additional tables for temple management models
+const createAdditionalTables = async () => {
+  const additionalSchemas = [
     Shop.getTableSchema(),
+    Tenant.getTableSchema(),
     Agreement.getTableSchema(),
     Loan.getTableSchema(),
     RentPenalty.getTableSchema(),
@@ -66,23 +120,19 @@ const createTables = async () => {
     UploadedFile.getTableSchema(),
   ];
 
-  for (const schema of schemas) {
-    await connection.execute(schema);
+  for (const schema of additionalSchemas) {
+    try {
+      await query(schema);
+      logger.info('Additional table schema executed successfully');
+    } catch (error) {
+      logger.warn('Additional table creation warning (may already exist):', error.message);
+    }
   }
 };
 
 // Utility function to generate UUID
 const generateId = () => {
   return Date.now().toString() + Math.random().toString(36).substr(2, 9);
-};
-
-// Error handler middleware
-const errorHandler = (error, req, res, next) => {
-  console.error("Error:", error);
-  res.status(500).json({
-    error: "Internal server error",
-    message: error.message,
-  });
 };
 
 // Generic CRUD operations
@@ -95,12 +145,13 @@ class CrudController {
   // GET /api/{entity} - List all
   async getAll(req, res) {
     try {
-      const [rows] = await connection.execute(
+      const rows = await query(
         `SELECT * FROM ${this.tableName} ORDER BY created_at DESC`
       );
       const entities = rows.map((row) => this.ModelClass.fromDbRow(row));
       res.json(entities);
     } catch (error) {
+      logger.error('CRUD getAll error:', error);
       res.status(500).json({ error: error.message });
     }
   }
@@ -109,7 +160,7 @@ class CrudController {
   async getById(req, res) {
     try {
       const { id } = req.params;
-      const [rows] = await connection.execute(
+      const rows = await query(
         `SELECT * FROM ${this.tableName} WHERE id = ?`,
         [id]
       );
@@ -121,6 +172,7 @@ class CrudController {
       const entity = this.ModelClass.fromDbRow(rows[0]);
       res.json(entity);
     } catch (error) {
+      logger.error('CRUD getById error:', error);
       res.status(500).json({ error: error.message });
     }
   }
@@ -142,13 +194,14 @@ class CrudController {
         .join(", ");
       const values = Object.values(dbObject);
 
-      await connection.execute(
+      await query(
         `INSERT INTO ${this.tableName} (${fields}) VALUES (${placeholders})`,
         values
       );
 
       res.status(201).json(entity);
     } catch (error) {
+      logger.error('CRUD create error:', error);
       res.status(400).json({ error: error.message });
     }
   }
@@ -160,7 +213,7 @@ class CrudController {
       const updateData = req.body;
 
       // Check if entity exists
-      const [existingRows] = await connection.execute(
+      const existingRows = await query(
         `SELECT * FROM ${this.tableName} WHERE id = ?`,
         [id]
       );
@@ -180,13 +233,14 @@ class CrudController {
         .filter((key) => key !== "id" && key !== "created_at")
         .map((key) => dbObject[key]);
 
-      await connection.execute(
+      await query(
         `UPDATE ${this.tableName} SET ${setClause} WHERE id = ?`,
         [...values, id]
       );
 
       res.json(entity);
     } catch (error) {
+      logger.error('CRUD update error:', error);
       res.status(400).json({ error: error.message });
     }
   }
@@ -196,7 +250,7 @@ class CrudController {
     try {
       const { id } = req.params;
 
-      const [result] = await connection.execute(
+      const result = await query(
         `DELETE FROM ${this.tableName} WHERE id = ?`,
         [id]
       );
@@ -207,6 +261,7 @@ class CrudController {
 
       res.json({ message: "Entity deleted successfully" });
     } catch (error) {
+      logger.error('CRUD delete error:', error);
       res.status(400).json({ error: error.message });
     }
   }
@@ -227,7 +282,25 @@ const uploadedFileController = new CrudController(
 
 // Routes
 
-// Health check
+// Health check endpoint
+app.get("/health", (req, res) => {
+  res.json({
+    success: true,
+    data: {
+      status: "OK",
+      timestamp: new Date().toISOString(),
+      version: process.env.npm_package_version || "1.0.0",
+      environment: env.NODE_ENV,
+    },
+  });
+});
+
+// API routes
+app.use("/api/auth", authRoutes);
+app.use("/api/users", userRoutes);
+app.use("/api/files", fileRoutes);
+
+// Health check (alternative endpoint for backward compatibility)
 app.get("/api/health", (req, res) => {
   res.json({ status: "OK", timestamp: new Date().toISOString() });
 });
@@ -332,13 +405,14 @@ app.get(
   async (req, res) => {
     try {
       const { entityType, entityId } = req.params;
-      const [rows] = await connection.execute(
+      const rows = await query(
         "SELECT * FROM uploaded_files WHERE entity_type = ? AND entity_id = ?",
         [entityType, entityId]
       );
       const files = rows.map((row) => UploadedFile.fromDbRow(row));
       res.json(files);
     } catch (error) {
+      logger.error('Get files by entity error:', error);
       res.status(500).json({ error: error.message });
     }
   }
@@ -348,13 +422,14 @@ app.get(
 app.get("/api/transactions/type/:type", async (req, res) => {
   try {
     const { type } = req.params;
-    const [rows] = await connection.execute(
+    const rows = await query(
       "SELECT * FROM transactions WHERE type = ? ORDER BY date DESC",
       [type]
     );
     const transactions = rows.map((row) => Transaction.fromDbRow(row));
     res.json(transactions);
   } catch (error) {
+    logger.error('Get transactions by type error:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -363,13 +438,14 @@ app.get("/api/transactions/type/:type", async (req, res) => {
 app.get("/api/agreements/tenant/:tenantId", async (req, res) => {
   try {
     const { tenantId } = req.params;
-    const [rows] = await connection.execute(
+    const rows = await query(
       "SELECT * FROM agreements WHERE tenant_id = ? ORDER BY created_at DESC",
       [tenantId]
     );
     const agreements = rows.map((row) => Agreement.fromDbRow(row));
     res.json(agreements);
   } catch (error) {
+    logger.error('Get agreements by tenant error:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -378,13 +454,14 @@ app.get("/api/agreements/tenant/:tenantId", async (req, res) => {
 app.get("/api/loans/agreement/:agreementId", async (req, res) => {
   try {
     const { agreementId } = req.params;
-    const [rows] = await connection.execute(
+    const rows = await query(
       "SELECT * FROM loans WHERE agreement_id = ? ORDER BY created_at DESC",
       [agreementId]
     );
     const loans = rows.map((row) => Loan.fromDbRow(row));
     res.json(loans);
   } catch (error) {
+    logger.error('Get loans by agreement error:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -393,49 +470,27 @@ app.get("/api/loans/agreement/:agreementId", async (req, res) => {
 app.get("/api/rent-penalties/agreement/:agreementId", async (req, res) => {
   try {
     const { agreementId } = req.params;
-    const [rows] = await connection.execute(
+    const rows = await query(
       "SELECT * FROM rent_penalties WHERE agreement_id = ? ORDER BY due_date DESC",
       [agreementId]
     );
     const penalties = rows.map((row) => RentPenalty.fromDbRow(row));
     res.json(penalties);
   } catch (error) {
+    logger.error('Get penalties by agreement error:', error);
     res.status(500).json({ error: error.message });
   }
 });
 
-// Error handling middleware
-app.use(errorHandler);
+// Initialize database on app creation
+initializeDatabaseWithModels().catch((error) => {
+  logger.error('Failed to initialize database:', error);
+});
 
 // 404 handler
-app.use("*", (req, res) => {
-  res.status(404).json({ error: "Route not found" });
-});
+app.use(notFoundHandler);
 
-// Start server
-const startServer = async () => {
-  try {
-    await initializeDatabase();
-    app.listen(PORT, () => {
-      console.log(`Temple Management API Server running on port ${PORT}`);
-      console.log(`Health check: http://localhost:${PORT}/api/health`);
-    });
-  } catch (error) {
-    console.error("Failed to start server:", error);
-    process.exit(1);
-  }
-};
-
-// Graceful shutdown
-process.on("SIGINT", async () => {
-  console.log("Shutting down gracefully...");
-  if (connection) {
-    await connection.end();
-  }
-  process.exit(0);
-});
-
-// Start the server
-startServer();
+// Error handler (must be last)
+app.use(errorHandler);
 
 export default app;
