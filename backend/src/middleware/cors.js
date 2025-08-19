@@ -13,7 +13,7 @@ const corsOptions = {
     }
 
     // Get allowed origins from environment variable
-    const allowedOrigins = env.CORS_ORIGIN.split(',').map(origin => origin.trim());
+    const allowedOrigins = env.CORS_ORIGINS.split(',').map(origin => origin.trim());
     
     if (allowedOrigins.includes(origin) || allowedOrigins.includes('*')) {
       callback(null, true);
