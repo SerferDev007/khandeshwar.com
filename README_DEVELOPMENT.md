@@ -14,23 +14,40 @@ This document describes how to run the frontend against the backend API.
 
 ```bash
 cd backend
-cp .env.example .env  # Edit database connection details
+cp .env.example .env  # Edit: set PORT=8081, CORS_ORIGIN=http://localhost:5173,http://localhost:3000
 npm install
-npm run dev  # Starts on port 3001
+npm run dev  # Starts on port 8081
 ```
 
 ### 2. Frontend Setup  
 
 ```bash
 cd frontend
+echo "VITE_BACKEND_URL=http://localhost:8081" > .env.local
 npm install
 npm run dev  # Starts on port 5173
 ```
 
 ### 3. Environment Configuration
 
+**Frontend (.env.local):**
+```bash
+# Create frontend/.env.local
+VITE_BACKEND_URL=http://localhost:8081
+```
+
+**Backend (.env):**
+```bash
+# Copy backend/.env.example to backend/.env and update:
+PORT=8081
+CORS_ORIGIN=http://localhost:5173,http://localhost:3000
+# ... other settings from .env.example
+```
+
 The frontend is configured to connect to the backend via:
-- `VITE_BACKEND_URL=http://localhost:3001` (in frontend/.env)
+- `VITE_BACKEND_URL=http://localhost:8081` (in frontend/.env.local)
+- Backend runs on port 8081 (configured in backend/.env)
+- CORS allows both Vite dev server (5173) and other dev servers (3000)
 
 ### 4. Database Setup
 
@@ -74,7 +91,7 @@ The system uses JWT tokens for authentication:
 
 Test the API connection:
 ```bash
-curl http://localhost:3001/health
+curl http://localhost:8081/api/health
 ```
 
 This should return a successful health check response.
