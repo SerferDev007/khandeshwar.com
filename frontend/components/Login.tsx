@@ -21,7 +21,7 @@ export default function Login() {
     if (!email || !password) {
       return;
     }
-    
+
     try {
       await login({ email, password });
     } catch (error) {
@@ -34,20 +34,24 @@ export default function Login() {
       <div className="absolute top-4 right-4">
         <LanguageSwitcher />
       </div>
-      
+
       <Card className="w-full max-w-md bg-white/90 backdrop-blur-sm shadow-2xl border-0 login">
         <CardHeader className="text-center pb-2">
           <div className="mx-auto mb-4 w-16 h-16 bg-orange-500 rounded-full flex items-center justify-center">
             <User className="h-8 w-8 text-white" />
           </div>
-          <CardTitle className="text-2xl text-orange-600">{t('login.welcome')}</CardTitle>
-          <p className={`text-sm text-gray-600 mt-2 ${
-            language === 'mr' ? 'temple-title-marathi' : ''
-          }`}>
-            {t('header.title')}
+          <CardTitle className="text-2xl text-orange-600">
+            {t("login.welcome")}
+          </CardTitle>
+          <p
+            className={`text-sm text-gray-600 mt-2 ${
+              language === "mr" ? "temple-title-marathi" : ""
+            }`}
+          >
+            {t("header.title")}
           </p>
         </CardHeader>
-        
+
         <CardContent>
           {error && (
             <Alert className="mb-4 border-red-200 bg-red-50">
@@ -56,16 +60,18 @@ export default function Login() {
               </AlertDescription>
             </Alert>
           )}
-          
+
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <Label htmlFor="email">{t('login.email')}</Label>
+              <Label className="mb-1" htmlFor="email">
+                {t("Email")}
+              </Label>
               <div className="relative">
                 <User className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                 <Input
                   id="email"
                   type="email"
-                  placeholder={t('login.enterEmail')}
+                  placeholder={t("Enter Email")}
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="pl-10"
@@ -73,15 +79,17 @@ export default function Login() {
                 />
               </div>
             </div>
-            
+
             <div>
-              <Label htmlFor="password">{t('login.password')}</Label>
+              <Label className="mb-1" htmlFor="password">
+                {t("Password")}
+              </Label>
               <div className="relative">
                 <Lock className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                 <Input
                   id="password"
                   type={showPassword ? "text" : "password"}
-                  placeholder={t('login.enterPassword')}
+                  placeholder={t("login.enterPassword")}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="pl-10 pr-10"
@@ -92,22 +100,26 @@ export default function Login() {
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute right-3 top-3 text-gray-400 hover:text-gray-600"
                 >
-                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  {showPassword ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
                 </button>
               </div>
             </div>
-            
-            <Button 
-              type="submit" 
-              className="w-full bg-orange-500 hover:bg-orange-600" 
+
+            <Button
+              type="submit"
+              className="w-full bg-orange-500 hover:bg-orange-600"
               disabled={isLoading}
             >
-              {isLoading ? t('login.signingIn') : t('login.signIn')}
+              {isLoading ? t("login.signingIn") : t("login.signIn")}
             </Button>
           </form>
-          
+
           <div className="mt-6 text-center text-xs text-gray-500">
-            <p>{t('login.testCredentials')}</p>
+            <p>{t("Test Credentials")}</p>
             <p>Email: admin@example.com</p>
             <p>Password: admin123</p>
           </div>
