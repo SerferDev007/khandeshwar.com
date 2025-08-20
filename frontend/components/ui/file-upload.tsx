@@ -367,7 +367,7 @@ export function FileUpload({
             Uploaded Files ({value.length}/{maxFiles})
           </Label>
           <div className="space-y-2">
-            {value.map((file) => (
+            {(value ?? []).map((file) => (
               <Card key={file.id} className="p-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-3 flex-1 min-w-0">

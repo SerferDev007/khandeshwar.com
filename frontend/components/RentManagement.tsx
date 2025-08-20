@@ -1266,7 +1266,7 @@ export default function RentManagement({
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {shops.map((shop) => (
+                      {(shops ?? []).map((shop) => (
                         <TableRow key={shop.id}>
                           <TableCell className="font-medium">
                             {shop.shopNumber}
@@ -1544,7 +1544,7 @@ export default function RentManagement({
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {tenants.map((tenant) => (
+                      {(tenants ?? []).map((tenant) => (
                         <TableRow key={tenant.id}>
                           <TableCell className="font-medium">
                             {tenant.name}
@@ -1628,7 +1628,7 @@ export default function RentManagement({
                         <SelectValue placeholder={t("agreement.selectShop")} />
                       </SelectTrigger>
                       <SelectContent className="bg-white text-black border border-gray-200 shadow-lg">
-                        {shops
+                        {(shops ?? [])
                           .filter((shop) => shop.status === "Vacant")
                           .map((shop) => (
                             <SelectItem key={shop.id} value={shop.id}>
@@ -1677,7 +1677,7 @@ export default function RentManagement({
                         />
                       </SelectTrigger>
                       <SelectContent className="bg-white text-black border border-gray-200 shadow-lg">
-                        {tenants
+                        {(tenants ?? [])
                           .filter((tenant) => tenant.status === "Active")
                           .map((tenant) => (
                             <SelectItem key={tenant.id} value={tenant.id}>
@@ -1949,7 +1949,7 @@ export default function RentManagement({
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {agreements.map((agreement) => {
+                      {(agreements ?? []).map((agreement) => {
                         const shop = getShopById(agreement.shopId);
                         const tenant = getTenantById(agreement.tenantId);
                         return (
@@ -2146,7 +2146,7 @@ export default function RentManagement({
                           />
                         </SelectTrigger>
                         <SelectContent className="bg-white text-black border border-gray-200 shadow-lg">
-                          {agreements
+                          {(agreements ?? [])
                             .filter((a) => a.status === "Active")
                             .map((agreement) => {
                               const shop = getShopById(agreement.shopId);
@@ -2319,7 +2319,7 @@ export default function RentManagement({
                         <SelectValue placeholder={t("loans.selectTenant")} />
                       </SelectTrigger>
                       <SelectContent className="bg-white text-black border border-gray-200 shadow-lg">
-                        {tenants.map((tenant) => (
+                        {(tenants ?? []).map((tenant) => (
                           <SelectItem key={tenant.id} value={tenant.id}>
                             {tenant.name} - {tenant.phone}
                           </SelectItem>
@@ -2362,7 +2362,7 @@ export default function RentManagement({
                         <SelectValue placeholder={t("loans.selectAgreement")} />
                       </SelectTrigger>
                       <SelectContent className="bg-white text-black border border-gray-200 shadow-lg">
-                        {agreements
+                        {(agreements ?? [])
                           .filter(
                             (a) =>
                               a.status === "Active" &&
@@ -2604,7 +2604,7 @@ export default function RentManagement({
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {loans.map((loan) => (
+                      {(loans ?? []).map((loan) => (
                         <TableRow key={loan.id}>
                           <TableCell>{loan.tenantName}</TableCell>
                           <TableCell>
@@ -2700,7 +2700,7 @@ export default function RentManagement({
                       <SelectValue placeholder={t("rent.selectAgreement")} />
                     </SelectTrigger>
                     <SelectContent className="bg-white text-black border border-gray-200 shadow-lg">
-                      {agreements
+                      {(agreements ?? [])
                         .filter((a) => a.status === "Active")
                         .map((agreement) => {
                           const shop = getShopById(agreement.shopId);
@@ -2929,7 +2929,7 @@ export default function RentManagement({
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {penalties.map((penalty) => (
+                      {(penalties ?? []).map((penalty) => (
                         <TableRow key={penalty.id}>
                           <TableCell>{penalty.tenantName}</TableCell>
                           <TableCell>

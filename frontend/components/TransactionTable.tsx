@@ -103,7 +103,7 @@ export default function TransactionTable({ transactions }: TransactionTableProps
         </TableRow>
       </TableHeader>
       <TableBody>
-        {transactions.map((transaction) => (
+        {(transactions ?? []).map((transaction) => (
           <TableRow key={transaction.id}>
             <TableCell>{transaction.date}</TableCell>
             <TableCell>{transaction.receiptNumber || '-'}</TableCell>
