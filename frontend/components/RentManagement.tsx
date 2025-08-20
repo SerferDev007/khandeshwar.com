@@ -158,11 +158,11 @@ interface RentPenalty {
 interface RentManagementProps {
   onAddRentIncome: (payment: any) => void;
   nextReceiptNumber: string;
-  shops: Shop[];
-  tenants: Tenant[];
-  agreements: Agreement[];
-  loans: Loan[];
-  penalties: RentPenalty[];
+  shops?: Shop[];
+  tenants?: Tenant[];
+  agreements?: Agreement[];
+  loans?: Loan[];
+  penalties?: RentPenalty[];
   onAddShop: (shopData: Omit<Shop, "id" | "createdAt">) => void;
   onUpdateShop: (shopId: string, updates: Partial<Shop>) => void;
   onDeleteShop: (shopId: string) => void;
@@ -333,9 +333,9 @@ export default function RentManagement({
     });
   };
 
-  const getShopById = (id: string) => shops.find((s) => s.id === id);
-  const getTenantById = (id: string) => tenants.find((t) => t.id === id);
-  const getAgreementById = (id: string) => agreements.find((a) => a.id === id);
+  const getShopById = (id: string) => (shops ?? []).find((s) => s.id === id);
+  const getTenantById = (id: string) => (tenants ?? []).find((t) => t.id === id);
+  const getAgreementById = (id: string) => (agreements ?? []).find((a) => a.id === id);
 
   // Calculate EMI using formula: EMI = [P × R × (1+R)^N] / [(1+R)^N-1]
   const calculateEMI = (
@@ -1245,7 +1245,7 @@ export default function RentManagement({
               </CardTitle>
             </CardHeader>
             <CardContent>
-              {shops.length === 0 ? (
+              {(shops ?? []).length === 0 ? (
                 <Alert>
                   <AlertCircle className="h-4 w-4" />
                   <AlertDescription>
@@ -1523,7 +1523,7 @@ export default function RentManagement({
               </CardTitle>
             </CardHeader>
             <CardContent>
-              {tenants.length === 0 ? (
+              {(tenants ?? []).length === 0 ? (
                 <Alert>
                   <AlertCircle className="h-4 w-4" />
                   <AlertDescription>
@@ -1927,7 +1927,7 @@ export default function RentManagement({
               </CardTitle>
             </CardHeader>
             <CardContent>
-              {agreements.length === 0 ? (
+              {(agreements ?? []).length === 0 ? (
                 <Alert>
                   <AlertCircle className="h-4 w-4" />
                   <AlertDescription>
@@ -2584,7 +2584,7 @@ export default function RentManagement({
               </CardTitle>
             </CardHeader>
             <CardContent>
-              {loans.length === 0 ? (
+              {(loans ?? []).length === 0 ? (
                 <Alert>
                   <AlertCircle className="h-4 w-4" />
                   <AlertDescription>{t("rent.noActiveLoans")}</AlertDescription>
@@ -2908,7 +2908,7 @@ export default function RentManagement({
               </CardTitle>
             </CardHeader>
             <CardContent>
-              {penalties.length === 0 ? (
+              {(penalties ?? []).length === 0 ? (
                 <Alert>
                   <CheckCircle className="h-4 w-4" />
                   <AlertDescription>
@@ -2990,8 +2990,8 @@ export default function RentManagement({
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
-                  {shops.filter((s) => s.status === "Occupied").length} /{" "}
-                  {shops.length}
+                  {(shops ?? []).filter((s) => s.status === "Occupied").length} /{" "}
+                  {(shops ?? []).length}
                 </div>
                 <p className="text-sm text-gray-500">
                   {t("dashboard.activeShops")}
@@ -3008,7 +3008,7 @@ export default function RentManagement({
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
-                  {tenants.filter((t) => t.status === "Active").length}
+                  {(tenants ?? []).filter((t) => t.status === "Active").length}
                 </div>
                 <p className="text-sm text-gray-500">Active Tenants</p>
               </CardContent>
@@ -3023,7 +3023,7 @@ export default function RentManagement({
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
-                  {agreements.filter((a) => a.status === "Active").length}
+                  {(agreements ?? []).filter((a) => a.status === "Active").length}
                 </div>
                 <p className="text-sm text-gray-500">
                   {t("agreement.activeAgreements")}
@@ -3041,7 +3041,7 @@ export default function RentManagement({
               <CardContent>
                 <div className="text-2xl font-bold">
                   {formatCurrency(
-                    agreements.reduce(
+                    (agreements ?? []).reduce(
                       (sum, agreement) =>
                         agreement.status === "Active"
                           ? sum + agreement.monthlyRent
@@ -3066,12 +3066,12 @@ export default function RentManagement({
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
-                  {loans.filter((l) => l.status === "Active").length}
+                  {(loans ?? []).filter((l) => l.status === "Active").length}
                 </div>
                 <p className="text-sm text-gray-500">
                   Outstanding:{" "}
                   {formatCurrency(
-                    loans.reduce(
+                    (loans ?? []).reduce(
                       (sum, loan) => sum + loan.outstandingBalance,
                       0
                     )
@@ -3089,12 +3089,12 @@ export default function RentManagement({
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
-                  {penalties.filter((p) => p.status === "Pending").length}
+                  {(penalties ?? []).filter((p) => p.status === "Pending").length}
                 </div>
                 <p className="text-sm text-gray-500">
                   Total:{" "}
                   {formatCurrency(
-                    penalties.reduce(
+                    (penalties ?? []).reduce(
                       (sum, penalty) =>
                         penalty.status === "Pending"
                           ? sum + penalty.penaltyAmount
