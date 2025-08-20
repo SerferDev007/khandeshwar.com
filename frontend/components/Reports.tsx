@@ -1189,8 +1189,8 @@ export default function Reports({
               (sum, d) => sum + d.amount,
               0
             );
-            const totalExpenses = expenses.reduce(
-              (sum, e) => sum + e.amount,
+            const totalExpenses = (expenses ?? []).reduce(
+              (sum, donation) => sum + donation.amount,
               0
             );
             const totalRentIncome = rentIncomes.reduce(

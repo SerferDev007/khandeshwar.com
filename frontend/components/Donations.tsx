@@ -292,7 +292,7 @@ export default function Donations({
     setErrors({});
   };
 
-  const totalDonations = donations.reduce(
+  const totalDonations = (donations ?? []).reduce(
     (sum, donation) => sum + donation.amount,
     0
   );
