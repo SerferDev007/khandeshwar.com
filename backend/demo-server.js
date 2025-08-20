@@ -8,7 +8,7 @@ import cors from 'cors';
 import { demoAuthRoutes, demoAuthMiddleware } from './demo-auth.js';
 
 const app = express();
-const PORT = 3001;
+const PORT = 8081;
 
 // Middleware
 app.use(cors({

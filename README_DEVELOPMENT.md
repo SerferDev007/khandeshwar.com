@@ -14,7 +14,7 @@ This document describes how to run the frontend against the backend API.
 
 ```bash
 cd backend
-cp .env.example .env  # Edit: set PORT=8081, CORS_ORIGIN=http://localhost:5173,http://localhost:3000
+cp .env.example .env  # Edit: set PORT=8081, CORS_ORIGINS=http://localhost:5173
 npm install
 npm run dev  # Starts on port 8081
 ```
@@ -40,14 +40,14 @@ VITE_BACKEND_URL=http://localhost:8081
 ```bash
 # Copy backend/.env.example to backend/.env and update:
 PORT=8081
-CORS_ORIGIN=http://localhost:5173,http://localhost:3000
+CORS_ORIGINS=http://localhost:5173
 # ... other settings from .env.example
 ```
 
 The frontend is configured to connect to the backend via:
 - `VITE_BACKEND_URL=http://localhost:8081` (in frontend/.env.local)
 - Backend runs on port 8081 (configured in backend/.env)
-- CORS allows both Vite dev server (5173) and other dev servers (3000)
+- CORS allows the Vite dev server (5173)
 
 ### 4. Database Setup
 

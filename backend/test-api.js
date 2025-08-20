@@ -7,7 +7,7 @@
 
 import fetch from 'node-fetch';
 
-const API_BASE_URL = 'http://localhost:3001';
+const API_BASE_URL = 'http://localhost:8081';
 
 async function testEndpoint(method, path, body = null, token = null) {
   try {
