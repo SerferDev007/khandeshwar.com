@@ -212,6 +212,8 @@ export default function Expenses({ expenses, onAddExpense }: ExpensesProps) {
       receiptImages: formData.receiptImages,
     };
 
+    console.log(newExpense);
+
     onAddExpense(newExpense);
     setLastAddedExpense(newExpense);
     setShowSuccessDialog(true);
@@ -477,7 +479,7 @@ export default function Expenses({ expenses, onAddExpense }: ExpensesProps) {
 
       {/* Success Dialog */}
       <Dialog open={showSuccessDialog} onOpenChange={setShowSuccessDialog}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-md  bg-orange-300">
           <DialogHeader>
             <div className="flex items-center gap-2 mb-2">
               <div className="rounded-full bg-green-100 p-2">

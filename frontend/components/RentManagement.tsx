@@ -216,6 +216,8 @@ export default function RentManagement({
 
   const [selectedTab, setSelectedTab] = useState("shops");
 
+  console.log(`in rent management`);
+
   // Shop Form State
   const [shopFormData, setShopFormData] = useState({
     shopNumber: "",
@@ -334,8 +336,10 @@ export default function RentManagement({
   };
 
   const getShopById = (id: string) => (shops ?? []).find((s) => s.id === id);
-  const getTenantById = (id: string) => (tenants ?? []).find((t) => t.id === id);
-  const getAgreementById = (id: string) => (agreements ?? []).find((a) => a.id === id);
+  const getTenantById = (id: string) =>
+    (tenants ?? []).find((t) => t.id === id);
+  const getAgreementById = (id: string) =>
+    (agreements ?? []).find((a) => a.id === id);
 
   // Calculate EMI using formula: EMI = [P × R × (1+R)^N] / [(1+R)^N-1]
   const calculateEMI = (
@@ -2990,8 +2994,8 @@ export default function RentManagement({
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
-                  {(shops ?? []).filter((s) => s.status === "Occupied").length} /{" "}
-                  {(shops ?? []).length}
+                  {(shops ?? []).filter((s) => s.status === "Occupied").length}{" "}
+                  / {(shops ?? []).length}
                 </div>
                 <p className="text-sm text-gray-500">
                   {t("dashboard.activeShops")}
@@ -3023,7 +3027,10 @@ export default function RentManagement({
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
-                  {(agreements ?? []).filter((a) => a.status === "Active").length}
+                  {
+                    (agreements ?? []).filter((a) => a.status === "Active")
+                      .length
+                  }
                 </div>
                 <p className="text-sm text-gray-500">
                   {t("agreement.activeAgreements")}
@@ -3089,7 +3096,10 @@ export default function RentManagement({
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
-                  {(penalties ?? []).filter((p) => p.status === "Pending").length}
+                  {
+                    (penalties ?? []).filter((p) => p.status === "Pending")
+                      .length
+                  }
                 </div>
                 <p className="text-sm text-gray-500">
                   Total:{" "}
@@ -3116,7 +3126,7 @@ export default function RentManagement({
         open={showShopSuccessDialog}
         onOpenChange={setShowShopSuccessDialog}
       >
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-md  bg-orange-300">
           <DialogHeader>
             <div className="flex items-center gap-2 mb-2">
               <div className="rounded-full bg-green-100 p-2">
@@ -3184,7 +3194,7 @@ export default function RentManagement({
         open={showTenantSuccessDialog}
         onOpenChange={setShowTenantSuccessDialog}
       >
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-md  bg-orange-300">
           <DialogHeader>
             <div className="flex items-center gap-2 mb-2">
               <div className="rounded-full bg-green-100 p-2">
@@ -3244,7 +3254,7 @@ export default function RentManagement({
         open={showAgreementSuccessDialog}
         onOpenChange={setShowAgreementSuccessDialog}
       >
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-md  bg-orange-300">
           <DialogHeader>
             <div className="flex items-center gap-2 mb-2">
               <div className="rounded-full bg-green-100 p-2">
@@ -3319,7 +3329,7 @@ export default function RentManagement({
         open={showLoanSuccessDialog}
         onOpenChange={setShowLoanSuccessDialog}
       >
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-md  bg-orange-300">
           <DialogHeader>
             <div className="flex items-center gap-2 mb-2">
               <div className="rounded-full bg-green-100 p-2">
@@ -3389,7 +3399,7 @@ export default function RentManagement({
         open={showCollectionSuccessDialog}
         onOpenChange={setShowCollectionSuccessDialog}
       >
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-md  bg-orange-300">
           <DialogHeader>
             <div className="flex items-center gap-2 mb-2">
               <div className="rounded-full bg-green-100 p-2">
@@ -3417,7 +3427,7 @@ export default function RentManagement({
         open={showRentSuccessDialog}
         onOpenChange={setShowRentSuccessDialog}
       >
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-md  bg-orange-300">
           <DialogHeader>
             <div className="flex items-center gap-2 mb-2">
               <div className="rounded-full bg-green-100 p-2">

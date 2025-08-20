@@ -15,28 +15,34 @@ import { Alert, AlertDescription } from "./components/ui/alert";
 import { toast } from "sonner";
 
 // Import types from shared types file
-import type { 
-  User, 
-  UploadedFile, 
-  Shop, 
-  Tenant, 
-  Agreement, 
-  Loan, 
-  RentPenalty, 
-  Transaction, 
-  ReceiptCounters 
+import type {
+  User,
+  UploadedFile,
+  Shop,
+  Tenant,
+  Agreement,
+  Loan,
+  RentPenalty,
+  Transaction,
+  ReceiptCounters,
 } from "./src/types";
 
 function AppContent() {
   const { t } = useLanguage();
-  const { isAuthenticated, user, isLoading: authLoading, error: authError, logout } = useAuth();
-  const { 
+  const {
+    isAuthenticated,
+    user,
+    isLoading: authLoading,
+    error: authError,
+    logout,
+  } = useAuth();
+  const {
     users,
-    shops, 
-    tenants, 
-    agreements, 
-    loans, 
-    penalties, 
+    shops,
+    tenants,
+    agreements,
+    loans,
+    penalties,
     transactions,
     receiptCounters,
     loading,
@@ -101,7 +107,9 @@ function AppContent() {
   }
 
   // Transaction handlers
-  const handleAddTransaction = async (newTransaction: Omit<Transaction, "id" | "createdAt">) => {
+  const handleAddTransaction = async (
+    newTransaction: Omit<Transaction, "id" | "createdAt">
+  ) => {
     try {
       await createTransaction(newTransaction);
       toast.success("Transaction added successfully!");
@@ -110,7 +118,10 @@ function AppContent() {
     }
   };
 
-  const handleUpdateTransaction = async (id: string, updatedTransaction: Partial<Transaction>) => {
+  const handleUpdateTransaction = async (
+    id: string,
+    updatedTransaction: Partial<Transaction>
+  ) => {
     try {
       await updateTransaction(id, updatedTransaction);
       toast.success("Transaction updated successfully!");
@@ -269,9 +280,10 @@ function AppContent() {
   };
 
   const handleToggleUserStatus = (id: string) => {
-    const userToUpdate = users.find(u => u.id === id);
+    const userToUpdate = users.find((u) => u.id === id);
     if (userToUpdate) {
-      const newStatus = userToUpdate.status === "Active" ? "Inactive" : "Active";
+      const newStatus =
+        userToUpdate.status === "Active" ? "Inactive" : "Active";
       handleUpdateUser(id, { status: newStatus });
     }
   };
@@ -282,7 +294,10 @@ function AppContent() {
     console.log("Update penalty:", id, penalty);
   };
 
-  const handleUpdateReceiptCounter = (type: 'donations' | 'rentIncome', count: number) => {
+  const handleUpdateReceiptCounter = (
+    type: "donations" | "rentIncome",
+    count: number
+  ) => {
     // This will be handled by the backend in the future
     console.log(`Update ${type} counter to:`, count);
   };
@@ -337,7 +352,9 @@ function AppContent() {
             onUpdateTransaction={handleUpdateTransaction}
             onDeleteTransaction={handleDeleteTransaction}
             receiptCounter={receiptCounters.donations}
-            onUpdateReceiptCounter={(count) => handleUpdateReceiptCounter('donations', count)}
+            onUpdateReceiptCounter={(count) =>
+              handleUpdateReceiptCounter("donations", count)
+            }
             currentUser={user}
           />
         )}
@@ -374,7 +391,7 @@ function AppContent() {
           />
         )}
 
-        {activeTab === "Rent Management" && (
+        {activeTab === "RentManagement" && (
           <RentManagement
             shops={shops}
             tenants={tenants}
@@ -396,7 +413,9 @@ function AppContent() {
             onUpdatePenalty={handleUpdatePenalty}
             onAddTransaction={handleAddTransaction}
             receiptCounter={receiptCounters.rentIncome}
-            onUpdateReceiptCounter={(count) => handleUpdateReceiptCounter('rentIncome', count)}
+            onUpdateReceiptCounter={(count) =>
+              handleUpdateReceiptCounter("rentIncome", count)
+            }
             currentUser={user}
             saveDocuments={saveDocuments}
             loadDocuments={loadDocuments}
