@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calendar Test</title>
+    <script type="module">
+        import { Calendar } from './components/ui/calendar.tsx';
+        import { DatePicker } from './components/ui/date-picker.tsx';
+        import { LanguageProvider } from './components/LanguageContext.tsx';
+        
+        // Simple test component to display DatePicker
+        const TestComponent = () => {
+            const [date, setDate] = React.useState();
+            return (
+                <LanguageProvider>
+                    <div style={{ padding: '50px' }}>
+                        <h1>DatePicker Calendar Test</h1>
+                        <DatePicker date={date} onDateChange={setDate} placeholder="Pick a date" />
+                        
+                        <h2 style={{ marginTop: '50px' }}>Direct Calendar Test</h2>
+                        <Calendar mode="single" selected={date} onSelect={setDate} />
+                    </div>
+                </LanguageProvider>
+            );
+        };
+        
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(React.createElement(TestComponent));
+    </script>
+</head>
+<body>
+    <div id="root"></div>
+</body>
+</html>
