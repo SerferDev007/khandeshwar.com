@@ -150,7 +150,7 @@ export default function Reports({
   // Get unique categories and subcategories for main view
   const getUniqueCategories = useMemo(() => {
     const categories = new Set<string>();
-    transactions.forEach((t) => {
+    (transactions ?? []).forEach((t) => {
       if (
         filters.transactionType === "all" ||
         (filters.transactionType === "donations" && t.type === "Donation") ||
@@ -168,7 +168,7 @@ export default function Reports({
 
   const getUniqueSubCategories = useMemo(() => {
     const subCategories = new Set<string>();
-    transactions.forEach((t) => {
+    (transactions ?? []).forEach((t) => {
       if (
         t.subCategory &&
         (filters.transactionType === "all" ||
@@ -190,7 +190,7 @@ export default function Reports({
   // Get unique categories and subcategories for export filters
   const getExportUniqueCategories = useMemo(() => {
     const categories = new Set<string>();
-    transactions.forEach((t) => {
+    (transactions ?? []).forEach((t) => {
       if (
         exportFilters.transactionType === "all" ||
         (exportFilters.transactionType === "donations" &&
@@ -210,7 +210,7 @@ export default function Reports({
 
   const getExportUniqueSubCategories = useMemo(() => {
     const subCategories = new Set<string>();
-    transactions.forEach((t) => {
+    (transactions ?? []).forEach((t) => {
       if (
         t.subCategory &&
         (exportFilters.transactionType === "all" ||
@@ -234,7 +234,7 @@ export default function Reports({
   // Get unique years from transactions
   const getUniqueYears = useMemo(() => {
     const years = new Set<string>();
-    transactions.forEach((t) => {
+    (transactions ?? []).forEach((t) => {
       years.add(new Date(t.date).getFullYear().toString());
     });
     return Array.from(years).sort().reverse();
@@ -242,7 +242,7 @@ export default function Reports({
 
   // Filter transactions based on current filter state
   const filteredTransactions = useMemo(() => {
-    return transactions.filter((transaction) => {
+    return (transactions ?? []).filter((transaction) => {
       // Type filter
       if (filters.transactionType !== "all") {
         if (
@@ -2385,14 +2385,14 @@ export default function Reports({
                   {hasActiveFilters
                     ? t("reports.showingResults", {
                         count: filteredTransactions.length,
-                        total: transactions.length,
+                        total: (transactions ?? []).length,
                       })
                         .replace(
                           "{count}",
                           filteredTransactions.length.toString()
                         )
-                        .replace("{total}", transactions.length.toString())
-                    : `Showing all ${transactions.length} transactions`}
+                        .replace("{total}", (transactions ?? []).length.toString())
+                    : `Showing all ${(transactions ?? []).length} transactions`}
                 </div>
                 <div className="text-sm font-medium">
                   Total:{" "}
