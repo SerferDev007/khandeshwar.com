@@ -31,9 +31,13 @@ import {
 import { toast } from "sonner";
 
 interface DonationsProps {
-  donations: any[];
-  onAddDonation: (donation: any) => void;
-  nextReceiptNumber: string;
+  transactions: any[];
+  onAddTransaction: (transaction: any) => void;
+  onUpdateTransaction: (id: string, transaction: any) => void;
+  onDeleteTransaction: (id: string) => void;
+  receiptCounter: number;
+  onUpdateReceiptCounter: (count: number) => void;
+  currentUser: any;
 }
 
 interface ValidationErrors {
@@ -76,9 +80,13 @@ const categorySubCategories = {
 };
 
 export default function Donations({
-  donations,
-  onAddDonation,
-  nextReceiptNumber,
+  transactions,
+  onAddTransaction,
+  onUpdateTransaction,
+  onDeleteTransaction,
+  receiptCounter,
+  onUpdateReceiptCounter,
+  currentUser,
 }: DonationsProps) {
   const { t } = useLanguage();
   const [formData, setFormData] = useState({
@@ -92,20 +100,20 @@ export default function Donations({
     familyMembers: "",
     amountPerPerson: "",
     purpose: "",
-    receiptNumber: nextReceiptNumber,
+    receiptNumber: receiptCounter.toString().padStart(4, "0"),
   });
 
   const [errors, setErrors] = useState<ValidationErrors>({});
   const [showSuccessDialog, setShowSuccessDialog] = useState(false);
   const [lastAddedDonation, setLastAddedDonation] = useState<any>(null);
 
-  // Update receipt number when prop changes
+  // Update receipt number when receiptCounter changes
   useEffect(() => {
     setFormData((prev) => ({
       ...prev,
-      receiptNumber: nextReceiptNumber,
+      receiptNumber: receiptCounter.toString().padStart(4, "0"),
     }));
-  }, [nextReceiptNumber]);
+  }, [receiptCounter]);
 
   // Calculate total amount for Vargani category
   useEffect(() => {
@@ -271,7 +279,7 @@ export default function Donations({
       }),
     };
 
-    onAddDonation(newDonation);
+    onAddTransaction(newDonation);
     setLastAddedDonation(newDonation);
     setShowSuccessDialog(true);
 
@@ -287,12 +295,12 @@ export default function Donations({
       familyMembers: "",
       amountPerPerson: "",
       purpose: "",
-      receiptNumber: nextReceiptNumber,
+      receiptNumber: (receiptCounter + 1).toString().padStart(4, "0"),
     });
     setErrors({});
   };
 
-  const totalDonations = (donations ?? []).reduce(
+  const totalDonations = (transactions ?? []).reduce(
     (sum, donation) => sum + donation.amount,
     0
   );
@@ -774,7 +782,7 @@ export default function Donations({
               </span>
             </p>
           </div>
-          <TransactionTable transactions={donations} />
+          <TransactionTable transactions={transactions} />
         </CardContent>
       </Card>
     </div>
