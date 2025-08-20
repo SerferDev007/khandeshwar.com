@@ -20,7 +20,7 @@ export default function Dashboard({
 }: DashboardProps) {
   const { t } = useLanguage();
   
-  const recentTransactions = transactions.slice(-5).reverse();
+  const recentTransactions = (transactions ?? []).slice(-5).reverse();
 
   const formatCurrency = (amount: number) => {
     return `${t('common.currency')}${amount.toLocaleString()}`;
