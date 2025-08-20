@@ -216,8 +216,6 @@ export default function RentManagement({
 
   const [selectedTab, setSelectedTab] = useState("shops");
 
-  console.log(`in rent management`);
-
   // Shop Form State
   const [shopFormData, setShopFormData] = useState({
     shopNumber: "",
