@@ -230,7 +230,7 @@ export default function Expenses({ expenses, onAddExpense }: ExpensesProps) {
     setErrors({});
   };
 
-  const totalExpenses = expenses.reduce(
+  const totalExpenses = (expenses ?? []).reduce(
     (sum, expense) => sum + expense.amount,
     0
   );
