@@ -37,8 +37,11 @@ interface UploadedFile {
 }
 
 interface ExpensesProps {
-  expenses: any[];
-  onAddExpense: (expense: any) => void;
+  transactions: any[];
+  onAddTransaction: (transaction: any) => void;
+  onUpdateTransaction: (id: string, transaction: any) => void;
+  onDeleteTransaction: (id: string) => void;
+  currentUser: any;
 }
 
 interface ValidationErrors {
@@ -52,7 +55,13 @@ interface ValidationErrors {
   receiptImages?: string;
 }
 
-export default function Expenses({ expenses, onAddExpense }: ExpensesProps) {
+export default function Expenses({ 
+  transactions, 
+  onAddTransaction,
+  onUpdateTransaction,
+  onDeleteTransaction,
+  currentUser,
+}: ExpensesProps) {
   const { t } = useLanguage();
   const [formData, setFormData] = useState({
     date: null as Date | null,
@@ -214,7 +223,7 @@ export default function Expenses({ expenses, onAddExpense }: ExpensesProps) {
 
     console.log(newExpense);
 
-    onAddExpense(newExpense);
+    onAddTransaction(newExpense);
     setLastAddedExpense(newExpense);
     setShowSuccessDialog(true);
 
@@ -232,7 +241,7 @@ export default function Expenses({ expenses, onAddExpense }: ExpensesProps) {
     setErrors({});
   };
 
-  const totalExpenses = (expenses ?? []).reduce(
+  const totalExpenses = (transactions ?? []).reduce(
     (sum, expense) => sum + expense.amount,
     0
   );
@@ -589,7 +598,7 @@ export default function Expenses({ expenses, onAddExpense }: ExpensesProps) {
               </span>
             </p>
           </div>
-          <TransactionTable transactions={expenses} />
+          <TransactionTable transactions={transactions} />
         </CardContent>
       </Card>
     </div>
