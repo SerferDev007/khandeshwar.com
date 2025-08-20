@@ -35,7 +35,7 @@ npm start
 ```env
 # Server Configuration
 NODE_ENV=development
-PORT=3001
+PORT=8081
 
 # Database Configuration  
 DB_HOST=localhost
@@ -58,7 +58,7 @@ AWS_S3_BUCKET=your-s3-bucket-name
 SES_FROM_EMAIL=noreply@yourdomain.com
 
 # CORS Configuration
-CORS_ORIGIN=http://localhost:3000,https://yourdomain.com
+CORS_ORIGINS=http://localhost:5173,https://yourdomain.com
 
 # Rate Limiting
 RATE_LIMIT_WINDOW_MS=900000  # 15 minutes
@@ -490,7 +490,7 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm ci --only=production
 COPY src/ ./src/
-EXPOSE 3001
+EXPOSE 8081
 CMD ["npm", "start"]
 ```
 

@@ -86,7 +86,7 @@ backend/src/
 | Variable | Description | Required | Default |
 |----------|-------------|----------|---------|
 | `NODE_ENV` | Environment mode | No | `development` |
-| `PORT` | Server port | No | `3001` |
+| `PORT` | Server port | No | `8081` |
 | `DB_HOST` | MySQL host | No | `localhost` |
 | `DB_USER` | MySQL username | No | `root` |
 | `DB_PASSWORD` | MySQL password | No | `` |
@@ -101,7 +101,7 @@ backend/src/
 | `AWS_SECRET_ACCESS_KEY` | AWS secret key | No | - |
 | `AWS_S3_BUCKET` | S3 bucket name | No | - |
 | `SES_FROM_EMAIL` | SES sender email | No | - |
-| `CORS_ORIGIN` | Allowed CORS origins | No | `http://localhost:3000` |
+| `CORS_ORIGINS` | Allowed CORS origins | No | `http://localhost:5173` |
 
 ## 🔐 Security Features
 
@@ -259,9 +259,9 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm ci --only=production
 COPY src/ ./src/
-EXPOSE 3001
+EXPOSE 8081
 HEALTHCHECK --interval=30s --timeout=3s --start-period=40s --retries=3 \
-  CMD curl -f http://localhost:3001/health || exit 1
+  CMD curl -f http://localhost:8081/health || exit 1
 CMD ["npm", "start"]
 ```
 

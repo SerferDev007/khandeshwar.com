@@ -39,7 +39,7 @@ npm run dev
 npm start
 ```
 
-The server will start on port 3001 by default.
+The server will start on port 8081 by default.
 
 ## API Endpoints
 

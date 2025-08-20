@@ -276,11 +276,11 @@ DB_NAME=temple_management
 DB_PORT=3306
 
 # Server Configuration
-PORT=3001
+PORT=8081
 NODE_ENV=production
 
 # CORS Configuration
-CORS_ORIGIN=http://localhost:3000
+CORS_ORIGINS=http://localhost:5173
 ```
 
 ## 🛠️ Setup Instructions
