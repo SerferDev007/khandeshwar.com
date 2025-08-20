@@ -4,26 +4,26 @@ export class Transaction {
     this.date = data.date;
     this.type = data.type; // 'Donation' | 'Expense' | 'Utilities' | 'Salary' | 'RentIncome'
     this.category = data.category;
-    this.subCategory = data.subCategory;
+    this.subCategory = data.subCategory || data.sub_category;
     this.description = data.description;
     this.amount = data.amount;
-    this.receiptNumber = data.receiptNumber;
-    this.donorName = data.donorName;
-    this.donorContact = data.donorContact;
-    this.familyMembers = data.familyMembers;
-    this.amountPerPerson = data.amountPerPerson;
+    this.receiptNumber = data.receiptNumber || data.receipt_number;
+    this.donorName = data.donorName || data.donor_name;
+    this.donorContact = data.donorContact || data.donor_contact;
+    this.familyMembers = data.familyMembers || data.family_members;
+    this.amountPerPerson = data.amountPerPerson || data.amount_per_person;
     this.vendor = data.vendor;
     this.receipt = data.receipt;
-    this.tenantName = data.tenantName;
-    this.tenantContact = data.tenantContact;
-    this.agreementId = data.agreementId;
-    this.shopNumber = data.shopNumber;
-    this.payeeName = data.payeeName;
-    this.payeeContact = data.payeeContact;
-    this.loanId = data.loanId;
-    this.emiAmount = data.emiAmount;
-    this.penaltyId = data.penaltyId;
-    this.penaltyAmount = data.penaltyAmount;
+    this.tenantName = data.tenantName || data.tenant_name;
+    this.tenantContact = data.tenantContact || data.tenant_contact;
+    this.agreementId = data.agreementId || data.agreement_id;
+    this.shopNumber = data.shopNumber || data.shop_number;
+    this.payeeName = data.payeeName || data.payee_name;
+    this.payeeContact = data.payeeContact || data.payee_contact;
+    this.loanId = data.loanId || data.loan_id;
+    this.emiAmount = data.emiAmount || data.emi_amount;
+    this.penaltyId = data.penaltyId || data.penalty_id;
+    this.penaltyAmount = data.penaltyAmount || data.penalty_amount;
   }
 
   static getTableSchema() {
