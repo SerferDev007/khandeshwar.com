@@ -1,8 +1,8 @@
-import mysql from 'mysql2/promise';
-import env from './env.js';
-import pino from 'pino';
+import mysql from "mysql2/promise";
+import env from "./env.js";
+import pino from "pino";
 
-const logger = pino({ name: 'database' });
+const logger = pino({ name: "database" });
 
 // Database configuration
 const dbConfig = {
@@ -12,8 +12,8 @@ const dbConfig = {
   database: env.DB_NAME,
   port: env.DB_PORT,
   connectionLimit: 10,
-  acquireTimeout: 60000,
-  timeout: 60000,
+  waitForConnections: true,
+  queueLimit: 0,
 };
 
 let pool;
@@ -22,18 +22,18 @@ let pool;
 export const initializeDatabase = async () => {
   try {
     pool = mysql.createPool(dbConfig);
-    
+
     // Test connection
     const connection = await pool.getConnection();
-    logger.info('✅ Connected to MySQL database');
+    logger.info(">> Connected to MySQL database");
     connection.release();
-    
+
     // Run migrations
     await runMigrations();
-    
+
     return pool;
   } catch (error) {
-    logger.error('❌ Database connection failed:', error);
+    logger.error(">> Database connection failed:", error);
     throw error;
   }
 };
@@ -44,7 +44,7 @@ export const query = async (sql, params = []) => {
     const [results] = await pool.execute(sql, params);
     return results;
   } catch (error) {
-    logger.error('Database query failed:', { sql, params, error });
+    logger.error("Database query failed:", { sql, params, error });
     throw error;
   }
 };
@@ -67,8 +67,8 @@ export const transaction = async (callback) => {
 
 // Database migrations
 const runMigrations = async () => {
-  logger.info('Running database migrations...');
-  
+  logger.info("Running database migrations...");
+
   const migrations = [
     // Users table with authentication fields
     `CREATE TABLE IF NOT EXISTS users (
@@ -87,7 +87,7 @@ const runMigrations = async () => {
       INDEX idx_role (role),
       INDEX idx_status (status)
     ) ENGINE=InnoDB`,
-    
+
     // Refresh tokens table
     `CREATE TABLE IF NOT EXISTS refresh_tokens (
       id VARCHAR(36) PRIMARY KEY,
@@ -101,7 +101,7 @@ const runMigrations = async () => {
       INDEX idx_token_hash (token_hash),
       INDEX idx_expires_at (expires_at)
     ) ENGINE=InnoDB`,
-    
+
     // Files table for S3 integration
     `CREATE TABLE IF NOT EXISTS files (
       id VARCHAR(36) PRIMARY KEY,
@@ -119,27 +119,29 @@ const runMigrations = async () => {
       INDEX idx_user_id (user_id),
       INDEX idx_status (status),
       INDEX idx_s3_key (s3_key)
-    ) ENGINE=InnoDB`
+    ) ENGINE=InnoDB`,
   ];
-  
-  for (const migration of migrations) {
+
+  const migrationNames = ["users", "refresh_tokens", "files"];
+
+  for (let i = 0; i < migrations.length; i++) {
     try {
-      await query(migration);
-      logger.info('Migration executed successfully');
+      await query(migrations[i]);
+      logger.info(`>> Migration ${migrationNames[i]} executed successfully`);
     } catch (error) {
-      logger.error('Migration failed:', error);
+      logger.error("Migration failed:", error);
       throw error;
     }
   }
-  
-  logger.info('✅ Database migrations completed');
+
+  logger.info(">> Database migrations completed");
 };
 
 // Graceful shutdown
 export const closeDatabaseConnection = async () => {
   if (pool) {
     await pool.end();
-    logger.info('Database connection pool closed');
+    logger.info("Database connection pool closed");
   }
 };
 

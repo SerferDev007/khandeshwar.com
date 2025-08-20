@@ -65,7 +65,7 @@ app.use(
 );
 
 // Trust proxy for proper IP forwarding in production
-app.set('trust proxy', 1);
+app.set("trust proxy", 1);
 
 // CORS
 app.use(corsMiddleware);
@@ -92,25 +92,11 @@ app.use((req, res, next) => {
 });
 
 // Database configuration
-import { initializeDatabase, query } from "./src/config/db.js";
+import { query } from "./src/config/db.js";
 
 let connection;
 
-// Initialize database connection and additional tables
-const initializeDatabaseWithModels = async () => {
-  try {
-    // Initialize the main database
-    await initializeDatabase();
-    
-    // Create additional tables for the temple management models
-    await createAdditionalTables();
-    logger.info("✅ All database tables created successfully");
-  } catch (error) {
-    logger.error("❌ Database initialization failed:", error);
-    throw error;
-  }
-};
-
+// Create additional database tables
 // Create additional tables for temple management models
 const createAdditionalTables = async () => {
   const additionalSchemas = [
@@ -126,9 +112,12 @@ const createAdditionalTables = async () => {
   for (const schema of additionalSchemas) {
     try {
       await query(schema);
-      logger.info('Additional table schema executed successfully');
+      logger.info("Additional table schema executed successfully");
     } catch (error) {
-      logger.warn('Additional table creation warning (may already exist):', error.message);
+      logger.warn(
+        "Additional table creation warning (may already exist):",
+        error.message
+      );
     }
   }
 };
@@ -154,7 +143,7 @@ class CrudController {
       const entities = rows.map((row) => this.ModelClass.fromDbRow(row));
       res.json(entities);
     } catch (error) {
-      logger.error('CRUD getAll error:', error);
+      logger.error("CRUD getAll error:", error);
       res.status(500).json({ error: error.message });
     }
   }
@@ -163,10 +152,9 @@ class CrudController {
   async getById(req, res) {
     try {
       const { id } = req.params;
-      const rows = await query(
-        `SELECT * FROM ${this.tableName} WHERE id = ?`,
-        [id]
-      );
+      const rows = await query(`SELECT * FROM ${this.tableName} WHERE id = ?`, [
+        id,
+      ]);
 
       if (rows.length === 0) {
         return res.status(404).json({ error: "Entity not found" });
@@ -175,7 +163,7 @@ class CrudController {
       const entity = this.ModelClass.fromDbRow(rows[0]);
       res.json(entity);
     } catch (error) {
-      logger.error('CRUD getById error:', error);
+      logger.error("CRUD getById error:", error);
       res.status(500).json({ error: error.message });
     }
   }
@@ -204,7 +192,7 @@ class CrudController {
 
       res.status(201).json(entity);
     } catch (error) {
-      logger.error('CRUD create error:', error);
+      logger.error("CRUD create error:", error);
       res.status(400).json({ error: error.message });
     }
   }
@@ -236,14 +224,14 @@ class CrudController {
         .filter((key) => key !== "id" && key !== "created_at")
         .map((key) => dbObject[key]);
 
-      await query(
-        `UPDATE ${this.tableName} SET ${setClause} WHERE id = ?`,
-        [...values, id]
-      );
+      await query(`UPDATE ${this.tableName} SET ${setClause} WHERE id = ?`, [
+        ...values,
+        id,
+      ]);
 
       res.json(entity);
     } catch (error) {
-      logger.error('CRUD update error:', error);
+      logger.error("CRUD update error:", error);
       res.status(400).json({ error: error.message });
     }
   }
@@ -253,10 +241,9 @@ class CrudController {
     try {
       const { id } = req.params;
 
-      const result = await query(
-        `DELETE FROM ${this.tableName} WHERE id = ?`,
-        [id]
-      );
+      const result = await query(`DELETE FROM ${this.tableName} WHERE id = ?`, [
+        id,
+      ]);
 
       if (result.affectedRows === 0) {
         return res.status(404).json({ error: "Entity not found" });
@@ -264,7 +251,7 @@ class CrudController {
 
       res.json({ message: "Entity deleted successfully" });
     } catch (error) {
-      logger.error('CRUD delete error:', error);
+      logger.error("CRUD delete error:", error);
       res.status(400).json({ error: error.message });
     }
   }
@@ -415,7 +402,7 @@ app.get(
       const files = rows.map((row) => UploadedFile.fromDbRow(row));
       res.json(files);
     } catch (error) {
-      logger.error('Get files by entity error:', error);
+      logger.error("Get files by entity error:", error);
       res.status(500).json({ error: error.message });
     }
   }
@@ -432,7 +419,7 @@ app.get("/api/transactions/type/:type", async (req, res) => {
     const transactions = rows.map((row) => Transaction.fromDbRow(row));
     res.json(transactions);
   } catch (error) {
-    logger.error('Get transactions by type error:', error);
+    logger.error("Get transactions by type error:", error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -448,7 +435,7 @@ app.get("/api/agreements/tenant/:tenantId", async (req, res) => {
     const agreements = rows.map((row) => Agreement.fromDbRow(row));
     res.json(agreements);
   } catch (error) {
-    logger.error('Get agreements by tenant error:', error);
+    logger.error("Get agreements by tenant error:", error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -464,7 +451,7 @@ app.get("/api/loans/agreement/:agreementId", async (req, res) => {
     const loans = rows.map((row) => Loan.fromDbRow(row));
     res.json(loans);
   } catch (error) {
-    logger.error('Get loans by agreement error:', error);
+    logger.error("Get loans by agreement error:", error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -480,14 +467,9 @@ app.get("/api/rent-penalties/agreement/:agreementId", async (req, res) => {
     const penalties = rows.map((row) => RentPenalty.fromDbRow(row));
     res.json(penalties);
   } catch (error) {
-    logger.error('Get penalties by agreement error:', error);
+    logger.error("Get penalties by agreement error:", error);
     res.status(500).json({ error: error.message });
   }
-});
-
-// Initialize database on app creation
-initializeDatabaseWithModels().catch((error) => {
-  logger.error('Failed to initialize database:', error);
 });
 
 // 404 handler
@@ -495,5 +477,8 @@ app.use(notFoundHandler);
 
 // Error handler (must be last)
 app.use(errorHandler);
+
+// Export the additional tables function
+export { createAdditionalTables };
 
 export default app;
