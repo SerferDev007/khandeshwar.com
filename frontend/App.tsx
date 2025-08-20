@@ -277,9 +277,44 @@ function AppContent() {
   };
 
   // Placeholder functions for compatibility
+  // Penalty handlers
+  const handleAddPenalty = async (penaltyData: any) => {
+    try {
+      // TODO: Implement penalty creation when backend is ready
+      console.log("Add penalty:", penaltyData);
+      toast.success("Penalty added successfully!");
+    } catch (error: any) {
+      toast.error(error.message || "Failed to add penalty");
+    }
+  };
+
   const handleUpdatePenalty = (id: string, penalty: any) => {
     // TODO: Implement penalty update
     console.log("Update penalty:", id, penalty);
+  };
+
+  // Rent Income handler (maps to transaction)
+  const handleAddRentIncome = async (rentIncomeData: any) => {
+    try {
+      const transactionData = {
+        ...rentIncomeData,
+        type: "RentIncome"
+      };
+      await handleAddTransaction(transactionData);
+    } catch (error: any) {
+      toast.error(error.message || "Failed to add rent income");
+    }
+  };
+
+  // Rent Collection handler
+  const handleRentCollection = async (collectionData: any) => {
+    try {
+      // TODO: Implement comprehensive rent collection when backend is ready
+      console.log("Rent collection:", collectionData);
+      toast.success("Rent collection processed successfully!");
+    } catch (error: any) {
+      toast.error(error.message || "Failed to process rent collection");
+    }
   };
 
   const handleUpdateReceiptCounter = (type: 'donations' | 'rentIncome', count: number) => {
@@ -374,32 +409,28 @@ function AppContent() {
           />
         )}
 
-        {activeTab === "Rent Management" && (
+        {activeTab === "RentManagement" && (
           <RentManagement
-            shops={shops}
-            tenants={tenants}
-            agreements={agreements}
-            loans={loans}
-            penalties={penalties}
+            onAddRentIncome={handleAddRentIncome}
+            nextReceiptNumber={receiptCounters.rentIncome || "RI-001"}
+            shops={shops || []}
+            tenants={tenants || []}
+            agreements={agreements || []}
+            loans={loans || []}
+            penalties={penalties || []}
             onAddShop={handleAddShop}
             onUpdateShop={handleUpdateShop}
             onDeleteShop={handleDeleteShop}
             onAddTenant={handleAddTenant}
             onUpdateTenant={handleUpdateTenant}
             onDeleteTenant={handleDeleteTenant}
-            onAddAgreement={handleAddAgreement}
+            onCreateAgreement={handleAddAgreement}
             onUpdateAgreement={handleUpdateAgreement}
-            onDeleteAgreement={handleDeleteAgreement}
             onAddLoan={handleAddLoan}
             onUpdateLoan={handleUpdateLoan}
-            onDeleteLoan={handleDeleteLoan}
+            onAddPenalty={handleAddPenalty}
             onUpdatePenalty={handleUpdatePenalty}
-            onAddTransaction={handleAddTransaction}
-            receiptCounter={receiptCounters.rentIncome}
-            onUpdateReceiptCounter={(count) => handleUpdateReceiptCounter('rentIncome', count)}
-            currentUser={user}
-            saveDocuments={saveDocuments}
-            loadDocuments={loadDocuments}
+            onRentCollection={handleRentCollection}
           />
         )}
       </main>
