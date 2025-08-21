@@ -3,6 +3,10 @@
  * This file provides a simple in-memory authentication system
  */
 
+import pino from 'pino';
+
+const logger = pino({ name: 'demo-auth' });
+
 const demoUsers = [
   {
     id: 1,
@@ -60,6 +64,13 @@ const generateDemoRefreshToken = (user) => {
 };
 
 export const demoAuthMiddleware = (req, res, next) => {
+  logger.info('Demo authentication attempt', {
+    method: req.method,
+    url: req.url,
+    ip: req.ip,
+    userAgent: req.get('User-Agent')
+  });
+
   // Skip auth for login endpoint
   if (req.path === '/api/auth/login' || req.path === '/health') {
     return next();
@@ -67,9 +78,26 @@ export const demoAuthMiddleware = (req, res, next) => {
 
   const authHeader = req.headers.authorization;
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    // Add specific developer warning for POST /api/users without token
+    if (req.method === 'POST' && req.url === '/api/users') {
+      logger.warn('Developer Warning: POST /api/users called without authentication token', {
+        method: req.method,
+        url: req.url,
+        ip: req.ip,
+        userAgent: req.get('User-Agent')
+      });
+    }
+    
+    logger.warn('Demo authentication failed: no token provided', {
+      method: req.method,
+      url: req.url,
+      ip: req.ip,
+      userAgent: req.get('User-Agent')
+    });
+    
     return res.status(401).json({
       success: false,
-      error: 'Authentication required'
+      error: 'Missing token. Authorization header with Bearer token required (format: "Authorization: Bearer <token>")'
     });
   }
 
@@ -88,6 +116,12 @@ export const demoAuthMiddleware = (req, res, next) => {
     // Find user
     const user = demoUsers.find(u => u.id === payload.id);
     if (!user) {
+      logger.warn('Demo authentication failed: invalid token', {
+        method: req.method,
+        url: req.url,
+        ip: req.ip,
+        userAgent: req.get('User-Agent')
+      });
       return res.status(401).json({
         success: false,
         error: 'Invalid token'
@@ -95,8 +129,23 @@ export const demoAuthMiddleware = (req, res, next) => {
     }
 
     req.user = user;
+    logger.info('Demo authentication successful', {
+      userId: user.id,
+      username: user.username,
+      role: user.role,
+      method: req.method,
+      url: req.url,
+      ip: req.ip,
+      userAgent: req.get('User-Agent')
+    });
     next();
   } catch (error) {
+    logger.warn('Demo authentication failed: invalid token format', {
+      method: req.method,
+      url: req.url,
+      ip: req.ip,
+      userAgent: req.get('User-Agent')
+    });
     return res.status(401).json({
       success: false,
       error: 'Invalid token format'
@@ -171,6 +220,33 @@ export const demoAuthRoutes = (app) => {
     res.json({
       success: true,
       data: demoUsers.map(({ password: _, ...user }) => user)
+    });
+  });
+
+  app.post('/api/users', demoAuthMiddleware, (req, res) => {
+    // Simple demo POST endpoint for testing
+    const { username, email, role } = req.body;
+    
+    if (!username || !email) {
+      return res.status(400).json({
+        success: false,
+        error: 'Username and email are required'
+      });
+    }
+    
+    const newUser = {
+      id: demoUsers.length + 1,
+      username,
+      email,
+      role: role || 'Viewer',
+      status: 'Active',
+      createdAt: new Date().toISOString(),
+      lastLogin: null
+    };
+    
+    res.status(201).json({
+      success: true,
+      data: { user: newUser }
     });
   });
 

@@ -17,14 +17,25 @@ export const authenticate = async (req, res, next) => {
 
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      // Add specific developer warning for POST /api/users without token
+      if (req.method === 'POST' && req.url === '/api/users') {
+        logger.warn('Developer Warning: POST /api/users called without authentication token', {
+          method: req.method,
+          url: req.url,
+          ip: req.ip,
+          userAgent: req.get('User-Agent')
+        });
+      }
+      
       logger.warn('Authentication failed: no token provided', {
         method: req.method,
         url: req.url,
-        ip: req.ip
+        ip: req.ip,
+        userAgent: req.get('User-Agent')
       });
       return res.status(401).json({
         success: false,
-        error: 'Access token required'
+        error: 'Missing token. Authorization header with Bearer token required (format: "Authorization: Bearer <token>")'
       });
     }
 
@@ -41,7 +52,9 @@ export const authenticate = async (req, res, next) => {
       logger.warn('Authentication failed: invalid user or expired token', {
         userId: decoded.userId,
         method: req.method,
-        url: req.url
+        url: req.url,
+        ip: req.ip,
+        userAgent: req.get('User-Agent')
       });
       return res.status(401).json({
         success: false,
@@ -55,7 +68,9 @@ export const authenticate = async (req, res, next) => {
       username: req.user.username,
       role: req.user.role,
       method: req.method,
-      url: req.url
+      url: req.url,
+      ip: req.ip,
+      userAgent: req.get('User-Agent')
     });
     next();
   } catch (error) {
@@ -104,7 +119,9 @@ export const authorize = (roles = []) => {
         userRole: req.user.role,
         requiredRoles: roles,
         method: req.method,
-        url: req.url
+        url: req.url,
+        ip: req.ip,
+        userAgent: req.get('User-Agent')
       });
       return res.status(403).json({
         success: false,
@@ -117,7 +134,9 @@ export const authorize = (roles = []) => {
       userRole: req.user.role,
       requiredRoles: roles,
       method: req.method,
-      url: req.url
+      url: req.url,
+      ip: req.ip,
+      userAgent: req.get('User-Agent')
     });
     next();
   };
