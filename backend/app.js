@@ -17,6 +17,7 @@ import {
 import authRoutes from "./src/routes/auth.js";
 import userRoutes from "./src/routes/user.js";
 import fileRoutes from "./src/routes/files.js";
+import adminRoutes from "./src/routes/admin.js";
 
 // Import models
 import { User } from "./src/models/User.js";
@@ -289,6 +290,7 @@ app.get("/health", (req, res) => {
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/files", fileRoutes);
+app.use("/api/admin", adminRoutes);
 
 // Health check (alternative endpoint for backward compatibility)
 app.get("/api/health", (req, res) => {
