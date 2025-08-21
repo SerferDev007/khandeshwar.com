@@ -1,8 +1,8 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { vi } from 'vitest';
-import Donations from '../Donations';
-import { LanguageProvider } from '../LanguageContext';
+import Donations from '../../../components/Donations';
+import { LanguageProvider } from '../../../components/LanguageContext';
 
 // Mock the toast function
 vi.mock('sonner', () => ({
@@ -42,8 +42,8 @@ describe('Donations Component', () => {
       </TestWrapper>
     );
 
-    // Check for key form elements
-    expect(screen.getByText(/donations\.title/i)).toBeInTheDocument();
+    // Check for key form elements - the title is "Add Donation"
+    expect(screen.getByText(/add donation/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/date/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/category/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/donor.*name/i)).toBeInTheDocument();
