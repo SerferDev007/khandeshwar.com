@@ -62,6 +62,14 @@ function AppContent() {
     createTransaction,
     updateTransaction,
     deleteTransaction,
+    createDonation,
+    updateDonation,
+    deleteDonation,
+    fetchDonations,
+    createExpense,
+    updateExpense,
+    deleteExpense,
+    fetchExpenses,
     createUser,
     updateUser,
     deleteUser,
@@ -136,6 +144,72 @@ function AppContent() {
       toast.success("Transaction deleted successfully!");
     } catch (error: any) {
       toast.error(error.message || "Failed to delete transaction");
+    }
+  };
+
+  // Donation handlers (use specific donation API endpoints)
+  const handleAddDonation = async (
+    newDonation: Omit<Transaction, "id" | "createdAt">
+  ) => {
+    try {
+      await createDonation(newDonation);
+      toast.success("Donation added successfully!");
+    } catch (error: any) {
+      toast.error(error.message || "Failed to add donation");
+    }
+  };
+
+  const handleUpdateDonation = async (
+    id: string,
+    updatedDonation: Partial<Transaction>
+  ) => {
+    try {
+      await updateDonation(id, updatedDonation);
+      toast.success("Donation updated successfully!");
+    } catch (error: any) {
+      toast.error(error.message || "Failed to update donation");
+    }
+  };
+
+  const handleDeleteDonation = async (id: string) => {
+    try {
+      await deleteDonation(id);
+      toast.success("Donation deleted successfully!");
+    } catch (error: any) {
+      toast.error(error.message || "Failed to delete donation");
+    }
+  };
+
+  // Expense handlers (use specific expense API endpoints)
+  const handleAddExpense = async (
+    newExpense: Omit<Transaction, "id" | "createdAt">
+  ) => {
+    try {
+      await createExpense(newExpense);
+      toast.success("Expense added successfully!");
+    } catch (error: any) {
+      toast.error(error.message || "Failed to add expense");
+    }
+  };
+
+  const handleUpdateExpense = async (
+    id: string,
+    updatedExpense: Partial<Transaction>
+  ) => {
+    try {
+      await updateExpense(id, updatedExpense);
+      toast.success("Expense updated successfully!");
+    } catch (error: any) {
+      toast.error(error.message || "Failed to update expense");
+    }
+  };
+
+  const handleDeleteExpense = async (id: string) => {
+    try {
+      await deleteExpense(id);
+      toast.success("Expense deleted successfully!");
+    } catch (error: any) {
+      toast.error(error.message || "Failed to delete expense");
     }
   };
 
@@ -348,9 +422,9 @@ function AppContent() {
         {activeTab === "Donations" && (
           <Donations
             transactions={donations}
-            onAddTransaction={handleAddTransaction}
-            onUpdateTransaction={handleUpdateTransaction}
-            onDeleteTransaction={handleDeleteTransaction}
+            onAddTransaction={handleAddDonation}
+            onUpdateTransaction={handleUpdateDonation}
+            onDeleteTransaction={handleDeleteDonation}
             receiptCounter={receiptCounters.donations}
             onUpdateReceiptCounter={(count) =>
               handleUpdateReceiptCounter("donations", count)
@@ -362,9 +436,9 @@ function AppContent() {
         {activeTab === "Expenses" && (
           <Expenses
             transactions={expenses}
-            onAddTransaction={handleAddTransaction}
-            onUpdateTransaction={handleUpdateTransaction}
-            onDeleteTransaction={handleDeleteTransaction}
+            onAddTransaction={handleAddExpense}
+            onUpdateTransaction={handleUpdateExpense}
+            onDeleteTransaction={handleDeleteExpense}
             currentUser={user}
           />
         )}

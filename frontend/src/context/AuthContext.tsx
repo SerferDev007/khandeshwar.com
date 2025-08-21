@@ -34,6 +34,18 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   const isAuthenticated = !!user;
 
+  // Global logout function for API client 401 handler
+  const handleUnauthorized = () => {
+    apiClient.setAuthToken(null);
+    setUser(null);
+    setError('Your session has expired. Please login again.');
+  };
+
+  // Set up the global 401 handler on mount
+  useEffect(() => {
+    apiClient.setUnauthorizedHandler(handleUnauthorized);
+  }, []);
+
   // Check for existing session on mount
   useEffect(() => {
     const initializeAuth = async () => {

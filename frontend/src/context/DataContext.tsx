@@ -61,6 +61,18 @@ interface DataContextType {
   updateTransaction: (id: string, transactionData: any) => Promise<Transaction>;
   deleteTransaction: (id: string) => Promise<void>;
 
+  // Specific donation methods
+  createDonation: (donationData: any) => Promise<Transaction>;
+  updateDonation: (id: string, donationData: any) => Promise<Transaction>;
+  deleteDonation: (id: string) => Promise<void>;
+  fetchDonations: () => Promise<void>;
+
+  // Specific expense methods
+  createExpense: (expenseData: any) => Promise<Transaction>;
+  updateExpense: (id: string, expenseData: any) => Promise<Transaction>;
+  deleteExpense: (id: string) => Promise<void>;
+  fetchExpenses: () => Promise<void>;
+
   createUser: (userData: any) => Promise<User>;
   updateUser: (id: string, userData: any) => Promise<User>;
   deleteUser: (id: string) => Promise<void>;
@@ -251,6 +263,74 @@ export function DataProvider({ children }: DataProviderProps) {
     setTransactions(prev => prev.filter(transaction => transaction.id !== id));
   };
 
+  // CRUD operations for donations (specific endpoints)
+  const fetchDonations = async (): Promise<void> => {
+    setLoadingState('transactions', true);
+    try {
+      const donations = await apiClient.getDonations();
+      // Update transactions state with donations
+      setTransactions(prev => {
+        const nonDonations = prev.filter(t => t.type !== 'Donation');
+        return [...nonDonations, ...donations];
+      });
+    } catch (error: any) {
+      setErrorState('transactions', error.message);
+    } finally {
+      setLoadingState('transactions', false);
+    }
+  };
+
+  const createDonation = async (donationData: any): Promise<Transaction> => {
+    const newDonation = await apiClient.createDonation(donationData);
+    setTransactions(prev => [...prev, newDonation]);
+    return newDonation;
+  };
+
+  const updateDonation = async (id: string, donationData: any): Promise<Transaction> => {
+    const updatedDonation = await apiClient.updateDonation(id, donationData);
+    setTransactions(prev => prev.map(transaction => transaction.id === id ? updatedDonation : transaction));
+    return updatedDonation;
+  };
+
+  const deleteDonation = async (id: string): Promise<void> => {
+    await apiClient.deleteDonation(id);
+    setTransactions(prev => prev.filter(transaction => transaction.id !== id));
+  };
+
+  // CRUD operations for expenses (specific endpoints)
+  const fetchExpenses = async (): Promise<void> => {
+    setLoadingState('transactions', true);
+    try {
+      const expenses = await apiClient.getExpenses();
+      // Update transactions state with expenses
+      setTransactions(prev => {
+        const nonExpenses = prev.filter(t => t.type !== 'Expense');
+        return [...nonExpenses, ...expenses];
+      });
+    } catch (error: any) {
+      setErrorState('transactions', error.message);
+    } finally {
+      setLoadingState('transactions', false);
+    }
+  };
+
+  const createExpense = async (expenseData: any): Promise<Transaction> => {
+    const newExpense = await apiClient.createExpense(expenseData);
+    setTransactions(prev => [...prev, newExpense]);
+    return newExpense;
+  };
+
+  const updateExpense = async (id: string, expenseData: any): Promise<Transaction> => {
+    const updatedExpense = await apiClient.updateExpense(id, expenseData);
+    setTransactions(prev => prev.map(transaction => transaction.id === id ? updatedExpense : transaction));
+    return updatedExpense;
+  };
+
+  const deleteExpense = async (id: string): Promise<void> => {
+    await apiClient.deleteExpense(id);
+    setTransactions(prev => prev.filter(transaction => transaction.id !== id));
+  };
+
   // CRUD operations for users
   const createUser = async (userData: any): Promise<User> => {
     const newUser = await apiClient.createUser(userData);
@@ -359,6 +439,18 @@ export function DataProvider({ children }: DataProviderProps) {
     createTransaction,
     updateTransaction,
     deleteTransaction,
+
+    // Specific donation operations
+    createDonation,
+    updateDonation,
+    deleteDonation,
+    fetchDonations,
+
+    // Specific expense operations
+    createExpense,
+    updateExpense,
+    deleteExpense,
+    fetchExpenses,
 
     createUser,
     updateUser,
