@@ -10,17 +10,33 @@ const logger = pino({ name: 'AuthController' });
 
 // Generate access token
 const generateAccessToken = (user) => {
-  const { id: userId, username, email, role } = user;
-  return jwt.sign(
-    {
-      userId,
-      username,
-      email,
-      role,
-    },
-    env.JWT_SECRET,
-    { expiresIn: env.JWT_EXPIRES_IN }
-  );
+  try {
+    const { id: userId, username, email, role } = user;
+    
+    // Validate JWT secret is available
+    if (!env.JWT_SECRET || env.JWT_SECRET.length < 32) {
+      logger.error('JWT_SECRET is missing or too short');
+      throw new Error('Invalid JWT configuration');
+    }
+    
+    return jwt.sign(
+      {
+        userId,
+        username,
+        email,
+        role,
+      },
+      env.JWT_SECRET,
+      { expiresIn: env.JWT_EXPIRES_IN }
+    );
+  } catch (error) {
+    logger.error('Failed to generate access token:', {
+      error: error.message,
+      userId: user?.id,
+      username: user?.username
+    });
+    throw new Error('Token generation failed');
+  }
 };
 
 // Register new user

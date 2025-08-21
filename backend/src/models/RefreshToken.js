@@ -19,6 +19,12 @@ export class RefreshToken {
   // Create a new refresh token
   static async create(userId) {
     try {
+      // Validate JWT refresh secret is available
+      if (!env.JWT_REFRESH_SECRET || env.JWT_REFRESH_SECRET.length < 32) {
+        logger.error('JWT_REFRESH_SECRET is missing or too short');
+        throw new Error('Invalid JWT refresh configuration');
+      }
+
       const id = uuidv4();
       const token = jwt.sign({ userId, tokenId: id }, env.JWT_REFRESH_SECRET, {
         expiresIn: env.JWT_REFRESH_EXPIRES_IN,
@@ -42,14 +48,23 @@ export class RefreshToken {
       
       return { token, tokenId: id };
     } catch (error) {
-      logger.error('Failed to create refresh token:', error);
-      throw error;
+      logger.error('Failed to create refresh token:', {
+        error: error.message,
+        userId
+      });
+      throw new Error('Refresh token generation failed');
     }
   }
 
   // Find refresh token by token string
   static async findByToken(token) {
     try {
+      // Validate JWT refresh secret is available
+      if (!env.JWT_REFRESH_SECRET || env.JWT_REFRESH_SECRET.length < 32) {
+        logger.error('JWT_REFRESH_SECRET is missing or too short');
+        return null;
+      }
+
       // Verify and decode the token
       const decoded = jwt.verify(token, env.JWT_REFRESH_SECRET);
       
@@ -66,9 +81,10 @@ export class RefreshToken {
       return tokens.length > 0 ? new RefreshToken(tokens[0]) : null;
     } catch (error) {
       if (error.name === 'JsonWebTokenError' || error.name === 'TokenExpiredError') {
+        logger.warn('Invalid or expired refresh token:', { error: error.message });
         return null;
       }
-      logger.error('Failed to find refresh token:', error);
+      logger.error('Failed to find refresh token:', { error: error.message });
       throw error;
     }
   }
