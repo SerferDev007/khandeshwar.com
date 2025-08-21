@@ -15,31 +15,28 @@ import {
 
 const router = express.Router();
 
-// All file routes require authentication
-router.use(authenticate);
-
 // Get file statistics (Admin only)
-router.get('/stats', authorize(['Admin']), getFileStats);
+router.get('/stats', ...requireRoles(['Admin']), getFileStats);
 
-// Get upload URL for new file
-router.post('/upload-url', fileUploadRateLimit, validate(schemas.fileUpload), getUploadUrl);
+// Get upload URL for new file  
+router.post('/upload-url', authenticate, fileUploadRateLimit, validate(schemas.fileUpload), getUploadUrl);
 
 // Confirm file upload completion
-router.post('/:id/confirm', validate(schemas.idParam), confirmUpload);
+router.post('/:id/confirm', authenticate, validate(schemas.idParam), confirmUpload);
 
 // Get user's files
-router.get('/my-files', validate(schemas.pagination), getUserFiles);
+router.get('/my-files', authenticate, validate(schemas.pagination), getUserFiles);
 
 // Get all files (Admin only)
-router.get('/', authorize(['Admin']), validate(schemas.pagination), getAllFiles);
+router.get('/', ...requireRoles(['Admin']), validate(schemas.pagination), getAllFiles);
 
 // Get file by ID (with download URL)
-router.get('/:id', validate(schemas.idParam), getFileById);
+router.get('/:id', authenticate, validate(schemas.idParam), getFileById);
 
 // Update file metadata
-router.put('/:id', validate(schemas.idParam), updateFile);
+router.put('/:id', authenticate, validate(schemas.idParam), updateFile);
 
 // Delete file
-router.delete('/:id', validate(schemas.idParam), deleteFileById);
+router.delete('/:id', authenticate, validate(schemas.idParam), deleteFileById);
 
 export default router;
