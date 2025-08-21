@@ -19,15 +19,23 @@ const envSchema = z.object({
   DB_NAME: z.string().default("khandeshwar_db"),
   DB_PORT: z.string().transform(Number).pipe(z.number()).default("3306"),
 
-  // JWT
+  // JWT - Authentication token configuration
+  // JWT secrets must be at least 32 characters long for security
+  // In production, use cryptographically secure random strings
   JWT_SECRET: z
     .string()
-    .min(32)
-    .default("your-super-secret-jwt-key-change-in-production"),
+    .min(32, "JWT_SECRET must be at least 32 characters long for security")
+    .refine(
+      (val) => val !== "your-super-secret-jwt-key-change-in-production",
+      "JWT_SECRET must be changed from default value in production"
+    ),
   JWT_REFRESH_SECRET: z
     .string()
-    .min(32)
-    .default("your-super-secret-refresh-jwt-key-change-in-production"),
+    .min(32, "JWT_REFRESH_SECRET must be at least 32 characters long for security")
+    .refine(
+      (val) => val !== "your-super-secret-refresh-jwt-key-change-in-production",
+      "JWT_REFRESH_SECRET must be changed from default value in production"
+    ),
   JWT_EXPIRES_IN: z.string().default("15m"),
   JWT_REFRESH_EXPIRES_IN: z.string().default("7d"),
 
@@ -52,8 +60,37 @@ const envSchema = z.object({
 let env;
 try {
   env = envSchema.parse(process.env);
+  
+  // Additional runtime validation for production
+  if (env.NODE_ENV === 'production') {
+    const warnings = [];
+    
+    if (env.JWT_SECRET.includes('change-in-production')) {
+      warnings.push('JWT_SECRET should be changed from default value in production');
+    }
+    
+    if (env.JWT_REFRESH_SECRET.includes('change-in-production')) {
+      warnings.push('JWT_REFRESH_SECRET should be changed from default value in production');
+    }
+    
+    if (warnings.length > 0) {
+      console.warn('⚠️  Security warnings:', warnings.join(', '));
+    }
+  }
+  
+  console.log('✅ Environment configuration loaded successfully');
 } catch (error) {
-  console.error(">> Invalid environment variables:", error.errors);
+  console.error("❌ Invalid environment variables:");
+  
+  if (error.errors) {
+    error.errors.forEach(err => {
+      console.error(`   • ${err.path.join('.')}: ${err.message}`);
+    });
+  } else {
+    console.error(`   • ${error.message}`);
+  }
+  
+  console.error("\n💡 Please check your .env file and ensure all required variables are set correctly.");
   process.exit(1);
 }
 
