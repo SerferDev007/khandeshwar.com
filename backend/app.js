@@ -297,12 +297,8 @@ app.get("/api/health", (req, res) => {
   res.json({ status: "OK", timestamp: new Date().toISOString() });
 });
 
-// User routes
-app.get("/api/users", (req, res) => userController.getAll(req, res));
-app.get("/api/users/:id", (req, res) => userController.getById(req, res));
-app.post("/api/users", (req, res) => userController.create(req, res));
-app.put("/api/users/:id", (req, res) => userController.update(req, res));
-app.delete("/api/users/:id", (req, res) => userController.delete(req, res));
+// Note: User routes are handled by /api/users router with proper authentication
+// The generic userController routes have been removed to prevent bypassing authentication
 
 // Shop routes
 app.get("/api/shops", (req, res) => shopController.getAll(req, res));
