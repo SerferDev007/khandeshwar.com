@@ -480,7 +480,7 @@ export default function Expenses({
             </div>
 
             <Button type="submit" className="w-full">
-              {t("donations.submit")}
+              {t("expenses.submit")}
             </Button>
           </form>
         </CardContent>

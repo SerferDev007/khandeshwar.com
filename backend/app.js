@@ -18,6 +18,9 @@ import authRoutes from "./src/routes/auth.js";
 import userRoutes from "./src/routes/user.js";
 import fileRoutes from "./src/routes/files.js";
 import adminRoutes from "./src/routes/admin.js";
+import donationsRoutes from "./src/routes/donations.js";
+import expensesRoutes from "./src/routes/expenses.js";
+import rentRoutes from "./src/routes/rent.js";
 
 // Import models
 import { User } from "./src/models/User.js";
@@ -291,6 +294,11 @@ app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/files", fileRoutes);
 app.use("/api/admin", adminRoutes);
+
+// New organized API routes with proper authentication and authorization
+app.use("/api/donations", donationsRoutes);
+app.use("/api/expenses", expensesRoutes);
+app.use("/api/rent", rentRoutes);
 
 // Health check (alternative endpoint for backward compatibility)
 app.get("/api/health", (req, res) => {
