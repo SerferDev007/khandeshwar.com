@@ -8,8 +8,20 @@ const logger = pino({ name: 'auth' });
 // JWT Authentication middleware
 export const authenticate = async (req, res, next) => {
   try {
+    logger.info('Authentication attempt', {
+      method: req.method,
+      url: req.url,
+      ip: req.ip,
+      userAgent: req.get('User-Agent')
+    });
+
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      logger.warn('Authentication failed: no token provided', {
+        method: req.method,
+        url: req.url,
+        ip: req.ip
+      });
       return res.status(401).json({
         success: false,
         error: 'Access token required'
@@ -26,6 +38,11 @@ export const authenticate = async (req, res, next) => {
     );
 
     if (users.length === 0) {
+      logger.warn('Authentication failed: invalid user or expired token', {
+        userId: decoded.userId,
+        method: req.method,
+        url: req.url
+      });
       return res.status(401).json({
         success: false,
         error: 'Invalid or expired token'
@@ -33,6 +50,13 @@ export const authenticate = async (req, res, next) => {
     }
 
     req.user = users[0];
+    logger.info('Authentication successful', {
+      userId: req.user.id,
+      username: req.user.username,
+      role: req.user.role,
+      method: req.method,
+      url: req.url
+    });
     next();
   } catch (error) {
     logger.error('Authentication failed:', error);
@@ -75,14 +99,33 @@ export const authorize = (roles = []) => {
 
     // Check if user has required role
     if (!roles.includes(req.user.role)) {
+      logger.warn('Authorization failed: insufficient permissions', {
+        userId: req.user.id,
+        userRole: req.user.role,
+        requiredRoles: roles,
+        method: req.method,
+        url: req.url
+      });
       return res.status(403).json({
         success: false,
         error: `Access denied. Required roles: ${roles.join(', ')}`
       });
     }
 
+    logger.info('Authorization successful', {
+      userId: req.user.id,
+      userRole: req.user.role,
+      requiredRoles: roles,
+      method: req.method,
+      url: req.url
+    });
     next();
   };
+};
+
+// Composable guard that combines authentication and authorization
+export const requireRoles = (roles = []) => {
+  return [authenticate, authorize(roles)];
 };
 
 // Optional authentication (for endpoints that work with or without auth)
@@ -105,9 +148,9 @@ export const optionalAuth = async (req, res, next) => {
       req.user = users[0];
     }
 
-    next();
+    return next();
   } catch (error) {
     // For optional auth, we continue even if token is invalid
-    next();
+    return next();
   }
 };

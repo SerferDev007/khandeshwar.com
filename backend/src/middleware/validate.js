@@ -7,20 +7,41 @@ const logger = pino({ name: 'validation' });
 export const validate = (schema) => {
   return (req, res, next) => {
     try {
-      // Validate request body, query, and params
+      logger.info('Validation attempt', {
+        method: req.method,
+        url: req.url,
+        ip: req.ip,
+        hasBody: !!Object.keys(req.body || {}).length,
+        hasQuery: !!Object.keys(req.query || {}).length,
+        hasParams: !!Object.keys(req.params || {}).length
+      });
+
+      // Validate request body, query, and params - body wins over query/params
       const validationData = {
-        ...req.body,
-        ...req.query,
         ...req.params,
+        ...req.query,
+        ...req.body,
       };
 
       const validatedData = schema.parse(validationData);
       
       // Replace request data with validated data
       req.validatedData = validatedData;
-      next();
+      
+      logger.info('Validation successful', {
+        method: req.method,
+        url: req.url,
+        fieldsValidated: Object.keys(validatedData)
+      });
+      
+      return next();
     } catch (error) {
-      logger.error('Validation failed:', error);
+      logger.error('Validation failed:', {
+        error: error.message,
+        method: req.method,
+        url: req.url,
+        ip: req.ip
+      });
       
       if (error instanceof z.ZodError) {
         const errorMessages = error.errors.map(err => ({
@@ -120,10 +141,31 @@ export const validateFileUpload = (req, res, next) => {
   });
 
   try {
+    logger.info('File upload validation attempt', {
+      method: req.method,
+      url: req.url,
+      ip: req.ip
+    });
+
     const validatedData = schema.parse(req.body);
     req.validatedData = validatedData;
-    next();
+    
+    logger.info('File upload validation successful', {
+      method: req.method,
+      url: req.url,
+      filename: validatedData.filename,
+      size: validatedData.size
+    });
+    
+    return next();
   } catch (error) {
+    logger.error('File upload validation failed:', {
+      error: error.message,
+      method: req.method,
+      url: req.url,
+      ip: req.ip
+    });
+    
     if (error instanceof z.ZodError) {
       const errorMessages = error.errors.map(err => ({
         field: err.path.join('.'),

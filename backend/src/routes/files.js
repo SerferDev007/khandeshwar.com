@@ -1,6 +1,6 @@
 import express from 'express';
 import { validate, schemas } from '../middleware/validate.js';
-import { authenticate, authorize } from '../middleware/auth.js';
+import { authenticate, authorize, requireRoles } from '../middleware/auth.js';
 import { fileUploadRateLimit } from '../middleware/rateLimit.js';
 import {
   getUploadUrl,
