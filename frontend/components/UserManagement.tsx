@@ -272,7 +272,7 @@ export default function UserManagement({
               </TableRow>
             </TableHeader>
             <TableBody>
-              {users.map((user) => (
+              {(users ?? []).map((user) => (
                 <TableRow key={user.id}>
                   <TableCell>{user.username}</TableCell>
                   <TableCell>{user.email}</TableCell>
