@@ -254,7 +254,7 @@ export default function Donations({
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!validateForm()) {
@@ -267,37 +267,42 @@ export default function Donations({
       date: formData.date!.toISOString().split("T")[0],
       type: "Donation",
       category: formData.category,
-      subCategory: formData.subCategory,
+      sub_category: formData.subCategory,
       description: formData.purpose.trim(),
       amount: parseFloat(formData.amount),
-      receiptNumber: formData.receiptNumber,
-      donorName: formData.donorName.trim(),
-      donorContact: formData.donorContact.trim(),
+      receipt_number: formData.receiptNumber,
+      donor_name: formData.donorName.trim(),
+      donor_contact: formData.donorContact.trim() || "",
       ...(formData.category === "Vargani" && {
-        familyMembers: parseInt(formData.familyMembers),
-        amountPerPerson: parseFloat(formData.amountPerPerson),
+        family_members: parseInt(formData.familyMembers),
+        amount_per_person: parseFloat(formData.amountPerPerson),
       }),
     };
 
-    onAddTransaction(newDonation);
-    setLastAddedDonation(newDonation);
-    setShowSuccessDialog(true);
+    try {
+      await onAddTransaction(newDonation);
+      setLastAddedDonation(newDonation);
+      setShowSuccessDialog(true);
 
-    // Reset form
-    setFormData({
-      date: null,
-      category: "",
-      subCategory: "",
-      description: "",
-      amount: "",
-      donorName: "",
-      donorContact: "",
-      familyMembers: "",
-      amountPerPerson: "",
-      purpose: "",
-      receiptNumber: (receiptCounter + 1).toString().padStart(4, "0"),
-    });
-    setErrors({});
+      // Reset form after successful submission
+      setFormData({
+        date: null,
+        category: "",
+        subCategory: "",
+        description: "",
+        amount: "",
+        donorName: "",
+        donorContact: "",
+        familyMembers: "",
+        amountPerPerson: "",
+        purpose: "",
+        receiptNumber: (receiptCounter + 1).toString().padStart(4, "0"),
+      });
+      setErrors({});
+    } catch (error: any) {
+      // Handle API errors - don't show success dialog
+      toast.error(error.message || t("donations.addError"));
+    }
   };
 
   const totalDonations = (transactions ?? []).reduce(
@@ -687,7 +692,7 @@ export default function Donations({
                     {t("donations.receiptNumber")}:
                   </span>
                   <span className="font-medium">
-                    {lastAddedDonation.receiptNumber}
+                    {lastAddedDonation.receipt_number}
                   </span>
                 </div>
                 <div className="flex justify-between">
@@ -708,13 +713,13 @@ export default function Donations({
                     )}
                   </span>
                 </div>
-                {lastAddedDonation.subCategory && (
+                {lastAddedDonation.sub_category && (
                   <div className="flex justify-between">
                     <span className="text-gray-600">
                       {t("donations.subCategory")}:
                     </span>
                     <span className="font-medium">
-                      {t(`donations.${lastAddedDonation.subCategory}`)}
+                      {t(`donations.${lastAddedDonation.sub_category}`)}
                     </span>
                   </div>
                 )}
@@ -736,16 +741,16 @@ export default function Donations({
                     :
                   </span>
                   <span className="font-medium">
-                    {lastAddedDonation.donorName}
+                    {lastAddedDonation.donor_name}
                   </span>
                 </div>
-                {lastAddedDonation.familyMembers && (
+                {lastAddedDonation.family_members && (
                   <div className="flex justify-between">
                     <span className="text-gray-600">
                       {t("donations.familyMembers")}:
                     </span>
                     <span className="font-medium">
-                      {lastAddedDonation.familyMembers}
+                      {lastAddedDonation.family_members}
                     </span>
                   </div>
                 )}
