@@ -75,9 +75,15 @@ export function AuthProvider({ children }: AuthProviderProps) {
         }
       } catch (error) {
         console.log('⚠️ AuthContext: Token verification failed', error);
-        // Token is invalid or expired
-        apiClient.setAuthToken(null);
-        setUser(null);
+        // Only clear token if it's actually invalid, not on network errors
+        if (error.statusCode === 401) {
+          console.log('🗑️ AuthContext: Clearing invalid token');
+          apiClient.setAuthToken(null);
+          setUser(null);
+        } else {
+          // Keep token for network errors, server errors, etc.
+          console.log('⚠️ AuthContext: Keeping token despite verification error (might be network issue)');
+        }
       } finally {
         setIsLoading(false);
         console.log('🏁 AuthContext: Authentication initialization complete');
