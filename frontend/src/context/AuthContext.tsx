@@ -92,43 +92,30 @@ export function AuthProvider({ children }: AuthProviderProps) {
       setIsLoading(true);
       setError(null);
 
+      // The API client now handles token extraction and setting automatically
       const response = await apiClient.login(credentials.email, credentials.password);
       
-      // Extract token from the correct path based on backend response structure
-      let accessToken: string;
+      // Extract user data from response
       let user: any;
-      
-      if (response.data) {
-        // Standard backend response: { success: true, data: { user, accessToken } } or { success: true, data: { user, tokens: { accessToken } } }
-        if (response.data.tokens?.accessToken) {
-          // Production backend structure
-          accessToken = response.data.tokens.accessToken;
-        } else if (response.data.accessToken) {
-          // Demo backend structure
-          accessToken = response.data.accessToken;
-        } else {
-          throw new Error('No access token found in response');
-        }
+      if (response.data?.user) {
+        // Wrapped response: { data: { user, accessToken } }
         user = response.data.user;
-      } else if (response.accessToken) {
-        // Direct response structure (fallback)
-        accessToken = response.accessToken;
+      } else if (response.user) {
+        // Unwrapped response: { user, accessToken }
         user = response.user;
       } else {
-        throw new Error('Invalid login response structure');
+        // Fallback: assume the response is the user data
+        user = response;
       }
 
-      console.log('🔐 Login success - setting auth token', {
-        tokenPresent: !!accessToken,
-        tokenStart: accessToken ? accessToken.slice(0, 10) + '...' : 'null',
-        tokenLength: accessToken?.length ?? 0,
-        userPresent: !!user
+      console.log('✅ Login successful', {
+        userPresent: !!user,
+        userId: user?.id,
+        username: user?.username || user?.name,
+        timestamp: new Date().toISOString()
       });
       
-      // Set the auth token
-      apiClient.setAuthToken(accessToken);
-      
-      // Set user data
+      // Set user data (token is already handled by apiClient.login)
       setUser(user);
     } catch (error: any) {
       setError(error.message || 'Login failed');
@@ -143,43 +130,30 @@ export function AuthProvider({ children }: AuthProviderProps) {
       setIsLoading(true);
       setError(null);
 
+      // The API client now handles token extraction and setting automatically
       const response = await apiClient.register(userData);
       
-      // Extract token from the correct path based on backend response structure
-      let accessToken: string;
+      // Extract user data from response  
       let user: any;
-      
-      if (response.data) {
-        // Standard backend response: { success: true, data: { user, accessToken } } or { success: true, data: { user, tokens: { accessToken } } }
-        if (response.data.tokens?.accessToken) {
-          // Production backend structure
-          accessToken = response.data.tokens.accessToken;
-        } else if (response.data.accessToken) {
-          // Demo backend structure
-          accessToken = response.data.accessToken;
-        } else {
-          throw new Error('No access token found in response');
-        }
+      if (response.data?.user) {
+        // Wrapped response: { data: { user, accessToken } }
         user = response.data.user;
-      } else if (response.accessToken) {
-        // Direct response structure (fallback)
-        accessToken = response.accessToken;
+      } else if (response.user) {
+        // Unwrapped response: { user, accessToken }
         user = response.user;
       } else {
-        throw new Error('Invalid register response structure');
+        // Fallback: assume the response is the user data
+        user = response;
       }
 
-      console.log('🔐 Register success - setting auth token', {
-        tokenPresent: !!accessToken,
-        tokenStart: accessToken ? accessToken.slice(0, 10) + '...' : 'null',
-        tokenLength: accessToken?.length ?? 0,
-        userPresent: !!user
+      console.log('✅ Register successful', {
+        userPresent: !!user,
+        userId: user?.id,
+        username: user?.username || user?.name,
+        timestamp: new Date().toISOString()
       });
       
-      // Set the auth token
-      apiClient.setAuthToken(accessToken);
-      
-      // Set user data
+      // Set user data (token is already handled by apiClient.register)
       setUser(user);
     } catch (error: any) {
       setError(error.message || 'Registration failed');

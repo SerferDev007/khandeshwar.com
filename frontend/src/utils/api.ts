@@ -1,6 +1,19 @@
 /**
  * API Client for Khandeshwar Management System
- * Safe localStorage, SSR-friendly, verified writes, and robust auth handling
+ * 
+ * Features:
+ * - Safe localStorage with SSR-friendly initialization
+ * - Robust authentication handling with automatic token extraction
+ * - Support for both wrapped ({ success, data }) and unwrapped API responses
+ * - Comprehensive logging for debugging authentication flows
+ * - Automatic retry on network errors and server errors
+ * - Cross-tab token synchronization
+ * 
+ * Authentication Flow:
+ * 1. login() method automatically extracts tokens from various response formats
+ * 2. Tokens are automatically stored in localStorage with verification
+ * 3. All subsequent requests include Authorization: Bearer header
+ * 4. 401 responses automatically clear tokens and trigger logout handler
  */
 
 const API_BASE_URL =
@@ -37,6 +50,70 @@ function isLikelyJwt(token: string | null): boolean {
   if (!token) return false;
   const parts = token.split(".");
   return parts.length === 3 && parts.every((p) => p.length > 0);
+}
+
+/**
+ * Robustly extracts access tokens from various API response shapes.
+ * Handles both wrapped and unwrapped responses with multiple token key variations.
+ * 
+ * @param obj - The API response object to extract token from
+ * @returns The extracted token or null if not found
+ */
+function pickAccessToken(obj: any): string | null {
+  if (!obj || typeof obj !== 'object') {
+    console.warn('⚠️ pickAccessToken: Invalid object provided', { obj });
+    return null;
+  }
+
+  // Direct token keys (unwrapped responses)
+  const directKeys = ['accessToken', 'token', 'access_token', 'jwt', 'id_token'];
+  for (const key of directKeys) {
+    if (obj[key] && typeof obj[key] === 'string') {
+      console.log('🔍 Token found at direct key:', { key, tokenStart: obj[key].slice(0, 10) + '...' });
+      return obj[key];
+    }
+  }
+
+  // Nested token keys (wrapped responses)
+  const nestedPaths = [
+    'data.accessToken',
+    'data.tokens.accessToken', 
+    'data.token',
+    'data.access_token',
+    'data.jwt',
+    'data.id_token',
+    'tokens.accessToken',
+    'tokens.token',
+    'tokens.access_token'
+  ];
+
+  for (const path of nestedPaths) {
+    const keys = path.split('.');
+    let current = obj;
+    let valid = true;
+
+    // Navigate the nested path
+    for (const key of keys) {
+      if (current && typeof current === 'object' && current[key] !== undefined) {
+        current = current[key];
+      } else {
+        valid = false;
+        break;
+      }
+    }
+
+    if (valid && current && typeof current === 'string') {
+      console.log('🔍 Token found at nested path:', { path, tokenStart: current.slice(0, 10) + '...' });
+      return current;
+    }
+  }
+
+  console.warn('⚠️ pickAccessToken: No token found in response', { 
+    availableKeys: Object.keys(obj),
+    hasData: !!obj.data,
+    dataKeys: obj.data ? Object.keys(obj.data) : null
+  });
+  return null;
 }
 
 class ApiClient {
@@ -232,31 +309,39 @@ class ApiClient {
       }
 
       const raw = await response.text();
-      let payload: ApiResponse<T>;
+      let payload: any;
+      
       try {
         payload = JSON.parse(raw);
       } catch (e) {
         console.error("📥 Invalid JSON from server", {
           status: response.status,
           preview: raw.slice(0, 200),
+          error: e instanceof Error ? e.message : 'Parse failed'
         });
         throw new Error("Invalid JSON response from server");
       }
 
+      // Handle both wrapped ({ success, data, error }) and unwrapped responses
+      const isWrapped = typeof payload.success === 'boolean';
+      const responseSuccess = isWrapped ? payload.success : response.ok;
+      const responseData = isWrapped ? payload.data : payload;
+      const responseError = isWrapped ? payload.error : null;
+
       console.log("📥 API Response:", {
         endpoint: normalizedEndpoint,
         status: response.status,
-        success: payload.success,
-        hasData: !!payload.data,
-        error: payload.error,
+        wrapped: isWrapped,
+        success: responseSuccess,
+        hasData: !!responseData,
+        error: responseError,
       });
 
       if (!response.ok) {
-        const err = new Error(
-          payload.error || `HTTP ${response.status}`
-        ) as ApiError;
+        const errorMessage = responseError || `HTTP ${response.status}`;
+        const err = new Error(errorMessage) as ApiError;
         err.statusCode = response.status;
-        err.details = payload.details;
+        err.details = isWrapped ? payload.details : undefined;
 
         // Retry only on 5xx and idempotent methods
         if (response.status >= 500 && retryCount < maxRetries) {
@@ -271,15 +356,16 @@ class ApiClient {
         throw err;
       }
 
-      if (!payload.success) {
+      // For wrapped responses, check the success flag
+      if (isWrapped && !responseSuccess) {
         const err = new Error(
-          payload.error || "API request failed"
+          responseError || "API request failed"
         ) as ApiError;
         err.details = payload.details;
         throw err;
       }
 
-      return payload.data!;
+      return responseData as T;
     } catch (e: any) {
       // Network error retry (TypeError thrown by fetch)
       if (e instanceof TypeError && retryCount < maxRetries) {
@@ -331,10 +417,65 @@ class ApiClient {
   // ----- Auth -----
   async login(email: string, password: string) {
     console.log("🔐 Auth login", { emailMasked: email.slice(0, 3) + "***" });
-    return this.post("/api/auth/login", { email, password });
+    
+    const response = await this.post("/api/auth/login", { email, password });
+    
+    // Temporarily log the raw login response for diagnostics
+    console.log("🔬 Raw login response:", JSON.stringify(response, null, 2));
+    
+    // Extract token from response using robust token picker
+    const accessToken = pickAccessToken(response);
+    
+    if (accessToken) {
+      console.log("✅ Login successful - extracted and setting auth token", {
+        tokenStart: accessToken.slice(0, 10) + "...",
+        tokenLength: accessToken.length,
+        timestamp: new Date().toISOString()
+      });
+      
+      // Automatically set the auth token
+      this.setAuthToken(accessToken);
+    } else {
+      console.error("❌ Login failed - no access token found in response", {
+        response,
+        timestamp: new Date().toISOString()
+      });
+      throw new Error("Login succeeded but no access token found in response");
+    }
+    
+    return response;
   }
   register(userData: any) {
-    return this.post("/api/auth/register", userData);
+    console.log("🔐 Auth register", { 
+      emailMasked: userData.email ? userData.email.slice(0, 3) + "***" : "N/A"
+    });
+    
+    return this.post("/api/auth/register", userData).then(response => {
+      // Temporarily log the raw register response for diagnostics
+      console.log("🔬 Raw register response:", JSON.stringify(response, null, 2));
+      
+      // Extract token from response using robust token picker
+      const accessToken = pickAccessToken(response);
+      
+      if (accessToken) {
+        console.log("✅ Register successful - extracted and setting auth token", {
+          tokenStart: accessToken.slice(0, 10) + "...",
+          tokenLength: accessToken.length,
+          timestamp: new Date().toISOString()
+        });
+        
+        // Automatically set the auth token
+        this.setAuthToken(accessToken);
+      } else {
+        console.error("❌ Register failed - no access token found in response", {
+          response,
+          timestamp: new Date().toISOString()
+        });
+        throw new Error("Registration succeeded but no access token found in response");
+      }
+      
+      return response;
+    });
   }
   getProfile() {
     return this.get("/api/auth/profile");
