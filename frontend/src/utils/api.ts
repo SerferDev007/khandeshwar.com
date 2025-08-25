@@ -53,6 +53,8 @@ class ApiClient {
    * Get authentication token
    */
   getAuthToken(): string | null {
+    // Always return the fresh token from localStorage to ensure synchronization
+    this.token = localStorage.getItem('auth_token');
     return this.token;
   }
 
@@ -89,6 +91,9 @@ class ApiClient {
       ...options.headers,
     };
 
+    // Ensure we have the latest token from localStorage for each request
+    this.token = localStorage.getItem('auth_token');
+    
     // Add authorization header if token exists
     if (this.token) {
       headers['Authorization'] = `Bearer ${this.token}`;
