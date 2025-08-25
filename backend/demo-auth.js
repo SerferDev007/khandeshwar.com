@@ -384,4 +384,58 @@ export const demoAuthRoutes = (app) => {
       data: []
     });
   });
+
+  // Donations endpoints for testing authentication
+  app.get('/api/donations', demoAuthMiddleware, (req, res) => {
+    // Check for Admin role  
+    if (req.user.role !== 'Admin') {
+      return res.status(403).json({
+        success: false,
+        error: 'Access denied. Required roles: Admin'
+      });
+    }
+    
+    res.json({
+      success: true,
+      data: []
+    });
+  });
+
+  app.post('/api/donations', demoAuthMiddleware, (req, res) => {
+    // Check for Admin role
+    if (req.user.role !== 'Admin') {
+      return res.status(403).json({
+        success: false,
+        error: 'Access denied. Required roles: Admin'
+      });
+    }
+
+    const { date, category, description, amount, donorName } = req.body;
+    
+    // Simple validation
+    if (!date || !category || !description || !amount || !donorName) {
+      return res.status(422).json({
+        success: false,
+        error: 'Validation failed',
+        details: ['Missing required fields']
+      });
+    }
+
+    // Mock donation creation
+    const donation = {
+      id: Date.now().toString(),
+      date,
+      category,
+      description,
+      amount,
+      donorName,
+      type: 'Donation',
+      createdAt: new Date().toISOString()
+    };
+
+    res.status(201).json({
+      success: true,
+      data: donation
+    });
+  });
 };
