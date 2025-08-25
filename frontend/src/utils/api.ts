@@ -41,11 +41,27 @@ class ApiClient {
    * Set authentication token
    */
   setAuthToken(token: string | null) {
+    console.log('🔐 Token Management: Setting auth token', {
+      tokenPresent: !!token,
+      tokenStart: token ? token.substring(0, 10) + '...' : 'null',
+      tokenLength: token?.length || 0,
+      timestamp: new Date().toISOString()
+    });
+    
     this.token = token;
     if (token) {
       localStorage.setItem('auth_token', token);
+      console.log('💾 Token Management: Token stored in localStorage', {
+        action: 'store',
+        tokenStart: token.substring(0, 10) + '...',
+        timestamp: new Date().toISOString()
+      });
     } else {
       localStorage.removeItem('auth_token');
+      console.log('🗑️ Token Management: Token removed from localStorage', {
+        action: 'remove',
+        timestamp: new Date().toISOString()
+      });
     }
   }
 
@@ -54,7 +70,18 @@ class ApiClient {
    */
   getAuthToken(): string | null {
     // Always return the fresh token from localStorage to ensure synchronization
-    this.token = localStorage.getItem('auth_token');
+    const storedToken = localStorage.getItem('auth_token');
+    
+    if (storedToken !== this.token) {
+      console.log('🔄 Token Management: Token sync from localStorage', {
+        previousTokenStart: this.token ? this.token.substring(0, 10) + '...' : 'null',
+        newTokenStart: storedToken ? storedToken.substring(0, 10) + '...' : 'null',
+        tokenChanged: storedToken !== this.token,
+        timestamp: new Date().toISOString()
+      });
+    }
+    
+    this.token = storedToken;
     return this.token;
   }
 
@@ -106,7 +133,11 @@ class ApiClient {
     
     // Validate token format before using it
     if (this.token && !this.isTokenValid(this.token)) {
-      console.warn('Invalid token format detected, clearing token');
+      console.warn('⚠️ Token Management: Invalid token format detected, clearing token', {
+        tokenStart: this.token.substring(0, 10) + '...',
+        tokenLength: this.token.length,
+        timestamp: new Date().toISOString()
+      });
       this.setAuthToken(null);
       this.token = null;
     }
@@ -114,7 +145,33 @@ class ApiClient {
     // Add authorization header if valid token exists
     if (this.token) {
       headers['Authorization'] = `Bearer ${this.token}`;
+      console.log('🔑 Request: Authorization header added', {
+        endpoint: normalizedEndpoint,
+        method,
+        tokenStart: this.token.substring(0, 10) + '...',
+        timestamp: new Date().toISOString()
+      });
+    } else {
+      console.log('🔓 Request: No authorization token available', {
+        endpoint: normalizedEndpoint,
+        method,
+        timestamp: new Date().toISOString()
+      });
     }
+
+    // Log outgoing request details
+    console.log('📤 API Request:', {
+      method,
+      url,
+      endpoint: normalizedEndpoint,
+      hasAuth: !!this.token,
+      headers: {
+        'Content-Type': headers['Content-Type'],
+        Authorization: this.token ? `Bearer ${this.token.substring(0, 10)}...` : 'none'
+      },
+      retryCount,
+      timestamp: new Date().toISOString()
+    });
 
     try {
       const response = await fetch(url, {
@@ -125,8 +182,38 @@ class ApiClient {
 
       // Handle 401 Unauthorized - clear session and route to login
       if (response.status === 401) {
+        const responseText = await response.text();
+        let responseData;
+        try {
+          responseData = JSON.parse(responseText);
+        } catch {
+          responseData = { error: responseText };
+        }
+        
+        console.error('🚨 401 Unauthorized Response:', {
+          method,
+          url,
+          endpoint: normalizedEndpoint,
+          status: response.status,
+          statusText: response.statusText,
+          responseData,
+          headers: {
+            'content-type': response.headers.get('content-type'),
+            'www-authenticate': response.headers.get('www-authenticate')
+          },
+          hadToken: !!this.token,
+          tokenStart: this.token ? this.token.substring(0, 10) + '...' : 'none',
+          timestamp: new Date().toISOString()
+        });
+        
+        console.log('🔄 Token Management: Clearing token due to 401', {
+          previousToken: this.token ? this.token.substring(0, 10) + '...' : 'none',
+          timestamp: new Date().toISOString()
+        });
+        
         this.setAuthToken(null); // Clear token
         if (this.onUnauthorized) {
+          console.log('📞 Calling unauthorized handler due to 401');
           this.onUnauthorized(); // Call global 401 handler
         }
         const error = new Error('Unauthorized: Please login again') as ApiError;
@@ -134,16 +221,68 @@ class ApiClient {
         throw error;
       }
 
-      const data: ApiResponse<T> = await response.json();
+      const responseText = await response.text();
+      let data: ApiResponse<T>;
+      try {
+        data = JSON.parse(responseText);
+      } catch (parseError) {
+        console.error('📥 Response parsing error:', {
+          method,
+          url,
+          status: response.status,
+          responseText: responseText.substring(0, 200) + (responseText.length > 200 ? '...' : ''),
+          parseError: parseError instanceof Error ? parseError.message : 'Unknown parse error',
+          timestamp: new Date().toISOString()
+        });
+        throw new Error('Invalid JSON response from server');
+      }
+
+      // Log response details
+      console.log('📥 API Response:', {
+        method,
+        url,
+        endpoint: normalizedEndpoint,
+        status: response.status,
+        statusText: response.statusText,
+        success: data.success,
+        hasData: !!data.data,
+        error: data.error,
+        responseHeaders: {
+          'content-type': response.headers.get('content-type'),
+          'content-length': response.headers.get('content-length')
+        },
+        timestamp: new Date().toISOString()
+      });
 
       if (!response.ok) {
         const error = new Error(data.error || `HTTP ${response.status}`) as ApiError;
         error.statusCode = response.status;
         error.details = data.details;
         
+        console.error('❌ API Error Response:', {
+          method,
+          url,
+          endpoint: normalizedEndpoint,
+          status: response.status,
+          statusText: response.statusText,
+          error: data.error,
+          details: data.details,
+          willRetry: response.status >= 500 && retryCount < maxRetries,
+          retryCount,
+          timestamp: new Date().toISOString()
+        });
+        
         // Retry logic for server errors (5xx) on idempotent requests
         if (response.status >= 500 && retryCount < maxRetries) {
           const delay = Math.pow(2, retryCount) * 1000; // Exponential backoff
+          console.log('⏳ Retrying request after error:', {
+            method,
+            url,
+            retryCount: retryCount + 1,
+            maxRetries,
+            delayMs: delay,
+            timestamp: new Date().toISOString()
+          });
           await this.sleep(delay);
           return this.request<T>(endpoint, options, retryCount + 1);
         }
@@ -154,20 +293,68 @@ class ApiClient {
       if (!data.success) {
         const error = new Error(data.error || 'API request failed') as ApiError;
         error.details = data.details;
+        
+        console.error('❌ API Business Logic Error:', {
+          method,
+          url,
+          endpoint: normalizedEndpoint,
+          error: data.error,
+          details: data.details,
+          timestamp: new Date().toISOString()
+        });
+        
         throw error;
       }
+
+      console.log('✅ Request completed successfully:', {
+        method,
+        url,
+        endpoint: normalizedEndpoint,
+        hasData: !!data.data,
+        timestamp: new Date().toISOString()
+      });
 
       return data.data;
     } catch (error) {
       // Network errors - retry idempotent requests
       if (error instanceof TypeError && error.message.includes('fetch')) {
+        console.error('🌐 Network Error:', {
+          method,
+          url,
+          endpoint: normalizedEndpoint,
+          error: error.message,
+          retryCount,
+          maxRetries,
+          willRetry: retryCount < maxRetries,
+          timestamp: new Date().toISOString()
+        });
+        
         if (retryCount < maxRetries) {
           const delay = Math.pow(2, retryCount) * 1000; // Exponential backoff
+          console.log('⏳ Retrying request after network error:', {
+            method,
+            url,
+            retryCount: retryCount + 1,
+            maxRetries,
+            delayMs: delay,
+            timestamp: new Date().toISOString()
+          });
           await this.sleep(delay);
           return this.request<T>(endpoint, options, retryCount + 1);
         }
         throw new Error('Unable to connect to server. Please check your connection.');
       }
+      
+      console.error('💥 Request failed:', {
+        method,
+        url,
+        endpoint: normalizedEndpoint,
+        errorName: error instanceof Error ? error.name : 'Unknown',
+        errorMessage: error instanceof Error ? error.message : 'Unknown error',
+        retryCount,
+        timestamp: new Date().toISOString()
+      });
+      
       throw error;
     }
   }
@@ -208,7 +395,30 @@ class ApiClient {
 
   // Auth endpoints
   async login(email: string, password: string) {
-    return this.post('/api/auth/login', { email, password });
+    console.log('🔐 Auth: Login attempt', {
+      email: email.substring(0, 3) + '***',
+      hasPassword: !!password,
+      timestamp: new Date().toISOString()
+    });
+    
+    try {
+      const result = await this.post('/api/auth/login', { email, password });
+      
+      console.log('✅ Auth: Login successful', {
+        email: email.substring(0, 3) + '***',
+        hasTokens: !!(result.accessToken || result.tokens?.accessToken),
+        timestamp: new Date().toISOString()
+      });
+      
+      return result;
+    } catch (error) {
+      console.error('❌ Auth: Login failed', {
+        email: email.substring(0, 3) + '***',
+        error: error instanceof Error ? error.message : 'Unknown error',
+        timestamp: new Date().toISOString()
+      });
+      throw error;
+    }
   }
 
   async register(userData: any) {
@@ -220,7 +430,27 @@ class ApiClient {
   }
 
   async logout() {
-    return this.post('/api/auth/logout');
+    console.log('🚪 Auth: Logout attempt', {
+      hasToken: !!this.token,
+      tokenStart: this.token ? this.token.substring(0, 10) + '...' : 'none',
+      timestamp: new Date().toISOString()
+    });
+    
+    try {
+      const result = await this.post('/api/auth/logout');
+      
+      console.log('✅ Auth: Logout successful', {
+        timestamp: new Date().toISOString()
+      });
+      
+      return result;
+    } catch (error) {
+      console.error('❌ Auth: Logout failed', {
+        error: error instanceof Error ? error.message : 'Unknown error',
+        timestamp: new Date().toISOString()
+      });
+      throw error;
+    }
   }
 
   // Health check
