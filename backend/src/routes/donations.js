@@ -119,7 +119,6 @@ router.post('/', authenticate, authorize(['Admin']), validateDonationCreate, asy
       ...req.body,
       id: generateId(),
       type: 'Donation',
-      createdAt: new Date().toISOString(),
     };
     
     const donation = new Transaction(donationData);
