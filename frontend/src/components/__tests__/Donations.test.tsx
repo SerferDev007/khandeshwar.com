@@ -42,8 +42,9 @@ describe('Donations Component', () => {
       </TestWrapper>
     );
 
-    // Check for key form elements - the title is "Add Donation"
-    expect(screen.getByText(/add donation/i)).toBeInTheDocument();
+    // Check for key form elements - use role to target header specifically
+    expect(screen.getAllByText(/add donation/i)).toHaveLength(2); // Title + button
+    expect(screen.getByRole('heading', { name: /add donation/i })).toBeInTheDocument();
     expect(screen.getByLabelText(/date/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/category/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/donor.*name/i)).toBeInTheDocument();

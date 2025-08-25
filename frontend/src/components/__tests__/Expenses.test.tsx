@@ -40,8 +40,9 @@ describe('Expenses Component', () => {
       </TestWrapper>
     );
 
-    // Check for key form elements - the title is "Add Expense"
-    expect(screen.getByText(/add expense/i)).toBeInTheDocument();
+    // Check for key form elements - get the header specifically
+    expect(screen.getAllByText(/add expense/i)).toHaveLength(2); // Title + button
+    expect(screen.getByRole('heading', { name: /add expense/i })).toBeInTheDocument();
     expect(screen.getByLabelText(/date/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/category/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/payee.*name/i)).toBeInTheDocument();

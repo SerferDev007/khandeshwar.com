@@ -25,6 +25,7 @@ import TransactionTable from "./TransactionTable";
 import { useLanguage } from "./LanguageContext";
 import { Check, AlertCircle, Receipt, IndianRupee } from "lucide-react";
 import { toast } from "sonner";
+import apiClient from "../src/utils/api";
 
 interface UploadedFile {
   id: string;
@@ -200,7 +201,7 @@ export default function Expenses({
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!validateForm()) {
@@ -208,37 +209,76 @@ export default function Expenses({
       return;
     }
 
-    const newExpense = {
-      id: Date.now().toString(),
-      date: formData.date!.toISOString().split("T")[0],
-      type: "Expense",
-      category: formData.category,
-      subCategory: formData.subCategory,
-      description: formData.details.trim(),
-      amount: parseFloat(formData.amount),
-      payeeName: formData.payeeName.trim(),
-      payeeContact: formData.payeeContact.trim(),
-      receiptImages: formData.receiptImages,
-    };
+    try {
+      // Prepare data according to backend schema  
+      const expenseData = {
+        date: formData.date!.toISOString().split("T")[0],
+        category: formData.category,
+        subCategory: formData.subCategory || undefined,
+        description: formData.details.trim(),
+        amount: parseFloat(formData.amount),
+        payeeName: formData.payeeName.trim(),
+        payeeContact: formData.payeeContact.trim() || undefined,
+        receiptImages: formData.receiptImages.map(file => file.base64), // Convert to base64 strings array
+      };
 
-    console.log(newExpense);
+      // Call backend API
+      const response = await apiClient.createExpense(expenseData);
+      
+      // Create display object for success dialog (including frontend-only fields)
+      const newExpense = {
+        id: response.data?.id || Date.now().toString(),
+        date: expenseData.date,
+        type: "Expense",
+        category: expenseData.category,
+        subCategory: expenseData.subCategory,
+        description: expenseData.description,
+        amount: expenseData.amount,
+        payeeName: expenseData.payeeName,
+        payeeContact: expenseData.payeeContact,
+        receiptImages: formData.receiptImages, // Keep full file objects for display
+      };
 
-    onAddTransaction(newExpense);
-    setLastAddedExpense(newExpense);
-    setShowSuccessDialog(true);
+      // Call parent callback for UI updates
+      onAddTransaction(newExpense);
+      setLastAddedExpense(newExpense);
+      setShowSuccessDialog(true);
 
-    // Reset form
-    setFormData({
-      date: null,
-      category: "",
-      subCategory: "",
-      payeeName: "",
-      payeeContact: "",
-      amount: "",
-      details: "",
-      receiptImages: [],
-    });
-    setErrors({});
+      // Reset form
+      setFormData({
+        date: null,
+        category: "",
+        subCategory: "",
+        payeeName: "",
+        payeeContact: "",
+        amount: "",
+        details: "",
+        receiptImages: [],
+      });
+      setErrors({});
+      
+      toast.success(t("expenses.expenseSuccessMessage"));
+
+    } catch (error: any) {
+      console.error('Expense submission error:', error);
+      
+      // Handle validation errors from backend
+      if (error.status === 422 && error.response?.details) {
+        const backendErrors: any = {};
+        error.response.details.forEach((detail: any) => {
+          const field = detail.path?.[0];
+          if (field) {
+            backendErrors[field] = detail.message;
+          }
+        });
+        setErrors(backendErrors);
+        toast.error(t("expenses.validationError"));
+      } else if (error.status === 401) {
+        toast.error("Please login to submit expenses");
+      } else {
+        toast.error(error.message || "Failed to submit expense. Please try again.");
+      }
+    }
   };
 
   const totalExpenses = (transactions ?? []).reduce(
