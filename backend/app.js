@@ -20,6 +20,7 @@ import fileRoutes from "./src/routes/files.js";
 import adminRoutes from "./src/routes/admin.js";
 import donationsRoutes from "./src/routes/donations.js";
 import expensesRoutes from "./src/routes/expenses.js";
+import transactionsRoutes from "./src/routes/transactions.js";
 import rentRoutes from "./src/routes/rent.js";
 
 // Import models
@@ -298,6 +299,7 @@ app.use("/api/admin", adminRoutes);
 // New organized API routes with proper authentication and authorization
 app.use("/api/donations", donationsRoutes);
 app.use("/api/expenses", expensesRoutes);
+app.use("/api/transactions", transactionsRoutes);
 app.use("/api/rent", rentRoutes);
 
 // Health check (alternative endpoint for backward compatibility)
