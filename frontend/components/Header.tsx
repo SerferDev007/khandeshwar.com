@@ -30,34 +30,14 @@ export default function Header({ activeTab, onTabChange, currentUser, onLogout }
   const { t, language } = useLanguage();
   
   const getAvailableTabs = () => {
-    const baseTabs = [
+    return [
       { key: 'Dashboard', label: t('nav.dashboard') },
-      { key: 'Reports', label: t('nav.reports') }
+      { key: 'Donations', label: t('nav.donations') },
+      { key: 'Expenses', label: t('nav.expenses') },
+      { key: 'RentManagement', label: t('nav.rentManagement') },
+      { key: 'Reports', label: t('nav.reports') },
+      { key: 'Users', label: t('nav.users') }
     ];
-    
-    switch (currentUser.role) {
-      case 'Admin':
-        return [
-          { key: 'Dashboard', label: t('nav.dashboard') },
-          { key: 'Donations', label: t('nav.donations') },
-          { key: 'Expenses', label: t('nav.expenses') },
-          { key: 'RentManagement', label: t('nav.rentManagement') },
-          { key: 'Reports', label: t('nav.reports') },
-          { key: 'Users', label: t('nav.users') }
-        ];
-      case 'Treasurer':
-        return [
-          { key: 'Dashboard', label: t('nav.dashboard') },
-          { key: 'Donations', label: t('nav.donations') },
-          { key: 'Expenses', label: t('nav.expenses') },
-          { key: 'RentManagement', label: t('nav.rentManagement') },
-          { key: 'Reports', label: t('nav.reports') }
-        ];
-      case 'Viewer':
-        return baseTabs;
-      default:
-        return baseTabs;
-    }
   };
 
   const tabs = getAvailableTabs();
