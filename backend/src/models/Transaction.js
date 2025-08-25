@@ -24,6 +24,7 @@ export class Transaction {
     this.emiAmount = data.emiAmount;
     this.penaltyId = data.penaltyId;
     this.penaltyAmount = data.penaltyAmount;
+    this.createdAt = data.createdAt;
   }
 
   static getTableSchema() {
@@ -93,37 +94,44 @@ export class Transaction {
       loanId: row.loan_id,
       emiAmount: row.emi_amount ? parseFloat(row.emi_amount) : null,
       penaltyId: row.penalty_id,
-      penaltyAmount: row.penalty_amount ? parseFloat(row.penalty_amount) : null
+      penaltyAmount: row.penalty_amount ? parseFloat(row.penalty_amount) : null,
+      createdAt: row.created_at
     });
   }
 
   toDbObject() {
-    return {
-      id: this.id,
-      date: this.date,
-      type: this.type,
-      category: this.category,
-      sub_category: this.subCategory,
-      description: this.description,
-      amount: this.amount,
-      receipt_number: this.receiptNumber,
-      donor_name: this.donorName,
-      donor_contact: this.donorContact,
-      family_members: this.familyMembers,
-      amount_per_person: this.amountPerPerson,
-      vendor: this.vendor,
-      receipt: this.receipt,
-      tenant_name: this.tenantName,
-      tenant_contact: this.tenantContact,
-      agreement_id: this.agreementId,
-      shop_number: this.shopNumber,
-      payee_name: this.payeeName,
-      payee_contact: this.payeeContact,
-      loan_id: this.loanId,
-      emi_amount: this.emiAmount,
-      penalty_id: this.penaltyId,
-      penalty_amount: this.penaltyAmount,
-      created_at: this.createdAt
-    };
+    const obj = {};
+    
+    // Always include required fields
+    if (this.id !== undefined) obj.id = this.id;
+    if (this.date !== undefined) obj.date = this.date;
+    if (this.type !== undefined) obj.type = this.type;
+    if (this.category !== undefined) obj.category = this.category;
+    if (this.description !== undefined) obj.description = this.description;
+    if (this.amount !== undefined) obj.amount = this.amount;
+    
+    // Optional fields - only include if they have values
+    if (this.subCategory !== undefined && this.subCategory !== null) obj.sub_category = this.subCategory;
+    if (this.receiptNumber !== undefined && this.receiptNumber !== null) obj.receipt_number = this.receiptNumber;
+    if (this.donorName !== undefined && this.donorName !== null) obj.donor_name = this.donorName;
+    if (this.donorContact !== undefined && this.donorContact !== null && this.donorContact !== '') obj.donor_contact = this.donorContact;
+    if (this.familyMembers !== undefined && this.familyMembers !== null) obj.family_members = this.familyMembers;
+    if (this.amountPerPerson !== undefined && this.amountPerPerson !== null) obj.amount_per_person = this.amountPerPerson;
+    if (this.vendor !== undefined && this.vendor !== null) obj.vendor = this.vendor;
+    if (this.receipt !== undefined && this.receipt !== null) obj.receipt = this.receipt;
+    if (this.tenantName !== undefined && this.tenantName !== null) obj.tenant_name = this.tenantName;
+    if (this.tenantContact !== undefined && this.tenantContact !== null) obj.tenant_contact = this.tenantContact;
+    if (this.agreementId !== undefined && this.agreementId !== null) obj.agreement_id = this.agreementId;
+    if (this.shopNumber !== undefined && this.shopNumber !== null) obj.shop_number = this.shopNumber;
+    if (this.payeeName !== undefined && this.payeeName !== null) obj.payee_name = this.payeeName;
+    if (this.payeeContact !== undefined && this.payeeContact !== null) obj.payee_contact = this.payeeContact;
+    if (this.loanId !== undefined && this.loanId !== null) obj.loan_id = this.loanId;
+    if (this.emiAmount !== undefined && this.emiAmount !== null) obj.emi_amount = this.emiAmount;
+    if (this.penaltyId !== undefined && this.penaltyId !== null) obj.penalty_id = this.penaltyId;
+    if (this.penaltyAmount !== undefined && this.penaltyAmount !== null) obj.penalty_amount = this.penaltyAmount;
+    
+    // Don't include created_at - let database handle it with DEFAULT CURRENT_TIMESTAMP
+    
+    return obj;
   }
 }
