@@ -64,11 +64,18 @@ const generateDemoRefreshToken = (user) => {
 };
 
 export const demoAuthMiddleware = (req, res, next) => {
+  // Enhanced request logging for all auth-protected endpoints
   logger.info('Demo authentication attempt', {
     method: req.method,
     url: req.url,
+    route: req.path,
     ip: req.ip,
-    userAgent: req.get('User-Agent')
+    userAgent: req.get('User-Agent'),
+    authHeaderPresent: !!req.headers.authorization,
+    authHeaderPrefix: req.headers.authorization ? req.headers.authorization.substring(0, 10) : null,
+    contentType: req.get('Content-Type'),
+    referer: req.get('Referer'),
+    timestamp: new Date().toISOString()
   });
 
   // Skip auth for login endpoint
@@ -88,11 +95,22 @@ export const demoAuthMiddleware = (req, res, next) => {
       });
     }
     
+    // Enhanced 401 logging with all relevant headers
     logger.warn('Demo authentication failed: no token provided', {
       method: req.method,
       url: req.url,
+      route: req.path,
       ip: req.ip,
-      userAgent: req.get('User-Agent')
+      userAgent: req.get('User-Agent'),
+      contentType: req.get('Content-Type'),
+      referer: req.get('Referer'),
+      authHeader: authHeader ? authHeader.substring(0, 20) + '...' : 'null',
+      headers: {
+        accept: req.get('Accept'),
+        origin: req.get('Origin'),
+        host: req.get('Host')
+      },
+      timestamp: new Date().toISOString()
     });
     
     return res.status(401).json({
@@ -103,10 +121,47 @@ export const demoAuthMiddleware = (req, res, next) => {
 
   try {
     const token = authHeader.split(' ')[1];
+    
+    // Log token verification attempt with partial token for debugging
+    logger.info('Demo token verification attempt', {
+      method: req.method,
+      url: req.url,
+      tokenStart: token.substring(0, 10) + '...',
+      tokenLength: token.length,
+      timestamp: new Date().toISOString()
+    });
+    
     const payload = JSON.parse(Buffer.from(token, 'base64').toString('utf8'));
     
+    // Enhanced expiry check with detailed logging
+    const currentTime = Math.floor(Date.now() / 1000);
+    const tokenExpiry = payload.exp;
+    const timeUntilExpiry = tokenExpiry ? tokenExpiry - currentTime : null;
+    
+    logger.info('Demo token decoded successfully', {
+      userId: payload.id,
+      tokenExpiry: tokenExpiry ? new Date(tokenExpiry * 1000).toISOString() : null,
+      timeUntilExpirySeconds: timeUntilExpiry,
+      timeUntilExpiryMin: timeUntilExpiry ? Math.round(timeUntilExpiry / 60) : null,
+      isExpired: tokenExpiry < currentTime
+    });
+    
     // Check if token is expired
-    if (payload.exp < Math.floor(Date.now() / 1000)) {
+    if (payload.exp < currentTime) {
+      logger.warn('401 Response: Demo token expired', {
+        method: req.method,
+        url: req.url,
+        route: req.path,
+        reason: 'TokenExpired',
+        expiredAt: new Date(payload.exp * 1000).toISOString(),
+        expiredSecondsAgo: currentTime - payload.exp,
+        headers: {
+          accept: req.get('Accept'),
+          origin: req.get('Origin'),
+          userAgent: req.get('User-Agent')
+        },
+        timestamp: new Date().toISOString()
+      });
       return res.status(401).json({
         success: false,
         error: 'Token expired'
@@ -119,8 +174,18 @@ export const demoAuthMiddleware = (req, res, next) => {
       logger.warn('Demo authentication failed: invalid token', {
         method: req.method,
         url: req.url,
+        route: req.path,
         ip: req.ip,
-        userAgent: req.get('User-Agent')
+        userAgent: req.get('User-Agent'),
+        tokenStart: token.substring(0, 10) + '...',
+        payloadUserId: payload.id,
+        reason: 'UserNotFound',
+        headers: {
+          accept: req.get('Accept'),
+          origin: req.get('Origin'),
+          host: req.get('Host')
+        },
+        timestamp: new Date().toISOString()
       });
       return res.status(401).json({
         success: false,
@@ -133,19 +198,47 @@ export const demoAuthMiddleware = (req, res, next) => {
       userId: user.id,
       username: user.username,
       role: user.role,
+      status: user.status,
       method: req.method,
       url: req.url,
+      route: req.path,
       ip: req.ip,
-      userAgent: req.get('User-Agent')
+      userAgent: req.get('User-Agent'),
+      tokenExpiryInfo: {
+        expiry: new Date(tokenExpiry * 1000).toISOString(),
+        timeUntilExpiryMin: Math.round(timeUntilExpiry / 60)
+      },
+      timestamp: new Date().toISOString()
     });
     next();
   } catch (error) {
-    logger.warn('Demo authentication failed: invalid token format', {
+    // Enhanced error logging with token details
+    logger.error('Demo authentication failed:', {
+      errorName: error.name || 'UnknownError',
+      errorMessage: error.message,
       method: req.method,
       url: req.url,
+      route: req.path,
       ip: req.ip,
-      userAgent: req.get('User-Agent')
+      userAgent: req.get('User-Agent'),
+      tokenStart: req.headers.authorization ? req.headers.authorization.substring(7, 17) + '...' : 'no-token',
+      timestamp: new Date().toISOString()
     });
+    
+    logger.warn('401 Response: Demo invalid token format', {
+      method: req.method,
+      url: req.url,
+      route: req.path,
+      reason: 'InvalidTokenFormat',
+      errorMessage: error.message,
+      headers: {
+        accept: req.get('Accept'),
+        origin: req.get('Origin'),
+        userAgent: req.get('User-Agent')
+      },
+      timestamp: new Date().toISOString()
+    });
+    
     return res.status(401).json({
       success: false,
       error: 'Invalid token format'

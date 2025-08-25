@@ -8,11 +8,18 @@ const logger = pino({ name: 'auth' });
 // JWT Authentication middleware
 export const authenticate = async (req, res, next) => {
   try {
+    // Enhanced request logging for all auth-protected endpoints
     logger.info('Authentication attempt', {
       method: req.method,
       url: req.url,
+      route: req.path,
       ip: req.ip,
-      userAgent: req.get('User-Agent')
+      userAgent: req.get('User-Agent'),
+      authHeaderPresent: !!req.headers.authorization,
+      authHeaderPrefix: req.headers.authorization ? req.headers.authorization.substring(0, 10) : null,
+      contentType: req.get('Content-Type'),
+      referer: req.get('Referer'),
+      timestamp: new Date().toISOString()
     });
 
     const authHeader = req.headers.authorization;
@@ -27,11 +34,22 @@ export const authenticate = async (req, res, next) => {
         });
       }
       
+      // Enhanced 401 logging with all relevant headers
       logger.warn('Authentication failed: no token provided', {
         method: req.method,
         url: req.url,
+        route: req.path,
         ip: req.ip,
-        userAgent: req.get('User-Agent')
+        userAgent: req.get('User-Agent'),
+        contentType: req.get('Content-Type'),
+        referer: req.get('Referer'),
+        authHeader: authHeader ? authHeader.substring(0, 20) + '...' : 'null',
+        headers: {
+          accept: req.get('Accept'),
+          origin: req.get('Origin'),
+          host: req.get('Host')
+        },
+        timestamp: new Date().toISOString()
       });
       return res.status(401).json({
         success: false,
@@ -40,7 +58,29 @@ export const authenticate = async (req, res, next) => {
     }
 
     const token = authHeader.substring(7);
+    
+    // Log token verification attempt with partial token for debugging
+    logger.info('Token verification attempt', {
+      method: req.method,
+      url: req.url,
+      tokenStart: token.substring(0, 10) + '...',
+      tokenLength: token.length,
+      timestamp: new Date().toISOString()
+    });
+    
     const decoded = jwt.verify(token, env.JWT_SECRET);
+    
+    // Log token expiry information
+    const tokenExpiry = decoded.exp ? new Date(decoded.exp * 1000) : null;
+    const timeUntilExpiry = tokenExpiry ? tokenExpiry.getTime() - Date.now() : null;
+    
+    logger.info('Token decoded successfully', {
+      userId: decoded.userId,
+      tokenExpiry: tokenExpiry ? tokenExpiry.toISOString() : null,
+      timeUntilExpiryMs: timeUntilExpiry,
+      timeUntilExpiryMin: timeUntilExpiry ? Math.round(timeUntilExpiry / 60000) : null,
+      isExpired: tokenExpiry ? tokenExpiry < new Date() : false
+    });
     
     // Check if user still exists and is active
     const users = await query(
@@ -53,8 +93,18 @@ export const authenticate = async (req, res, next) => {
         userId: decoded.userId,
         method: req.method,
         url: req.url,
+        route: req.path,
         ip: req.ip,
-        userAgent: req.get('User-Agent')
+        userAgent: req.get('User-Agent'),
+        tokenStart: token.substring(0, 10) + '...',
+        userStatus: 'NOT_FOUND',
+        searchedStatus: 'Active',
+        headers: {
+          accept: req.get('Accept'),
+          origin: req.get('Origin'),
+          host: req.get('Host')
+        },
+        timestamp: new Date().toISOString()
       });
       return res.status(401).json({
         success: false,
@@ -67,16 +117,47 @@ export const authenticate = async (req, res, next) => {
       userId: req.user.id,
       username: req.user.username,
       role: req.user.role,
+      status: req.user.status,
       method: req.method,
       url: req.url,
+      route: req.path,
       ip: req.ip,
-      userAgent: req.get('User-Agent')
+      userAgent: req.get('User-Agent'),
+      tokenExpiryInfo: tokenExpiry ? {
+        expiry: tokenExpiry.toISOString(),
+        timeUntilExpiryMin: Math.round(timeUntilExpiry / 60000)
+      } : null,
+      timestamp: new Date().toISOString()
     });
     next();
   } catch (error) {
-    logger.error('Authentication failed:', error);
+    // Enhanced error logging with token details
+    logger.error('Authentication failed:', {
+      errorName: error.name,
+      errorMessage: error.message,
+      method: req.method,
+      url: req.url,
+      route: req.path,
+      ip: req.ip,
+      userAgent: req.get('User-Agent'),
+      tokenStart: req.headers.authorization ? req.headers.authorization.substring(7, 17) + '...' : 'no-token',
+      timestamp: new Date().toISOString()
+    });
     
     if (error.name === 'JsonWebTokenError') {
+      logger.warn('401 Response: Invalid token format', {
+        method: req.method,
+        url: req.url,
+        route: req.path,
+        reason: 'JsonWebTokenError',
+        errorMessage: error.message,
+        headers: {
+          accept: req.get('Accept'),
+          origin: req.get('Origin'),
+          userAgent: req.get('User-Agent')
+        },
+        timestamp: new Date().toISOString()
+      });
       return res.status(401).json({
         success: false,
         error: 'Invalid token'
@@ -84,12 +165,33 @@ export const authenticate = async (req, res, next) => {
     }
     
     if (error.name === 'TokenExpiredError') {
+      logger.warn('401 Response: Token expired', {
+        method: req.method,
+        url: req.url,
+        route: req.path,
+        reason: 'TokenExpiredError',
+        expiredAt: error.expiredAt ? error.expiredAt.toISOString() : 'unknown',
+        headers: {
+          accept: req.get('Accept'),
+          origin: req.get('Origin'),
+          userAgent: req.get('User-Agent')
+        },
+        timestamp: new Date().toISOString()
+      });
       return res.status(401).json({
         success: false,
         error: 'Token expired'
       });
     }
 
+    logger.error('500 Response: Authentication error', {
+      method: req.method,
+      url: req.url,
+      route: req.path,
+      errorName: error.name,
+      errorMessage: error.message,
+      timestamp: new Date().toISOString()
+    });
     return res.status(500).json({
       success: false,
       error: 'Authentication error'
