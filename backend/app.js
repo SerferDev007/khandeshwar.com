@@ -308,175 +308,22 @@ app.get("/api/health", (req, res) => {
 // Note: User routes are handled by /api/users router with proper authentication
 // The generic userController routes have been removed to prevent bypassing authentication
 
-// Shop routes
-app.get("/api/shops", (req, res) => shopController.getAll(req, res));
-app.get("/api/shops/:id", (req, res) => shopController.getById(req, res));
-app.post("/api/shops", (req, res) => shopController.create(req, res));
-app.put("/api/shops/:id", (req, res) => shopController.update(req, res));
-app.delete("/api/shops/:id", (req, res) => shopController.delete(req, res));
+// Note: Entity-specific routes are handled by their respective protected routers:
+// - Donations: /api/donations (protected)  
+// - Expenses: /api/expenses (protected)
+// - Rent management: /api/rent (protected - includes shops, tenants, agreements)
+// 
+// The generic controller routes below have been removed to prevent bypassing authentication:
+// - /api/transactions (donations/expenses should use their specific endpoints)
+// - /api/shops, /api/tenants, /api/agreements (should use /api/rent endpoints) 
+// - /api/loans, /api/rent-penalties (currently unprotected - TODO: create protected routers)
 
-// Tenant routes
-app.get("/api/tenants", (req, res) => tenantController.getAll(req, res));
-app.get("/api/tenants/:id", (req, res) => tenantController.getById(req, res));
-app.post("/api/tenants", (req, res) => tenantController.create(req, res));
-app.put("/api/tenants/:id", (req, res) => tenantController.update(req, res));
-app.delete("/api/tenants/:id", (req, res) => tenantController.delete(req, res));
-
-// Agreement routes
-app.get("/api/agreements", (req, res) => agreementController.getAll(req, res));
-app.get("/api/agreements/:id", (req, res) =>
-  agreementController.getById(req, res)
-);
-app.post("/api/agreements", (req, res) => agreementController.create(req, res));
-app.put("/api/agreements/:id", (req, res) =>
-  agreementController.update(req, res)
-);
-app.delete("/api/agreements/:id", (req, res) =>
-  agreementController.delete(req, res)
-);
-
-// Loan routes
-app.get("/api/loans", (req, res) => loanController.getAll(req, res));
-app.get("/api/loans/:id", (req, res) => loanController.getById(req, res));
-app.post("/api/loans", (req, res) => loanController.create(req, res));
-app.put("/api/loans/:id", (req, res) => loanController.update(req, res));
-app.delete("/api/loans/:id", (req, res) => loanController.delete(req, res));
-
-// Rent Penalty routes
-app.get("/api/rent-penalties", (req, res) =>
-  rentPenaltyController.getAll(req, res)
-);
-app.get("/api/rent-penalties/:id", (req, res) =>
-  rentPenaltyController.getById(req, res)
-);
-app.post("/api/rent-penalties", (req, res) =>
-  rentPenaltyController.create(req, res)
-);
-app.put("/api/rent-penalties/:id", (req, res) =>
-  rentPenaltyController.update(req, res)
-);
-app.delete("/api/rent-penalties/:id", (req, res) =>
-  rentPenaltyController.delete(req, res)
-);
-
-// Transaction routes
-app.get("/api/transactions", (req, res) =>
-  transactionController.getAll(req, res)
-);
-app.get("/api/transactions/:id", (req, res) =>
-  transactionController.getById(req, res)
-);
-app.post("/api/transactions", (req, res) =>
-  transactionController.create(req, res)
-);
-app.put("/api/transactions/:id", (req, res) =>
-  transactionController.update(req, res)
-);
-app.delete("/api/transactions/:id", (req, res) =>
-  transactionController.delete(req, res)
-);
-
-// Uploaded File routes
-app.get("/api/uploaded-files", (req, res) =>
-  uploadedFileController.getAll(req, res)
-);
-app.get("/api/uploaded-files/:id", (req, res) =>
-  uploadedFileController.getById(req, res)
-);
-app.post("/api/uploaded-files", (req, res) =>
-  uploadedFileController.create(req, res)
-);
-app.put("/api/uploaded-files/:id", (req, res) =>
-  uploadedFileController.update(req, res)
-);
-app.delete("/api/uploaded-files/:id", (req, res) =>
-  uploadedFileController.delete(req, res)
-);
-
-// Additional useful endpoints
-
-// Get files by entity
-app.get(
-  "/api/uploaded-files/entity/:entityType/:entityId",
-  async (req, res) => {
-    try {
-      const { entityType, entityId } = req.params;
-      const rows = await query(
-        "SELECT * FROM uploaded_files WHERE entity_type = ? AND entity_id = ?",
-        [entityType, entityId]
-      );
-      const files = rows.map((row) => UploadedFile.fromDbRow(row));
-      res.json(files);
-    } catch (error) {
-      logger.error("Get files by entity error:", error);
-      res.status(500).json({ error: error.message });
-    }
-  }
-);
-
-// Get transactions by type
-app.get("/api/transactions/type/:type", async (req, res) => {
-  try {
-    const { type } = req.params;
-    const rows = await query(
-      "SELECT * FROM transactions WHERE type = ? ORDER BY date DESC",
-      [type]
-    );
-    const transactions = rows.map((row) => Transaction.fromDbRow(row));
-    res.json(transactions);
-  } catch (error) {
-    logger.error("Get transactions by type error:", error);
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// Get agreements by tenant
-app.get("/api/agreements/tenant/:tenantId", async (req, res) => {
-  try {
-    const { tenantId } = req.params;
-    const rows = await query(
-      "SELECT * FROM agreements WHERE tenant_id = ? ORDER BY created_at DESC",
-      [tenantId]
-    );
-    const agreements = rows.map((row) => Agreement.fromDbRow(row));
-    res.json(agreements);
-  } catch (error) {
-    logger.error("Get agreements by tenant error:", error);
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// Get loans by agreement
-app.get("/api/loans/agreement/:agreementId", async (req, res) => {
-  try {
-    const { agreementId } = req.params;
-    const rows = await query(
-      "SELECT * FROM loans WHERE agreement_id = ? ORDER BY created_at DESC",
-      [agreementId]
-    );
-    const loans = rows.map((row) => Loan.fromDbRow(row));
-    res.json(loans);
-  } catch (error) {
-    logger.error("Get loans by agreement error:", error);
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// Get penalties by agreement
-app.get("/api/rent-penalties/agreement/:agreementId", async (req, res) => {
-  try {
-    const { agreementId } = req.params;
-    const rows = await query(
-      "SELECT * FROM rent_penalties WHERE agreement_id = ? ORDER BY due_date DESC",
-      [agreementId]
-    );
-    const penalties = rows.map((row) => RentPenalty.fromDbRow(row));
-    res.json(penalties);
-  } catch (error) {
-    logger.error("Get penalties by agreement error:", error);
-    res.status(500).json({ error: error.message });
-  }
-});
+// Note: All entity-specific routes have been removed to prevent bypassing authentication
+// Protected routes are available through their respective routers:
+// - File operations: /api/files (protected)
+// - Donations: /api/donations (protected) 
+// - Expenses: /api/expenses (protected)
+// - Rent management: /api/rent (protected)
 
 // 404 handler
 app.use(notFoundHandler);

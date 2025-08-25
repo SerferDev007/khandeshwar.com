@@ -59,6 +59,16 @@ class ApiClient {
   }
 
   /**
+   * Check if a token appears to be valid (basic format check)
+   */
+  private isTokenValid(token: string | null): boolean {
+    if (!token) return false;
+    // JWT tokens should have 3 parts separated by dots
+    const parts = token.split('.');
+    return parts.length === 3 && parts.every(part => part.length > 0);
+  }
+
+  /**
    * Sleep helper for retry delays
    */
   private sleep(ms: number): Promise<void> {
@@ -94,7 +104,14 @@ class ApiClient {
     // Ensure we have the latest token from localStorage for each request
     this.token = localStorage.getItem('auth_token');
     
-    // Add authorization header if token exists
+    // Validate token format before using it
+    if (this.token && !this.isTokenValid(this.token)) {
+      console.warn('Invalid token format detected, clearing token');
+      this.setAuthToken(null);
+      this.token = null;
+    }
+    
+    // Add authorization header if valid token exists
     if (this.token) {
       headers['Authorization'] = `Bearer ${this.token}`;
     }
