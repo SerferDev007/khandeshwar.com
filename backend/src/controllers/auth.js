@@ -113,59 +113,210 @@ export const register = asyncHandler(async (req, res) => {
 
 // Login user
 export const login = asyncHandler(async (req, res) => {
-  const { email, password } = req.validatedData;
+  try {
+    // Strictly validate req.validatedData
+    if (!req.validatedData) {
+      logger.error('Login attempt with missing validatedData:', {
+        method: req.method,
+        url: req.url,
+        ip: req.ip,
+        hasBody: !!Object.keys(req.body || {}).length
+      });
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid request data',
+        details: [{ field: 'request', message: 'Request validation failed' }]
+      });
+    }
 
-  // Find user by email
-  const user = await User.findByEmail(email);
-  if (!user) {
-    return res.status(401).json({
-      success: false,
-      error: 'Invalid email or password',
+    const { email, password } = req.validatedData;
+
+    // Ensure email and password are present and valid
+    if (!email || !password) {
+      logger.error('Login attempt with missing credentials:', {
+        hasEmail: !!email,
+        hasPassword: !!password,
+        ip: req.ip,
+        userAgent: req.headers['user-agent']
+      });
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid request data',
+        details: [
+          ...(!email ? [{ field: 'email', message: 'Email is required' }] : []),
+          ...(!password ? [{ field: 'password', message: 'Password is required' }] : [])
+        ]
+      });
+    }
+
+    // Additional email format validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      logger.error('Login attempt with invalid email format:', {
+        email: email.substring(0, 3) + '***', // Log partial email for security
+        ip: req.ip
+      });
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid request data',
+        details: [{ field: 'email', message: 'Invalid email format' }]
+      });
+    }
+
+    logger.info('Login attempt:', {
+      email: email.substring(0, 3) + '***',
+      ip: req.ip,
+      userAgent: req.headers['user-agent']
     });
-  }
 
-  // Check if user is active
-  if (user.status !== 'Active') {
-    return res.status(401).json({
-      success: false,
-      error: 'Account is inactive',
+    // Find user by email with error handling
+    let user;
+    try {
+      user = await User.findByEmail(email);
+    } catch (dbError) {
+      logger.error('Database error during user lookup:', {
+        error: dbError.message,
+        email: email.substring(0, 3) + '***',
+        ip: req.ip
+      });
+      return res.status(500).json({
+        success: false,
+        error: 'An error occurred during login. Please try again.',
+      });
+    }
+
+    if (!user) {
+      logger.warn('Login attempt with non-existent email:', {
+        email: email.substring(0, 3) + '***',
+        ip: req.ip
+      });
+      return res.status(401).json({
+        success: false,
+        error: 'Invalid email or password',
+      });
+    }
+
+    // Check if user is active
+    if (user.status !== 'Active') {
+      logger.warn('Login attempt with inactive account:', {
+        userId: user.id,
+        username: user.username,
+        status: user.status,
+        ip: req.ip
+      });
+      return res.status(401).json({
+        success: false,
+        error: 'Account is inactive',
+      });
+    }
+
+    // Verify password with error handling
+    let isPasswordValid;
+    try {
+      isPasswordValid = await user.verifyPassword(password);
+    } catch (passwordError) {
+      logger.error('Error during password verification:', {
+        error: passwordError.message,
+        userId: user.id,
+        username: user.username,
+        ip: req.ip
+      });
+      return res.status(500).json({
+        success: false,
+        error: 'An error occurred during login. Please try again.',
+      });
+    }
+
+    if (!isPasswordValid) {
+      logger.warn('Login attempt with invalid password:', {
+        userId: user.id,
+        username: user.username,
+        email: email.substring(0, 3) + '***',
+        ip: req.ip
+      });
+      return res.status(401).json({
+        success: false,
+        error: 'Invalid email or password',
+      });
+    }
+
+    // Update last login with error handling
+    try {
+      await user.updateLastLogin();
+    } catch (updateError) {
+      logger.error('Error updating last login:', {
+        error: updateError.message,
+        userId: user.id,
+        username: user.username
+      });
+      // Continue with login even if last login update fails
+    }
+
+    // Generate tokens with error handling
+    let accessToken, refreshToken;
+    try {
+      accessToken = generateAccessToken(user);
+    } catch (tokenError) {
+      logger.error('Error generating access token:', {
+        error: tokenError.message,
+        userId: user.id,
+        username: user.username
+      });
+      return res.status(500).json({
+        success: false,
+        error: 'An error occurred during login. Please try again.',
+      });
+    }
+
+    try {
+      const refreshTokenRecord = await RefreshToken.create(user.id);
+      refreshToken = refreshTokenRecord.token;
+    } catch (refreshError) {
+      logger.error('Error creating refresh token:', {
+        error: refreshError.message,
+        userId: user.id,
+        username: user.username
+      });
+      return res.status(500).json({
+        success: false,
+        error: 'An error occurred during login. Please try again.',
+      });
+    }
+
+    logger.info('User logged in successfully:', {
+      userId: user.id,
+      username: user.username,
+      email: email.substring(0, 3) + '***',
+      ip: req.ip
     });
-  }
 
-  // Verify password
-  const isPasswordValid = await user.verifyPassword(password);
-  if (!isPasswordValid) {
-    return res.status(401).json({
-      success: false,
-      error: 'Invalid email or password',
-    });
-  }
-
-  // Update last login
-  await user.updateLastLogin();
-
-  // Generate tokens
-  const accessToken = generateAccessToken(user);
-  const { token: refreshToken } = await RefreshToken.create(user.id);
-
-  logger.info('User logged in successfully:', {
-    userId: user.id,
-    username: user.username,
-    email: user.email,
-  });
-
-  res.json({
-    success: true,
-    data: {
-      user: user.toSafeObject(),
-      tokens: {
-        accessToken,
-        refreshToken,
-        accessTokenExpiresIn: env.JWT_EXPIRES_IN,
-        refreshTokenExpiresIn: env.JWT_REFRESH_EXPIRES_IN,
+    res.json({
+      success: true,
+      data: {
+        user: user.toSafeObject(),
+        tokens: {
+          accessToken,
+          refreshToken,
+          accessTokenExpiresIn: env.JWT_EXPIRES_IN,
+          refreshTokenExpiresIn: env.JWT_REFRESH_EXPIRES_IN,
+        },
       },
-    },
-  });
+    });
+
+  } catch (error) {
+    // Catch any unexpected errors not handled above
+    logger.error('Unexpected error during login:', {
+      error: error.message,
+      stack: error.stack,
+      ip: req.ip,
+      userAgent: req.headers['user-agent']
+    });
+    
+    return res.status(500).json({
+      success: false,
+      error: 'An unexpected error occurred. Please try again.',
+    });
+  }
 });
 
 // Refresh access token
