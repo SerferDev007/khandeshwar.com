@@ -7,7 +7,7 @@ export interface User {
   id: string;
   username: string;
   email: string;
-  role: "Admin" | "Manager" | "Staff";
+  role: "Admin" | "Treasurer" | "Viewer";
   status: "Active" | "Inactive";
   createdAt: string;
   lastLogin?: string;
@@ -148,7 +148,7 @@ export interface RegisterData {
   username: string;
   email: string;
   password: string;
-  role?: "Manager" | "Staff";
+  role?: "Treasurer" | "Viewer";
 }
 
 export interface AuthResponse {
