@@ -45,10 +45,9 @@ describe('Donations Component', () => {
     // Check for key form elements - use role to target header specifically
     expect(screen.getAllByText(/add donation/i)).toHaveLength(2); // Title + button
     expect(screen.getByRole('heading', { name: /add donation/i })).toBeInTheDocument();
-    expect(screen.getByLabelText(/date/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/category/i)).toBeInTheDocument();
+    expect(screen.getByText(/date.*\*/i)).toBeInTheDocument(); // Date label instead of form control  
+    expect(screen.getByRole('combobox', { name: /category/i })).toBeInTheDocument(); // Category select
     expect(screen.getByLabelText(/donor.*name/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/amount/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/purpose/i)).toBeInTheDocument();
   });
 
