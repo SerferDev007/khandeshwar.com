@@ -29,6 +29,7 @@ import {
   Calculator,
 } from "lucide-react";
 import { toast } from "sonner";
+import apiClient from "../src/utils/api";
 
 interface DonationsProps {
   transactions: any[];
@@ -254,7 +255,7 @@ export default function Donations({
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!validateForm()) {
@@ -262,42 +263,89 @@ export default function Donations({
       return;
     }
 
-    const newDonation = {
-      id: Date.now().toString(),
-      date: formData.date!.toISOString().split("T")[0],
-      type: "Donation",
-      category: formData.category,
-      subCategory: formData.subCategory,
-      description: formData.purpose.trim(),
-      amount: parseFloat(formData.amount),
-      receiptNumber: formData.receiptNumber,
-      donorName: formData.donorName.trim(),
-      donorContact: formData.donorContact.trim(),
-      ...(formData.category === "Vargani" && {
-        familyMembers: parseInt(formData.familyMembers),
-        amountPerPerson: parseFloat(formData.amountPerPerson),
-      }),
-    };
+    try {
+      // Prepare data according to backend schema
+      const donationData = {
+        date: formData.date!.toISOString().split("T")[0],
+        category: formData.category,
+        subCategory: formData.subCategory || undefined,
+        description: formData.purpose.trim(),
+        amount: parseFloat(formData.amount),
+        receiptNumber: formData.receiptNumber,
+        donorName: formData.donorName.trim(),
+        donorContact: formData.donorContact.trim() || undefined,
+        ...(formData.category === "Vargani" && {
+          familyMembers: parseInt(formData.familyMembers),
+          amountPerPerson: parseFloat(formData.amountPerPerson),
+        }),
+      };
 
-    onAddTransaction(newDonation);
-    setLastAddedDonation(newDonation);
-    setShowSuccessDialog(true);
+      // Call backend API
+      const response = await apiClient.createDonation(donationData);
+      
+      // Create display object for success dialog (including frontend-only fields)
+      const newDonation = {
+        id: response.data?.id || Date.now().toString(),
+        date: donationData.date,
+        type: "Donation",
+        category: donationData.category,
+        subCategory: donationData.subCategory,
+        description: donationData.description,
+        amount: donationData.amount,
+        receiptNumber: donationData.receiptNumber,
+        donorName: donationData.donorName,
+        donorContact: donationData.donorContact,
+        ...(formData.category === "Vargani" && {
+          familyMembers: donationData.familyMembers,
+          amountPerPerson: donationData.amountPerPerson,
+        }),
+      };
 
-    // Reset form
-    setFormData({
-      date: null,
-      category: "",
-      subCategory: "",
-      description: "",
-      amount: "",
-      donorName: "",
-      donorContact: "",
-      familyMembers: "",
-      amountPerPerson: "",
-      purpose: "",
-      receiptNumber: (receiptCounter + 1).toString().padStart(4, "0"),
-    });
-    setErrors({});
+      // Update receipt counter and call parent callback for UI updates
+      onUpdateReceiptCounter(receiptCounter + 1);
+      onAddTransaction(newDonation);
+      
+      setLastAddedDonation(newDonation);
+      setShowSuccessDialog(true);
+
+      // Reset form
+      setFormData({
+        date: null,
+        category: "",
+        subCategory: "",
+        description: "",
+        amount: "",
+        donorName: "",
+        donorContact: "",
+        familyMembers: "",
+        amountPerPerson: "",
+        purpose: "",
+        receiptNumber: (receiptCounter + 1).toString().padStart(4, "0"),
+      });
+      setErrors({});
+      
+      toast.success(t("donations.successMessage"));
+      
+    } catch (error: any) {
+      console.error('Donation submission error:', error);
+      
+      // Handle validation errors from backend
+      if (error.status === 422 && error.response?.details) {
+        const backendErrors: any = {};
+        error.response.details.forEach((detail: any) => {
+          const field = detail.path?.[0];
+          if (field) {
+            backendErrors[field] = detail.message;
+          }
+        });
+        setErrors(backendErrors);
+        toast.error(t("donations.validationError"));
+      } else if (error.status === 401) {
+        toast.error("Please login to submit donations");
+      } else {
+        toast.error(error.message || "Failed to submit donation. Please try again.");
+      }
+    }
   };
 
   const totalDonations = (transactions ?? []).reduce(

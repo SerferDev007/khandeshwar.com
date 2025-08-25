@@ -65,6 +65,7 @@ import {
 } from "lucide-react";
 import { useLanguage } from "./LanguageContext";
 import { toast } from "sonner";
+import apiClient from "../src/utils/api";
 
 interface UploadedFile {
   id: string;
@@ -921,7 +922,7 @@ export default function RentManagement({
     }
   };
 
-  const handleAddRentIncome = (e: React.FormEvent) => {
+  const handleAddRentIncome = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!validateRentIncomeForm()) {
@@ -929,43 +930,88 @@ export default function RentManagement({
       return;
     }
 
-    const selectedAgreement = getAgreementById(rentIncomeFormData.agreementId);
-    const shop = selectedAgreement
-      ? getShopById(selectedAgreement.shopId)
-      : null;
+    try {
+      const selectedAgreement = getAgreementById(rentIncomeFormData.agreementId);
+      
+      // Prepare data according to backend rent payment schema
+      const rentPaymentData = {
+        agreementId: rentIncomeFormData.agreementId,
+        date: rentIncomeFormData.date!.toISOString().split("T")[0],
+        amount: parseFloat(rentIncomeFormData.rentAmount),
+        paymentMethod: "Cash", // Default payment method
+        description: rentIncomeFormData.details.trim() || undefined,
+        receiptNumber: rentIncomeFormData.receiptNumber,
+      };
 
-    const newRentIncome = {
-      id: Date.now().toString(),
-      date: rentIncomeFormData.date!.toISOString().split("T")[0],
-      type: "RentIncome",
-      category: rentIncomeFormData.category,
-      subCategory: rentIncomeFormData.subCategory,
-      description: rentIncomeFormData.details.trim(),
-      amount: parseFloat(rentIncomeFormData.rentAmount),
-      receiptNumber: rentIncomeFormData.receiptNumber,
-      tenantName: rentIncomeFormData.tenantName.trim(),
-      tenantContact: rentIncomeFormData.tenantContact.trim(),
-      agreementId: rentIncomeFormData.agreementId,
-      shopNumber: shop?.shopNumber || "",
-    };
+      // Call backend API
+      const response = await apiClient.createRentPayment(rentPaymentData);
+      
+      // Create display object for UI (including extra fields for display)
+      const shop = selectedAgreement ? getShopById(selectedAgreement.shopId) : null;
+      const newRentIncome = {
+        id: response.data?.id || Date.now().toString(),
+        date: rentPaymentData.date,
+        type: "RentIncome",
+        category: rentIncomeFormData.category,
+        subCategory: rentIncomeFormData.subCategory,
+        description: rentPaymentData.description,
+        amount: rentPaymentData.amount,
+        receiptNumber: rentPaymentData.receiptNumber,
+        tenantName: rentIncomeFormData.tenantName.trim(),
+        tenantContact: rentIncomeFormData.tenantContact.trim(),
+        agreementId: rentPaymentData.agreementId,
+        shopNumber: shop?.shopNumber || "",
+      };
 
-    onAddRentIncome(newRentIncome);
-    setLastAddedRentIncome(newRentIncome);
-    setShowRentSuccessDialog(true);
+      // Call parent callback for UI updates
+      onAddRentIncome(newRentIncome);
+      setLastAddedRentIncome(newRentIncome);
+      setShowRentSuccessDialog(true);
 
-    // Reset form
-    setRentIncomeFormData({
-      date: null,
-      category: "",
-      subCategory: "",
-      agreementId: "",
-      tenantName: "",
-      tenantContact: "",
-      rentAmount: "",
-      details: "",
-      receiptNumber: nextReceiptNumber,
-    });
-    setRentIncomeErrors({});
+      // Reset form
+      setRentIncomeFormData({
+        date: null,
+        category: "",
+        subCategory: "",
+        agreementId: "",
+        tenantName: "",
+        tenantContact: "",
+        rentAmount: "",
+        details: "",
+        receiptNumber: nextReceiptNumber,
+      });
+      setRentIncomeErrors({});
+      
+      toast.success(t("rent.successMessage"));
+
+    } catch (error: any) {
+      console.error('Rent payment submission error:', error);
+      
+      // Handle validation errors from backend
+      if (error.status === 422 && error.response?.details) {
+        const backendErrors: any = {};
+        error.response.details.forEach((detail: any) => {
+          const field = detail.path?.[0];
+          if (field) {
+            // Map backend field names to frontend field names
+            const fieldMapping: { [key: string]: string } = {
+              'agreementId': 'agreementId',
+              'date': 'date', 
+              'amount': 'rentAmount',
+              'description': 'details'
+            };
+            const frontendField = fieldMapping[field] || field;
+            backendErrors[frontendField] = detail.message;
+          }
+        });
+        setRentIncomeErrors(backendErrors);
+        toast.error(t("rent.validationError"));
+      } else if (error.status === 401) {
+        toast.error("Please login to submit rent payments");
+      } else {
+        toast.error(error.message || "Failed to submit rent payment. Please try again.");
+      }
+    }
   };
 
   const getStatusColor = (status: string) => {

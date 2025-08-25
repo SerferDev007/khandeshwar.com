@@ -40,10 +40,11 @@ describe('Expenses Component', () => {
       </TestWrapper>
     );
 
-    // Check for key form elements - the title is "Add Expense"
-    expect(screen.getByText(/add expense/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/date/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/category/i)).toBeInTheDocument();
+    // Check for key form elements - get the header specifically
+    expect(screen.getAllByText(/add expense/i)).toHaveLength(2); // Title + button
+    expect(screen.getByRole('heading', { name: /add expense/i })).toBeInTheDocument();
+    expect(screen.getByText(/date.*\*/i)).toBeInTheDocument(); // Date label instead of form control
+    expect(screen.getByRole('combobox', { name: /category/i })).toBeInTheDocument(); // Category select
     expect(screen.getByLabelText(/payee.*name/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/amount/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/details/i)).toBeInTheDocument();
