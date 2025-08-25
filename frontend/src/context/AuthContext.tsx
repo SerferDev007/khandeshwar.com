@@ -50,18 +50,37 @@ export function AuthProvider({ children }: AuthProviderProps) {
   useEffect(() => {
     const initializeAuth = async () => {
       try {
+        console.log('🔄 AuthContext: Initializing authentication...');
+        
+        // Initialize token from storage first (if not already done by AppRoot)
+        apiClient.initFromStorage();
+        
         const token = apiClient.getAuthToken();
+        console.log('🔍 AuthContext: Checking stored token', {
+          tokenPresent: !!token,
+          tokenStart: token ? token.slice(0, 10) + '...' : 'null',
+        });
+        
         if (token) {
           // Verify token is still valid by fetching profile
+          console.log('📋 AuthContext: Verifying token by fetching profile...');
           const userData = await apiClient.getProfile();
           setUser(userData);
+          console.log('✅ AuthContext: Token verified, user authenticated', {
+            userId: userData?.id,
+            username: userData?.username || userData?.name
+          });
+        } else {
+          console.log('❌ AuthContext: No stored token found');
         }
       } catch (error) {
+        console.log('⚠️ AuthContext: Token verification failed', error);
         // Token is invalid or expired
         apiClient.setAuthToken(null);
         setUser(null);
       } finally {
         setIsLoading(false);
+        console.log('🏁 AuthContext: Authentication initialization complete');
       }
     };
 
@@ -75,11 +94,42 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
       const response = await apiClient.login(credentials.email, credentials.password);
       
+      // Extract token from the correct path based on backend response structure
+      let accessToken: string;
+      let user: any;
+      
+      if (response.data) {
+        // Standard backend response: { success: true, data: { user, accessToken } } or { success: true, data: { user, tokens: { accessToken } } }
+        if (response.data.tokens?.accessToken) {
+          // Production backend structure
+          accessToken = response.data.tokens.accessToken;
+        } else if (response.data.accessToken) {
+          // Demo backend structure
+          accessToken = response.data.accessToken;
+        } else {
+          throw new Error('No access token found in response');
+        }
+        user = response.data.user;
+      } else if (response.accessToken) {
+        // Direct response structure (fallback)
+        accessToken = response.accessToken;
+        user = response.user;
+      } else {
+        throw new Error('Invalid login response structure');
+      }
+
+      console.log('🔐 Login success - setting auth token', {
+        tokenPresent: !!accessToken,
+        tokenStart: accessToken ? accessToken.slice(0, 10) + '...' : 'null',
+        tokenLength: accessToken?.length ?? 0,
+        userPresent: !!user
+      });
+      
       // Set the auth token
-      apiClient.setAuthToken(response.accessToken);
+      apiClient.setAuthToken(accessToken);
       
       // Set user data
-      setUser(response.user);
+      setUser(user);
     } catch (error: any) {
       setError(error.message || 'Login failed');
       throw error;
@@ -95,11 +145,42 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
       const response = await apiClient.register(userData);
       
+      // Extract token from the correct path based on backend response structure
+      let accessToken: string;
+      let user: any;
+      
+      if (response.data) {
+        // Standard backend response: { success: true, data: { user, accessToken } } or { success: true, data: { user, tokens: { accessToken } } }
+        if (response.data.tokens?.accessToken) {
+          // Production backend structure
+          accessToken = response.data.tokens.accessToken;
+        } else if (response.data.accessToken) {
+          // Demo backend structure
+          accessToken = response.data.accessToken;
+        } else {
+          throw new Error('No access token found in response');
+        }
+        user = response.data.user;
+      } else if (response.accessToken) {
+        // Direct response structure (fallback)
+        accessToken = response.accessToken;
+        user = response.user;
+      } else {
+        throw new Error('Invalid register response structure');
+      }
+
+      console.log('🔐 Register success - setting auth token', {
+        tokenPresent: !!accessToken,
+        tokenStart: accessToken ? accessToken.slice(0, 10) + '...' : 'null',
+        tokenLength: accessToken?.length ?? 0,
+        userPresent: !!user
+      });
+      
       // Set the auth token
-      apiClient.setAuthToken(response.accessToken);
+      apiClient.setAuthToken(accessToken);
       
       // Set user data
-      setUser(response.user);
+      setUser(user);
     } catch (error: any) {
       setError(error.message || 'Registration failed');
       throw error;
