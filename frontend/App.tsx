@@ -81,12 +81,6 @@ function AppContent() {
   // Handle tab changes and trigger data fetching when needed
   const handleTabChange = (tab: string) => {
     setActiveTab(tab);
-    
-    // Fetch users data when Users tab is selected to ensure fresh data
-    if (tab === "Users" && user?.role === "Admin") {
-      // Trigger user data refresh to get latest backend data
-      fetchUsers();
-    }
   };
 
   // Handle login error display
@@ -345,17 +339,24 @@ function AppContent() {
       toast.success("User added successfully!");
     } catch (error: any) {
       console.error("Create user error:", error);
-      
+
       // Handle validation errors with specific field messages
       // Backend returns structured error responses with details array for validation failures
-      if (error.status === 400 && error.details && Array.isArray(error.details)) {
-        const fieldErrors = error.details.map((detail: any) => 
-          `${detail.field}: ${detail.message}`
-        ).join(", ");
+      if (
+        error.status === 400 &&
+        error.details &&
+        Array.isArray(error.details)
+      ) {
+        const fieldErrors = error.details
+          .map((detail: any) => `${detail.field}: ${detail.message}`)
+          .join(", ");
         toast.error(`Validation failed: ${fieldErrors}`);
       } else if (error.status === 409) {
         // Handle duplicate user errors (username or email already exists)
-        toast.error(error.message || "User already exists (username or email already taken)");
+        toast.error(
+          error.message ||
+            "User already exists (username or email already taken)"
+        );
       } else {
         // Fallback for other errors
         toast.error(error.message || "Failed to add user");
@@ -369,13 +370,17 @@ function AppContent() {
       toast.success("User updated successfully!");
     } catch (error: any) {
       console.error("Update user error:", error);
-      
+
       // Handle validation errors with specific field messages
       // Same error handling pattern as handleAddUser for consistency
-      if (error.status === 400 && error.details && Array.isArray(error.details)) {
-        const fieldErrors = error.details.map((detail: any) => 
-          `${detail.field}: ${detail.message}`
-        ).join(", ");
+      if (
+        error.status === 400 &&
+        error.details &&
+        Array.isArray(error.details)
+      ) {
+        const fieldErrors = error.details
+          .map((detail: any) => `${detail.field}: ${detail.message}`)
+          .join(", ");
         toast.error(`Validation failed: ${fieldErrors}`);
       } else if (error.status === 409) {
         // Handle duplicate user errors during updates
@@ -445,7 +450,7 @@ function AppContent() {
     <div className="min-h-screen bg-gradient-to-br from-orange-50 via-red-50 to-pink-50">
       <Header
         activeTab={activeTab}
-        onTabChange={handleTabChange}
+        onTabChange={setActiveTab}
         currentUser={user}
         onLogout={() => logout()}
       />
