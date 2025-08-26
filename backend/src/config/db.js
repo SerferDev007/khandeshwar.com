@@ -65,6 +65,45 @@ export const transaction = async (callback) => {
   }
 };
 
+// Function to ensure users table has all required columns
+const ensureUsersTableSchema = async () => {
+  try {
+    logger.info(">> Checking users table schema...");
+    
+    // Check if email_verified column exists
+    const columns = await query(`
+      SELECT COLUMN_NAME 
+      FROM INFORMATION_SCHEMA.COLUMNS 
+      WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'users'
+    `);
+    
+    const columnNames = columns.map(col => col.COLUMN_NAME);
+    
+    // Add missing columns
+    const requiredColumns = {
+      'password_hash': 'ADD COLUMN password_hash VARCHAR(255) NOT NULL DEFAULT ""',
+      'email_verified': 'ADD COLUMN email_verified BOOLEAN DEFAULT FALSE',
+      'updated_at': 'ADD COLUMN updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP'
+    };
+    
+    for (const [columnName, alterStatement] of Object.entries(requiredColumns)) {
+      if (!columnNames.includes(columnName)) {
+        logger.info(`>> Adding missing column: ${columnName}`);
+        try {
+          await query(`ALTER TABLE users ${alterStatement}`);
+          logger.info(`>> Successfully added column: ${columnName}`);
+        } catch (error) {
+          logger.warn(`>> Failed to add column ${columnName}:`, error.message);
+        }
+      }
+    }
+    
+    logger.info(">> Users table schema validation completed");
+  } catch (error) {
+    logger.warn(">> Users table schema check failed (table may not exist yet):", error.message);
+  }
+};
+
 // Database migrations
 const runMigrations = async () => {
   logger.info("Running database migrations...");
@@ -133,6 +172,9 @@ const runMigrations = async () => {
       throw error;
     }
   }
+
+  // Post-migration: Ensure users table has all required columns
+  await ensureUsersTableSchema();
 
   logger.info(">> Database migrations completed");
 };
