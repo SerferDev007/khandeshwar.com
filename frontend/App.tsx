@@ -454,7 +454,7 @@ function AppContent() {
           />
         )}
 
-        {activeTab === "Users" && (user?.role === "Admin" || user?.role === "Treasurer") && (
+        {activeTab === "Users" && user?.role === "Admin" && (
           <UserManagement
             users={users}
             onAddUser={handleAddUser}
