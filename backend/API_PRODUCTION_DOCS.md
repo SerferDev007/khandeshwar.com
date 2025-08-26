@@ -16,7 +16,7 @@ A production-ready Express.js backend API built with modern technologies and bes
 
 ### Prerequisites
 
-- Node.js 18+ 
+- Node.js 18+
 - MySQL 8.0+
 - AWS account (optional, for S3/SES features)
 
@@ -37,7 +37,7 @@ npm start
 NODE_ENV=development
 PORT=8081
 
-# Database Configuration  
+# Database Configuration
 DB_HOST=localhost
 DB_USER=root
 DB_PASSWORD=your-password
@@ -47,7 +47,7 @@ DB_PORT=3306
 # JWT Configuration (use strong secrets in production)
 JWT_SECRET=your-super-secret-jwt-key-change-in-production-min-32-chars
 JWT_REFRESH_SECRET=your-super-secret-refresh-jwt-key-change-in-production-min-32-chars
-JWT_EXPIRES_IN=15m
+JWT_EXPIRES_IN=60m
 JWT_REFRESH_EXPIRES_IN=7d
 
 # AWS Configuration (optional)
@@ -78,7 +78,7 @@ All API responses follow this standardized format:
   }
 }
 
-// Error response  
+// Error response
 {
   "success": false,
   "error": "Error message here",
@@ -97,19 +97,21 @@ Returns server health and status information.
 ### Authentication Routes
 
 #### Register User
+
 ```http
 POST /api/auth/register
 Content-Type: application/json
 
 {
   "username": "johndoe",
-  "email": "john@example.com", 
+  "email": "john@example.com",
   "password": "SecurePass123",
   "role": "Viewer" // Optional: Admin, Treasurer, Viewer
 }
 ```
 
 #### Login User
+
 ```http
 POST /api/auth/login
 Content-Type: application/json
@@ -121,6 +123,7 @@ Content-Type: application/json
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -128,7 +131,7 @@ Content-Type: application/json
     "user": {
       "id": "uuid",
       "username": "johndoe",
-      "email": "john@example.com", 
+      "email": "john@example.com",
       "role": "Viewer",
       "status": "Active"
     },
@@ -143,6 +146,7 @@ Content-Type: application/json
 ```
 
 #### Refresh Token
+
 ```http
 POST /api/auth/refresh
 Content-Type: application/json
@@ -153,12 +157,14 @@ Content-Type: application/json
 ```
 
 #### Get Profile
+
 ```http
 GET /api/auth/profile
 Authorization: Bearer your-jwt-token
 ```
 
 #### Update Profile
+
 ```http
 PUT /api/auth/profile
 Authorization: Bearer your-jwt-token
@@ -171,6 +177,7 @@ Content-Type: application/json
 ```
 
 #### Change Password
+
 ```http
 POST /api/auth/change-password
 Authorization: Bearer your-jwt-token
@@ -183,6 +190,7 @@ Content-Type: application/json
 ```
 
 #### Logout
+
 ```http
 POST /api/auth/logout
 Authorization: Bearer your-jwt-token
@@ -194,6 +202,7 @@ Content-Type: application/json
 ```
 
 #### Logout All Devices
+
 ```http
 POST /api/auth/logout-all
 Authorization: Bearer your-jwt-token
@@ -204,18 +213,21 @@ Authorization: Bearer your-jwt-token
 **Note**: Most user routes require Admin role, except users can view/update their own profile.
 
 #### Get All Users (Admin)
+
 ```http
 GET /api/users?page=1&limit=10&sort=created_at&order=desc&role=Admin&status=Active
 Authorization: Bearer admin-jwt-token
 ```
 
 #### Get User by ID
+
 ```http
-GET /api/users/:id  
+GET /api/users/:id
 Authorization: Bearer your-jwt-token
 ```
 
 #### Create User (Admin)
+
 ```http
 POST /api/users
 Authorization: Bearer admin-jwt-token
@@ -230,6 +242,7 @@ Content-Type: application/json
 ```
 
 #### Update User
+
 ```http
 PUT /api/users/:id
 Authorization: Bearer your-jwt-token
@@ -239,17 +252,19 @@ Content-Type: application/json
   "username": "updatedname",
   "email": "updated@example.com",
   "role": "Admin",     // Admin only
-  "status": "Inactive" // Admin only  
+  "status": "Inactive" // Admin only
 }
 ```
 
 #### Delete User (Admin)
+
 ```http
 DELETE /api/users/:id
 Authorization: Bearer admin-jwt-token
 ```
 
 #### Get User Statistics (Admin)
+
 ```http
 GET /api/users/stats
 Authorization: Bearer admin-jwt-token
@@ -258,6 +273,7 @@ Authorization: Bearer admin-jwt-token
 ### File Management Routes
 
 #### Get Upload URL
+
 ```http
 POST /api/files/upload-url
 Authorization: Bearer your-jwt-token
@@ -265,12 +281,13 @@ Content-Type: application/json
 
 {
   "filename": "document.pdf",
-  "contentType": "application/pdf", 
+  "contentType": "application/pdf",
   "size": 1024000
 }
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -293,30 +310,35 @@ Content-Type: application/json
 ```
 
 #### Confirm Upload
+
 ```http
 POST /api/files/:id/confirm
 Authorization: Bearer your-jwt-token
 ```
 
 #### Get My Files
+
 ```http
 GET /api/files/my-files?page=1&limit=10
 Authorization: Bearer your-jwt-token
 ```
 
 #### Get All Files (Admin)
+
 ```http
 GET /api/files?page=1&limit=10&status=uploaded
 Authorization: Bearer admin-jwt-token
 ```
 
 #### Get File with Download URL
+
 ```http
 GET /api/files/:id
 Authorization: Bearer your-jwt-token
 ```
 
 #### Update File
+
 ```http
 PUT /api/files/:id
 Authorization: Bearer your-jwt-token
@@ -328,12 +350,14 @@ Content-Type: application/json
 ```
 
 #### Delete File
+
 ```http
 DELETE /api/files/:id
 Authorization: Bearer your-jwt-token
 ```
 
 #### Get File Statistics (Admin)
+
 ```http
 GET /api/files/stats
 Authorization: Bearer admin-jwt-token
@@ -344,45 +368,45 @@ Authorization: Bearer admin-jwt-token
 ### Roles
 
 - **Admin**: Full access to all endpoints and user management
-- **Treasurer**: Can manage financial data (when implemented)  
+- **Treasurer**: Can manage financial data (when implemented)
 - **Viewer**: Read-only access to allowed resources
 
 ### Permissions Matrix
 
-| Endpoint | Admin | Treasurer | Viewer |
-|----------|-------|-----------|--------|
-| Auth endpoints | ✅ | ✅ | ✅ |
-| Own profile | ✅ | ✅ | ✅ |
-| User management | ✅ | ❌ | ❌ |
-| User statistics | ✅ | ❌ | ❌ |
-| Own files | ✅ | ✅ | ✅ |
-| All files | ✅ | ❌ | ❌ |
-| File statistics | ✅ | ❌ | ❌ |
+| Endpoint        | Admin | Treasurer | Viewer |
+| --------------- | ----- | --------- | ------ |
+| Auth endpoints  | ✅    | ✅        | ✅     |
+| Own profile     | ✅    | ✅        | ✅     |
+| User management | ✅    | ❌        | ❌     |
+| User statistics | ✅    | ❌        | ❌     |
+| Own files       | ✅    | ✅        | ✅     |
+| All files       | ✅    | ❌        | ❌     |
+| File statistics | ✅    | ❌        | ❌     |
 
 ## Rate Limiting
 
 - **General endpoints**: 100 requests per 15 minutes
-- **Authentication**: 5 requests per 15 minutes  
+- **Authentication**: 5 requests per 15 minutes
 - **File uploads**: 10 requests per minute
 
 ## Error Codes
 
-| Status | Description |
-|--------|-------------|
-| 400 | Bad Request - Invalid input data |
-| 401 | Unauthorized - Invalid/missing token |
-| 403 | Forbidden - Insufficient permissions |
-| 404 | Not Found - Resource doesn't exist |
-| 409 | Conflict - Duplicate data (email/username) |
-| 422 | Unprocessable Entity - Validation failed |
-| 429 | Too Many Requests - Rate limit exceeded |
-| 500 | Internal Server Error - Server error |
+| Status | Description                                |
+| ------ | ------------------------------------------ |
+| 400    | Bad Request - Invalid input data           |
+| 401    | Unauthorized - Invalid/missing token       |
+| 403    | Forbidden - Insufficient permissions       |
+| 404    | Not Found - Resource doesn't exist         |
+| 409    | Conflict - Duplicate data (email/username) |
+| 422    | Unprocessable Entity - Validation failed   |
+| 429    | Too Many Requests - Rate limit exceeded    |
+| 500    | Internal Server Error - Server error       |
 
 ## Security Features
 
 - **Password Hashing**: bcrypt with 12 salt rounds
 - **JWT Tokens**: Secure access and refresh token system
-- **Rate Limiting**: Prevents abuse and DOS attacks  
+- **Rate Limiting**: Prevents abuse and DOS attacks
 - **CORS**: Configurable cross-origin resource sharing
 - **Helmet**: Security headers for all responses
 - **Input Validation**: Zod schemas for all inputs
@@ -392,11 +416,13 @@ Authorization: Bearer admin-jwt-token
 ## AWS Integration
 
 ### S3 File Storage
+
 - Pre-signed URLs for secure direct uploads
 - Automatic file cleanup on deletion
 - Support for any file type with size limits
 
 ### SES Email Service
+
 - Welcome emails on registration
 - Password reset notifications (when implemented)
 - System notifications
@@ -404,11 +430,12 @@ Authorization: Bearer admin-jwt-token
 ## Database Schema
 
 ### Users Table
+
 ```sql
 CREATE TABLE users (
   id VARCHAR(36) PRIMARY KEY,
   username VARCHAR(50) UNIQUE NOT NULL,
-  email VARCHAR(100) UNIQUE NOT NULL, 
+  email VARCHAR(100) UNIQUE NOT NULL,
   password_hash VARCHAR(255) NOT NULL,
   role ENUM('Admin', 'Treasurer', 'Viewer') DEFAULT 'Viewer',
   status ENUM('Active', 'Inactive') DEFAULT 'Active',
@@ -419,7 +446,8 @@ CREATE TABLE users (
 );
 ```
 
-### Refresh Tokens Table  
+### Refresh Tokens Table
+
 ```sql
 CREATE TABLE refresh_tokens (
   id VARCHAR(36) PRIMARY KEY,
@@ -433,6 +461,7 @@ CREATE TABLE refresh_tokens (
 ```
 
 ### Files Table
+
 ```sql
 CREATE TABLE files (
   id VARCHAR(36) PRIMARY KEY,
@@ -455,23 +484,27 @@ CREATE TABLE files (
 ### Production Checklist
 
 1. **Environment Variables**
+
    - Set strong JWT secrets (min 32 characters)
    - Configure proper database credentials
    - Set up AWS credentials for S3/SES
    - Set NODE_ENV=production
 
 2. **Database**
+
    - Create production database
    - Set up connection pooling
    - Configure backup strategy
 
 3. **Security**
+
    - Configure CORS origins
    - Set up proper rate limits
    - Enable SSL/HTTPS
    - Configure security headers
 
-4. **Monitoring**  
+4. **Monitoring**
+
    - Set up log aggregation
    - Configure health checks
    - Monitor error rates
@@ -497,7 +530,7 @@ CMD ["npm", "start"]
 ## Contributing
 
 1. Follow ESM module patterns
-2. Add Zod validation for all inputs  
+2. Add Zod validation for all inputs
 3. Use async/await with proper error handling
 4. Add comprehensive logging
 5. Write tests for new features
