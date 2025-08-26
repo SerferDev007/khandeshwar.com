@@ -76,35 +76,95 @@ export default function UserManagement({
     role: "Viewer" as const,
     status: "Active" as const,
   });
+  const [validationErrors, setValidationErrors] = useState<{[key: string]: string}>({});
+
+  // Validation functions matching backend schema requirements
+  const validateUsername = (username: string): string | null => {
+    if (!username) return "Username is required";
+    if (username.length < 3) return "Username must be at least 3 characters";
+    if (username.length > 50) return "Username must be less than 50 characters";
+    if (!/^[a-zA-Z0-9_]+$/.test(username)) return "Username can only contain letters, numbers, and underscores";
+    return null;
+  };
+
+  const validateEmail = (email: string): string | null => {
+    if (!email) return "Email is required";
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) return "Invalid email address";
+    return null;
+  };
+
+  const validatePassword = (password: string, isRequired: boolean = true): string | null => {
+    if (!password && isRequired) return "Password is required";
+    if (!password && !isRequired) return null; // Password not required for edits
+    if (password && password.length < 8) return "Password must be at least 8 characters";
+    if (password && !/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(password)) {
+      return "Password must contain at least one lowercase letter, one uppercase letter, and one number";
+    }
+    return null;
+  };
+
+  const validateForm = (): boolean => {
+    const errors: {[key: string]: string} = {};
+    
+    const usernameError = validateUsername(formData.username);
+    if (usernameError) errors.username = usernameError;
+    
+    const emailError = validateEmail(formData.email);
+    if (emailError) errors.email = emailError;
+    
+    // Password is required for new users, optional for edits
+    const passwordError = validatePassword(formData.password, !editingUser);
+    if (passwordError) errors.password = passwordError;
+    
+    setValidationErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  // Clear validation errors when user starts typing
+  const handleInputChange = (field: string, value: string) => {
+    setFormData({ ...formData, [field]: value });
+    if (validationErrors[field]) {
+      setValidationErrors({ ...validationErrors, [field]: "" });
+    }
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (
-      !formData.username ||
-      !formData.email ||
-      (!editingUser && !formData.password)
-    ) {
+    
+    // Validate form before submission
+    if (!validateForm()) {
       return;
     }
 
     if (editingUser) {
-      onEditUser(editingUser.id, {
+      // For editing users, don't send password if it's empty
+      const updateData: any = {
         username: formData.username,
         email: formData.email,
         role: formData.role,
         status: formData.status,
-      });
+      };
+      
+      // Only include password if user provided one
+      if (formData.password.trim()) {
+        updateData.password = formData.password;
+      }
+      
+      onEditUser(editingUser.id, updateData);
       setEditingUser(null);
     } else {
+      // For new users, include password and remove status (backend sets status automatically)
       onAddUser({
         username: formData.username,
         email: formData.email,
+        password: formData.password, // Include password for user creation
         role: formData.role,
-        status: formData.status,
       });
       setIsAddDialogOpen(false);
     }
 
+    // Reset form and clear validation errors
     setFormData({
       username: "",
       email: "",
@@ -112,6 +172,7 @@ export default function UserManagement({
       role: "Viewer",
       status: "Active",
     });
+    setValidationErrors({});
   };
 
   const handleEdit = (user: User) => {
@@ -119,10 +180,11 @@ export default function UserManagement({
     setFormData({
       username: user.username,
       email: user.email,
-      password: "",
+      password: "", // Don't pre-fill password for security
       role: user.role,
       status: user.status,
     });
+    setValidationErrors({}); // Clear any existing validation errors
   };
 
   const getRoleColor = (role: string) => {
@@ -187,11 +249,16 @@ export default function UserManagement({
                   <Input
                     id="username"
                     value={formData.username}
-                    onChange={(e) =>
-                      setFormData({ ...formData, username: e.target.value })
-                    }
+                    onChange={(e) => handleInputChange("username", e.target.value)}
                     required
+                    className={validationErrors.username ? "border-red-500" : ""}
                   />
+                  {validationErrors.username && (
+                    <p className="text-red-500 text-sm mt-1">{validationErrors.username}</p>
+                  )}
+                  <p className="text-gray-500 text-xs mt-1">
+                    3-50 characters, letters, numbers, and underscores only
+                  </p>
                 </div>
                 <div>
                   <Label htmlFor="email">{t("users.email")}</Label>
@@ -199,11 +266,13 @@ export default function UserManagement({
                     id="email"
                     type="email"
                     value={formData.email}
-                    onChange={(e) =>
-                      setFormData({ ...formData, email: e.target.value })
-                    }
+                    onChange={(e) => handleInputChange("email", e.target.value)}
                     required
+                    className={validationErrors.email ? "border-red-500" : ""}
                   />
+                  {validationErrors.email && (
+                    <p className="text-red-500 text-sm mt-1">{validationErrors.email}</p>
+                  )}
                 </div>
                 <div>
                   <Label htmlFor="password">{t("login.password")}</Label>
@@ -211,11 +280,16 @@ export default function UserManagement({
                     id="password"
                     type="password"
                     value={formData.password}
-                    onChange={(e) =>
-                      setFormData({ ...formData, password: e.target.value })
-                    }
+                    onChange={(e) => handleInputChange("password", e.target.value)}
                     required
+                    className={validationErrors.password ? "border-red-500" : ""}
                   />
+                  {validationErrors.password && (
+                    <p className="text-red-500 text-sm mt-1">{validationErrors.password}</p>
+                  )}
+                  <p className="text-gray-500 text-xs mt-1">
+                    Min 8 characters with uppercase, lowercase, and number
+                  </p>
                 </div>
                 <div>
                   <Label htmlFor="role">{t("users.role")}</Label>
@@ -389,11 +463,13 @@ export default function UserManagement({
               <Input
                 id="edit-username"
                 value={formData.username}
-                onChange={(e) =>
-                  setFormData({ ...formData, username: e.target.value })
-                }
+                onChange={(e) => handleInputChange("username", e.target.value)}
                 required
+                className={validationErrors.username ? "border-red-500" : ""}
               />
+              {validationErrors.username && (
+                <p className="text-red-500 text-sm mt-1">{validationErrors.username}</p>
+              )}
             </div>
             <div>
               <Label htmlFor="edit-email">{t("users.email")}</Label>
@@ -401,11 +477,30 @@ export default function UserManagement({
                 id="edit-email"
                 type="email"
                 value={formData.email}
-                onChange={(e) =>
-                  setFormData({ ...formData, email: e.target.value })
-                }
+                onChange={(e) => handleInputChange("email", e.target.value)}
                 required
+                className={validationErrors.email ? "border-red-500" : ""}
               />
+              {validationErrors.email && (
+                <p className="text-red-500 text-sm mt-1">{validationErrors.email}</p>
+              )}
+            </div>
+            <div>
+              <Label htmlFor="edit-password">{t("login.password")} (optional)</Label>
+              <Input
+                id="edit-password"
+                type="password"
+                value={formData.password}
+                onChange={(e) => handleInputChange("password", e.target.value)}
+                placeholder="Leave blank to keep current password"
+                className={validationErrors.password ? "border-red-500" : ""}
+              />
+              {validationErrors.password && (
+                <p className="text-red-500 text-sm mt-1">{validationErrors.password}</p>
+              )}
+              <p className="text-gray-500 text-xs mt-1">
+                Leave blank to keep current password. If changing: min 8 characters with uppercase, lowercase, and number
+              </p>
             </div>
             <div>
               <Label htmlFor="edit-role">{t("users.role")}</Label>
