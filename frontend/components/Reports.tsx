@@ -233,11 +233,20 @@ export default function Reports({
 
   // Get unique years from transactions
   const getUniqueYears = useMemo(() => {
+    const getFallbackYears = () => {
+      const now = new Date().getFullYear();
+      return Array.from({ length: 6 }, (_, i) => String(now - i));
+    };
+
     const years = new Set<string>();
+
     (transactions ?? []).forEach((t) => {
-      years.add(new Date(t.date).getFullYear().toString());
+      const y = new Date(t.date).getFullYear();
+      if (!Number.isNaN(y)) years.add(String(y));
     });
-    return Array.from(years).sort().reverse();
+
+    const arr = Array.from(years).sort().reverse();
+    return arr.length ? arr : getFallbackYears(); // <-- use fallback
   }, [transactions]);
 
   // Filter transactions based on current filter state
@@ -1732,6 +1741,7 @@ export default function Reports({
                       <div>
                         <Label>{t("reports.selectMonth")}</Label>
                         <Select
+                          modal={false}
                           value={exportFilters.month}
                           onValueChange={(value) =>
                             handleExportFilterChange("month", value)
@@ -1765,7 +1775,8 @@ export default function Reports({
                       <div>
                         <Label>{t("reports.selectYear")}</Label>
                         <Select
-                          value={exportFilters.year}
+                          modal={false}
+                          value={String(exportFilters.year ?? "")}
                           onValueChange={(value) =>
                             handleExportFilterChange("year", value)
                           }
@@ -1775,12 +1786,28 @@ export default function Reports({
                               placeholder={t("reports.selectYear")}
                             />
                           </SelectTrigger>
-                          <SelectContent className="bg-white text-black border border-gray-200 shadow-lg">
-                            {getUniqueYears.map((year) => (
-                              <SelectItem key={year} value={year}>
-                                {year}
-                              </SelectItem>
-                            ))}
+                          <SelectContent
+                            position="popper"
+                            className="bg-white text-black border border-gray-200 shadow-lg z-50"
+                          >
+                            <SelectItem
+                              className="hover:font-bold hover:bg-gray-100"
+                              value="all"
+                            >
+                              {t("reports.allYears") ?? "All Years"}
+                            </SelectItem>
+                            {getUniqueYears.map((year) => {
+                              const y = String(year);
+                              return (
+                                <SelectItem
+                                  key={y}
+                                  value={y}
+                                  className="hover:font-bold hover:bg-gray-100"
+                                >
+                                  {y}
+                                </SelectItem>
+                              );
+                            })}
                           </SelectContent>
                         </Select>
                       </div>
@@ -2181,7 +2208,10 @@ export default function Reports({
                     <SelectTrigger>
                       <SelectValue placeholder={t("reports.selectMonth")} />
                     </SelectTrigger>
-                    <SelectContent className="bg-white text-black border border-gray-200 shadow-lg">
+                    <SelectContent
+                      position="popper"
+                      className="bg-white text-black border border-gray-200 shadow-lg"
+                    >
                       {Array.from({ length: 12 }, (_, i) => {
                         const month = i + 1;
                         const monthName = new Date(2024, i, 1).toLocaleString(
@@ -2391,7 +2421,10 @@ export default function Reports({
                           "{count}",
                           filteredTransactions.length.toString()
                         )
-                        .replace("{total}", (transactions ?? []).length.toString())
+                        .replace(
+                          "{total}",
+                          (transactions ?? []).length.toString()
+                        )
                     : `Showing all ${(transactions ?? []).length} transactions`}
                 </div>
                 <div className="text-sm font-medium">
