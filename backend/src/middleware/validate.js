@@ -122,8 +122,10 @@ export const schemas = {
   pagination: z.object({
     page: z.string().transform(Number).pipe(z.number().min(1)).optional().default('1'),
     limit: z.string().transform(Number).pipe(z.number().min(1).max(100)).optional().default('10'),
-    sort: z.string().optional().default('created_at'),
+    sort: z.enum(['id', 'username', 'email', 'role', 'status', 'email_verified', 'last_login', 'created_at', 'updated_at']).optional().default('created_at'),
     order: z.enum(['asc', 'desc']).optional().default('desc'),
+    role: z.enum(['Admin', 'Treasurer', 'Viewer']).optional(),
+    status: z.enum(['Active', 'Inactive']).optional(),
   }),
 
   // ID parameter schema
