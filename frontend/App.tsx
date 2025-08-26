@@ -83,6 +83,18 @@ function AppContent() {
     setActiveTab(tab);
   };
 
+  // Fetch users data when Users tab becomes active and user is Admin
+  React.useEffect(() => {
+    // Only fetch users if the Users tab is active, user is Admin, and we're authenticated
+    if (activeTab === "Users" && user?.role === "Admin" && isAuthenticated) {
+      // Fetch users data to populate the Users tab
+      fetchUsers().catch((error) => {
+        console.error("Error fetching users for Users tab:", error);
+        // Error will be handled by the DataContext and displayed in the UI
+      });
+    }
+  }, [activeTab, user?.role, isAuthenticated, fetchUsers]);
+
   // Handle login error display
   React.useEffect(() => {
     if (authError) {
