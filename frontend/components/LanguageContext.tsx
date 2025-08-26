@@ -243,6 +243,8 @@ const translations = {
     "donations.denagiDonorContact": "Donor Contact",
     "donations.enterDenagiDonorName": "Enter donor name",
     "donations.enterDenagiDonorContact": "Enter donor contact number",
+    "donations.editDonation": "Edit Donation",
+    "donations.updateSuccessMessage": "Donation updated successfully!",
 
     // Expenses
     "expenses.title": "Expenses Management",
@@ -268,6 +270,8 @@ const translations = {
     "expenses.receiptInvalid": "Receipt number must be at least 3 characters",
     "expenses.successTitle": "Expense Added Successfully!",
     "expenses.successMessage": "The expense has been recorded in the system.",
+    "expenses.editExpense": "Edit Expense",
+    "expenses.updateSuccessMessage": "Expense updated successfully!",
 
     // Reports
     "reports.title": "Financial Reports",
@@ -639,6 +643,8 @@ const translations = {
     "common.save": "Save",
     "common.close": "Close",
     "common.submit": "Submit",
+    "common.update": "Update",
+    "common.confirmDelete": "Are you sure you want to delete this item? This action cannot be undone.",
     "common.loading": "Loading...",
     "common.search": "Search",
     "common.filter": "Filter",
@@ -660,7 +666,6 @@ const translations = {
     "common.all": "All",
     "common.none": "None",
     "common.add": "Add",
-    "common.update": "Update",
     "common.create": "Create",
     "common.name": "Name",
     "common.phone": "Phone",
@@ -919,6 +924,8 @@ const translations = {
     "donations.denagiDonorContact": "देणगी धारकाचा संपर्क",
     "donations.enterDenagiDonorName": "देणगी धारकाचे नाव टाका",
     "donations.enterDenagiDonorContact": "देणगी धारकाचा संपर्क क्रमांक टाका",
+    "donations.editDonation": "जमा संपादित करा",
+    "donations.updateSuccessMessage": "जमा यशस्वीरित्या अपडेट झाला!",
 
     // Expenses
     "expenses.title": "खर्च व्यवस्थापन",
@@ -944,6 +951,8 @@ const translations = {
     "expenses.receiptInvalid": "पावती क्रमांक किमान 3 अक्षरांचा असावा",
     "expenses.successTitle": "खर्च यशस्वीरित्या जोडला गेला!",
     "expenses.successMessage": "खर्च सिस्टममध्ये नोंदविला गेला आहे.",
+    "expenses.editExpense": "खर्च संपादित करा",
+    "expenses.updateSuccessMessage": "खर्च यशस्वीरित्या अपडेट झाला!",
 
     // Reports
     "reports.title": "आर्थिक अहवाल",
@@ -1311,6 +1320,8 @@ const translations = {
     "common.save": "जतन करा",
     "common.close": "बंद करा",
     "common.submit": "सबमिट करा",
+    "common.update": "अपडेट करा",
+    "common.confirmDelete": "आपणास खात्री आहे की आपण हा आयटम हटवू इच्छिता? ही क्रिया पूर्ववत केली जाऊ शकत नाही.",
     "common.loading": "लोड होत आहे...",
     "common.search": "शोधा",
     "common.filter": "फिल्टर",
@@ -1332,7 +1343,6 @@ const translations = {
     "common.all": "सर्व",
     "common.none": "काहीही नाही",
     "common.add": "जोडा",
-    "common.update": "अपडेट करा",
     "common.create": "तयार करा",
     "common.name": "नाव",
     "common.phone": "फोन",
