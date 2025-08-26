@@ -87,6 +87,7 @@ export class User {
       let whereClause = '';
       const params = [];
       
+      // Build WHERE clause with proper parameters
       if (role) {
         whereClause += ' WHERE role = ?';
         params.push(role);
@@ -97,18 +98,39 @@ export class User {
         params.push(status);
       }
       
+      // Validate sort column to prevent SQL injection
+      const validSortColumns = ['id', 'username', 'email', 'role', 'status', 'email_verified', 'last_login', 'created_at', 'updated_at'];
+      const sortColumn = validSortColumns.includes(sort) ? sort : 'created_at';
+      const sortOrder = (order && order.toLowerCase() === 'asc') ? 'ASC' : 'DESC';
+      
+      logger.info('User.findAll query params:', { 
+        whereClause, 
+        params: params.length, 
+        sortColumn, 
+        sortOrder, 
+        limit, 
+        offset 
+      });
+      
       // Get total count
       const totalResults = await query(`SELECT COUNT(*) as count FROM users${whereClause}`, params);
       const total = totalResults[0].count;
       
-      // Get paginated results
+      // Get paginated results - use safe column name and order
       const users = await query(
         `SELECT id, username, email, role, status, email_verified, last_login, created_at, updated_at
          FROM users${whereClause} 
-         ORDER BY ${sort} ${order.toUpperCase()} 
+         ORDER BY ${sortColumn} ${sortOrder} 
          LIMIT ? OFFSET ?`,
         [...params, limit, offset]
       );
+
+      logger.info('User.findAll results:', { 
+        totalCount: total, 
+        returnedCount: users.length, 
+        page, 
+        limit 
+      });
 
       return {
         users: users.map(user => new User(user)),
@@ -120,7 +142,11 @@ export class User {
         },
       };
     } catch (error) {
-      logger.error('Failed to find users:', error);
+      logger.error('Failed to find users:', { 
+        error: error.message, 
+        stack: error.stack,
+        options 
+      });
       throw error;
     }
   }

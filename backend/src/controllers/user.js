@@ -6,26 +6,68 @@ const logger = pino({ name: 'UserController' });
 
 // Get all users (Admin only)
 export const getAllUsers = asyncHandler(async (req, res) => {
-  const { page, limit, sort, order, role, status } = req.validatedData;
+  try {
+    const { page, limit, sort, order, role, status } = req.validatedData;
 
-  const result = await User.findAll({
-    page: parseInt(page),
-    limit: parseInt(limit),
-    sort,
-    order,
-    role,
-    status,
-  });
+    logger.info('getAllUsers request:', { 
+      page, 
+      limit, 
+      sort, 
+      order, 
+      role, 
+      status,
+      user: req.user?.id 
+    });
 
-  const { users, pagination } = result;
+    // Additional safety validation for parameters
+    const safeOptions = {
+      page: Math.max(1, parseInt(page) || 1),
+      limit: Math.min(100, Math.max(1, parseInt(limit) || 10)),
+      sort: sort || 'created_at',
+      order: (order === 'asc' || order === 'desc') ? order : 'desc',
+    };
 
-  res.json({
-    success: true,
-    data: {
-      users: users.map(user => user.toSafeObject()),
-      pagination,
-    },
-  });
+    // Only include role and status if they are valid enum values
+    if (role && ['Admin', 'Treasurer', 'Viewer'].includes(role)) {
+      safeOptions.role = role;
+    }
+    if (status && ['Active', 'Inactive'].includes(status)) {
+      safeOptions.status = status;
+    }
+
+    logger.info('getAllUsers sanitized options:', safeOptions);
+
+    const result = await User.findAll(safeOptions);
+
+    const { users, pagination } = result;
+
+    logger.info('getAllUsers success:', { 
+      usersCount: users.length, 
+      totalPages: pagination.pages,
+      currentPage: pagination.page 
+    });
+
+    res.json({
+      success: true,
+      data: {
+        users: users.map(user => user.toSafeObject()),
+        pagination,
+      },
+    });
+  } catch (error) {
+    logger.error('getAllUsers failed:', { 
+      error: error.message, 
+      stack: error.stack,
+      params: req.validatedData 
+    });
+    
+    // Return a user-friendly error message
+    res.status(500).json({
+      success: false,
+      error: 'Failed to load users. Please try again.',
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined,
+    });
+  }
 });
 
 // Get user by ID

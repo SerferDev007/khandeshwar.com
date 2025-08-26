@@ -41,10 +41,46 @@ export const initializeDatabase = async () => {
 // Database query helper with error handling
 export const query = async (sql, params = []) => {
   try {
+    // Count placeholders and validate parameter count
+    const placeholderCount = (sql.match(/\?/g) || []).length;
+    const paramCount = params.length;
+    
+    if (placeholderCount !== paramCount) {
+      const error = new Error(`Parameter count mismatch: SQL has ${placeholderCount} placeholders but received ${paramCount} parameters`);
+      error.code = 'PARAM_MISMATCH';
+      logger.error("Parameter mismatch detected:", { 
+        sql: sql.substring(0, 200) + '...', 
+        placeholderCount,
+        paramCount,
+        params: params.map(p => typeof p === 'string' && p.length > 50 ? p.substring(0, 50) + '...' : p)
+      });
+      throw error;
+    }
+
+    logger.debug("Executing query:", { 
+      sql: sql.substring(0, 200) + (sql.length > 200 ? '...' : ''),
+      paramCount: params.length
+    });
+
     const [results] = await pool.execute(sql, params);
     return results;
   } catch (error) {
-    logger.error("Database query failed:", { sql, params, error });
+    // Enhanced error logging for MySQL parameter errors
+    if (error.message && error.message.includes('mysqld_stmt_execute')) {
+      logger.error("MySQL statement execution error - possible parameter mismatch:", { 
+        sql: sql.substring(0, 200) + '...',
+        paramCount: params.length,
+        placeholderCount: (sql.match(/\?/g) || []).length,
+        error: error.message,
+        params: params.map(p => typeof p === 'string' && p.length > 50 ? p.substring(0, 50) + '...' : p)
+      });
+    } else {
+      logger.error("Database query failed:", { 
+        sql: sql.substring(0, 200) + '...',
+        paramCount: params.length,
+        error: error.message 
+      });
+    }
     throw error;
   }
 };
