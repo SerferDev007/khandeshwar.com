@@ -326,6 +326,7 @@ function AppContent() {
   };
 
   // User handlers with enhanced error handling
+  // This provides specific, actionable error messages instead of generic "Failed to add user"
   const handleAddUser = async (newUser: any) => {
     try {
       await createUser(newUser);
@@ -334,15 +335,17 @@ function AppContent() {
       console.error("Create user error:", error);
       
       // Handle validation errors with specific field messages
+      // Backend returns structured error responses with details array for validation failures
       if (error.status === 400 && error.details && Array.isArray(error.details)) {
         const fieldErrors = error.details.map((detail: any) => 
           `${detail.field}: ${detail.message}`
         ).join(", ");
         toast.error(`Validation failed: ${fieldErrors}`);
       } else if (error.status === 409) {
-        // Handle duplicate user errors
+        // Handle duplicate user errors (username or email already exists)
         toast.error(error.message || "User already exists (username or email already taken)");
       } else {
+        // Fallback for other errors
         toast.error(error.message || "Failed to add user");
       }
     }
@@ -355,14 +358,15 @@ function AppContent() {
     } catch (error: any) {
       console.error("Update user error:", error);
       
-      // Handle validation errors with specific field messages  
+      // Handle validation errors with specific field messages
+      // Same error handling pattern as handleAddUser for consistency
       if (error.status === 400 && error.details && Array.isArray(error.details)) {
         const fieldErrors = error.details.map((detail: any) => 
           `${detail.field}: ${detail.message}`
         ).join(", ");
         toast.error(`Validation failed: ${fieldErrors}`);
       } else if (error.status === 409) {
-        // Handle duplicate user errors
+        // Handle duplicate user errors during updates
         toast.error(error.message || "Username or email already taken");
       } else {
         toast.error(error.message || "Failed to update user");
