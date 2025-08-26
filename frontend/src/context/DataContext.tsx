@@ -379,6 +379,8 @@ export function DataProvider({ children }: DataProviderProps) {
         fetchLoans(),
         fetchPenalties(),
         fetchTransactions(),
+        fetchDonations(), // Load donations from specific endpoint
+        fetchExpenses(),  // Load expenses from specific endpoint
       ]);
     } else {
       // Clear data when not authenticated

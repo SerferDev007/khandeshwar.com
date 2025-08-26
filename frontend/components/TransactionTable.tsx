@@ -7,7 +7,9 @@ import {
   TableRow,
 } from "./ui/table";
 import { Badge } from "./ui/badge";
+import { Button } from "./ui/button";
 import { useLanguage } from "./LanguageContext";
+import { Edit, Trash2 } from "lucide-react";
 
 interface Transaction {
   id: string;
@@ -34,11 +36,34 @@ interface Transaction {
 
 interface TransactionTableProps {
   transactions: Transaction[];
+  onUpdate?: (id: string, transaction: Transaction) => void;
+  onDelete?: (id: string) => void;
+  currentUser?: any;
 }
 
-export default function TransactionTable({ transactions }: TransactionTableProps) {
+export default function TransactionTable({ 
+  transactions, 
+  onUpdate, 
+  onDelete,
+  currentUser 
+}: TransactionTableProps) {
   const { t } = useLanguage();
   
+  // Check if user can edit/delete (Admin and Treasurer can modify, Viewer can only view)
+  const canModify = currentUser?.role === 'Admin' || currentUser?.role === 'Treasurer';
+
+  const handleEdit = (transaction: Transaction) => {
+    if (onUpdate) {
+      onUpdate(transaction.id, transaction);
+    }
+  };
+
+  const handleDelete = (id: string) => {
+    if (onDelete && window.confirm(t('common.confirmDelete'))) {
+      onDelete(id);
+    }
+  };
+
   const formatCurrency = (amount: number) => {
     return `${t('common.currency')}${amount.toLocaleString()}`;
   };
@@ -100,6 +125,7 @@ export default function TransactionTable({ transactions }: TransactionTableProps
           <TableHead>{t('donations.donorName')}</TableHead>
           <TableHead>{t('common.description')}</TableHead>
           <TableHead className="text-right">{t('common.amount')}</TableHead>
+          {canModify && <TableHead className="text-center">{t('common.actions')}</TableHead>}
         </TableRow>
       </TableHeader>
       <TableBody>
@@ -128,6 +154,28 @@ export default function TransactionTable({ transactions }: TransactionTableProps
             </TableCell>
             <TableCell>{transaction.description}</TableCell>
             <TableCell className="text-right">{formatCurrency(transaction.amount)}</TableCell>
+            {canModify && (
+              <TableCell className="text-center">
+                <div className="flex gap-2 justify-center">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleEdit(transaction)}
+                    className="h-8 w-8 p-0"
+                  >
+                    <Edit className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleDelete(transaction.id)}
+                    className="h-8 w-8 p-0 hover:bg-red-50 hover:text-red-600"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              </TableCell>
+            )}
           </TableRow>
         ))}
       </TableBody>

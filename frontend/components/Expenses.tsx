@@ -78,6 +78,8 @@ export default function Expenses({
   const [errors, setErrors] = useState<ValidationErrors>({});
   const [showSuccessDialog, setShowSuccessDialog] = useState(false);
   const [lastAddedExpense, setLastAddedExpense] = useState<any>(null);
+  const [editingExpense, setEditingExpense] = useState<any>(null);
+  const [isEditMode, setIsEditMode] = useState(false);
 
   // Category and sub-category definitions for expenses
   const expenseCategorySubCategories = {
@@ -129,6 +131,39 @@ export default function Expenses({
     if (errors.category) {
       setErrors({ ...errors, category: undefined, subCategory: undefined });
     }
+  };
+
+  // Handle edit mode
+  const handleEditExpense = (id: string, expense: any) => {
+    setEditingExpense(expense);
+    setIsEditMode(true);
+    setFormData({
+      date: new Date(expense.date),
+      category: expense.category || "",
+      subCategory: expense.subCategory || "",
+      payeeName: expense.payeeName || "",
+      payeeContact: expense.payeeContact || "",
+      amount: expense.amount?.toString() || "",
+      details: expense.description || "",
+      receiptImages: expense.receiptImages || [],
+    });
+  };
+
+  // Reset form to add mode
+  const resetForm = () => {
+    setIsEditMode(false);
+    setEditingExpense(null);
+    setFormData({
+      date: null,
+      category: "",
+      subCategory: "",
+      payeeName: "",
+      payeeContact: "",
+      amount: "",
+      details: "",
+      receiptImages: [],
+    });
+    setErrors({});
   };
 
   // Validation function
@@ -222,42 +257,47 @@ export default function Expenses({
         receiptImages: formData.receiptImages.map(file => file.base64), // Convert to base64 strings array
       };
 
-      // Call backend API
-      const response = await apiClient.createExpense(expenseData);
-      
-      // Create display object for success dialog (including frontend-only fields)
-      const newExpense = {
-        id: response.data?.id || Date.now().toString(),
-        date: expenseData.date,
-        type: "Expense",
-        category: expenseData.category,
-        subCategory: expenseData.subCategory,
-        description: expenseData.description,
-        amount: expenseData.amount,
-        payeeName: expenseData.payeeName,
-        payeeContact: expenseData.payeeContact,
-        receiptImages: formData.receiptImages, // Keep full file objects for display
-      };
+      let response;
+      let processedExpense;
 
-      // Call parent callback for UI updates
-      onAddTransaction(newExpense);
-      setLastAddedExpense(newExpense);
+      if (isEditMode && editingExpense) {
+        // Update existing expense
+        response = await apiClient.updateExpense(editingExpense.id, expenseData);
+        processedExpense = {
+          ...editingExpense,
+          ...expenseData,
+          id: editingExpense.id,
+          type: "Expense",
+          receiptImages: formData.receiptImages, // Keep full file objects for display
+        };
+        onUpdateTransaction(editingExpense.id, processedExpense);
+        toast.success(t("expenses.updateSuccessMessage"));
+      } else {
+        // Create new expense
+        response = await apiClient.createExpense(expenseData);
+        processedExpense = {
+          id: response.data?.id || Date.now().toString(),
+          date: expenseData.date,
+          type: "Expense",
+          category: expenseData.category,
+          subCategory: expenseData.subCategory,
+          description: expenseData.description,
+          amount: expenseData.amount,
+          payeeName: expenseData.payeeName,
+          payeeContact: expenseData.payeeContact,
+          receiptImages: formData.receiptImages, // Keep full file objects for display
+        };
+        
+        // Call parent callback for UI updates
+        onAddTransaction(processedExpense);
+        toast.success(t("expenses.expenseSuccessMessage"));
+      }
+
+      setLastAddedExpense(processedExpense);
       setShowSuccessDialog(true);
 
       // Reset form
-      setFormData({
-        date: null,
-        category: "",
-        subCategory: "",
-        payeeName: "",
-        payeeContact: "",
-        amount: "",
-        details: "",
-        receiptImages: [],
-      });
-      setErrors({});
-      
-      toast.success(t("expenses.expenseSuccessMessage"));
+      resetForm();
 
     } catch (error: any) {
       console.error('Expense submission error:', error);
@@ -303,7 +343,9 @@ export default function Expenses({
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>{t("expenses.addExpense")}</CardTitle>
+          <CardTitle>
+            {isEditMode ? t("expenses.editExpense") : t("expenses.addExpense")}
+          </CardTitle>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -519,9 +561,16 @@ export default function Expenses({
               />
             </div>
 
-            <Button type="submit" className="w-full">
-              {t("expenses.submit")}
-            </Button>
+            <div className="flex gap-2">
+              <Button type="submit" className="flex-1">
+                {isEditMode ? t("common.update") : t("expenses.submit")}
+              </Button>
+              {isEditMode && (
+                <Button type="button" variant="outline" onClick={resetForm}>
+                  {t("common.cancel")}
+                </Button>
+              )}
+            </div>
           </form>
         </CardContent>
       </Card>
@@ -638,7 +687,12 @@ export default function Expenses({
               </span>
             </p>
           </div>
-          <TransactionTable transactions={transactions} />
+          <TransactionTable 
+            transactions={transactions} 
+            onUpdate={handleEditExpense}
+            onDelete={onDeleteTransaction}
+            currentUser={currentUser}
+          />
         </CardContent>
       </Card>
     </div>
