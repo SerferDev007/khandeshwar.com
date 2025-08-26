@@ -107,6 +107,8 @@ export default function Donations({
   const [errors, setErrors] = useState<ValidationErrors>({});
   const [showSuccessDialog, setShowSuccessDialog] = useState(false);
   const [lastAddedDonation, setLastAddedDonation] = useState<any>(null);
+  const [editingDonation, setEditingDonation] = useState<any>(null);
+  const [isEditMode, setIsEditMode] = useState(false);
 
   // Update receipt number when receiptCounter changes
   useEffect(() => {
@@ -149,6 +151,45 @@ export default function Donations({
     if (errors.category) {
       setErrors({ ...errors, category: undefined, subCategory: undefined });
     }
+  };
+
+  // Handle edit mode
+  const handleEditDonation = (id: string, donation: any) => {
+    setEditingDonation(donation);
+    setIsEditMode(true);
+    setFormData({
+      date: new Date(donation.date),
+      category: donation.category || "",
+      subCategory: donation.subCategory || "",
+      description: "",
+      amount: donation.amount?.toString() || "",
+      donorName: donation.donorName || "",
+      donorContact: donation.donorContact || "",
+      familyMembers: donation.familyMembers?.toString() || "",
+      amountPerPerson: donation.amountPerPerson?.toString() || "",
+      purpose: donation.description || "",
+      receiptNumber: donation.receiptNumber || "",
+    });
+  };
+
+  // Reset form to add mode
+  const resetForm = () => {
+    setIsEditMode(false);
+    setEditingDonation(null);
+    setFormData({
+      date: null,
+      category: "",
+      subCategory: "",
+      description: "",
+      amount: "",
+      donorName: "",
+      donorContact: "",
+      familyMembers: "",
+      amountPerPerson: "",
+      purpose: "",
+      receiptNumber: receiptCounter.toString().padStart(4, "0"),
+    });
+    setErrors({});
   };
 
   // Validation function
@@ -280,51 +321,51 @@ export default function Donations({
         }),
       };
 
-      // Call backend API
-      const response = await apiClient.createDonation(donationData);
-      
-      // Create display object for success dialog (including frontend-only fields)
-      const newDonation = {
-        id: response.data?.id || Date.now().toString(),
-        date: donationData.date,
-        type: "Donation",
-        category: donationData.category,
-        subCategory: donationData.subCategory,
-        description: donationData.description,
-        amount: donationData.amount,
-        receiptNumber: donationData.receiptNumber,
-        donorName: donationData.donorName,
-        donorContact: donationData.donorContact,
-        ...(formData.category === "Vargani" && {
-          familyMembers: donationData.familyMembers,
-          amountPerPerson: donationData.amountPerPerson,
-        }),
-      };
+      let response;
+      let processedDonation;
 
-      // Update receipt counter and call parent callback for UI updates
-      onUpdateReceiptCounter(receiptCounter + 1);
-      onAddTransaction(newDonation);
+      if (isEditMode && editingDonation) {
+        // Update existing donation
+        response = await apiClient.updateDonation(editingDonation.id, donationData);
+        processedDonation = {
+          ...editingDonation,
+          ...donationData,
+          id: editingDonation.id,
+          type: "Donation",
+        };
+        onUpdateTransaction(editingDonation.id, processedDonation);
+        toast.success(t("donations.updateSuccessMessage"));
+      } else {
+        // Create new donation
+        response = await apiClient.createDonation(donationData);
+        processedDonation = {
+          id: response.data?.id || Date.now().toString(),
+          date: donationData.date,
+          type: "Donation",
+          category: donationData.category,
+          subCategory: donationData.subCategory,
+          description: donationData.description,
+          amount: donationData.amount,
+          receiptNumber: donationData.receiptNumber,
+          donorName: donationData.donorName,
+          donorContact: donationData.donorContact,
+          ...(formData.category === "Vargani" && {
+            familyMembers: donationData.familyMembers,
+            amountPerPerson: donationData.amountPerPerson,
+          }),
+        };
+        
+        // Update receipt counter and call parent callback for UI updates
+        onUpdateReceiptCounter(receiptCounter + 1);
+        onAddTransaction(processedDonation);
+        toast.success(t("donations.successMessage"));
+      }
       
-      setLastAddedDonation(newDonation);
+      setLastAddedDonation(processedDonation);
       setShowSuccessDialog(true);
 
       // Reset form
-      setFormData({
-        date: null,
-        category: "",
-        subCategory: "",
-        description: "",
-        amount: "",
-        donorName: "",
-        donorContact: "",
-        familyMembers: "",
-        amountPerPerson: "",
-        purpose: "",
-        receiptNumber: (receiptCounter + 1).toString().padStart(4, "0"),
-      });
-      setErrors({});
-      
-      toast.success(t("donations.successMessage"));
+      resetForm();
       
     } catch (error: any) {
       console.error('Donation submission error:', error);
@@ -425,7 +466,9 @@ export default function Donations({
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>{t("donations.addDonation")}</CardTitle>
+          <CardTitle>
+            {isEditMode ? t("donations.editDonation") : t("donations.addDonation")}
+          </CardTitle>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -696,9 +739,16 @@ export default function Donations({
               )}
             </div>
 
-            <Button type="submit" className="w-full">
-              {t("donations.submit")}
-            </Button>
+            <div className="flex gap-2">
+              <Button type="submit" className="flex-1">
+                {isEditMode ? t("common.update") : t("donations.submit")}
+              </Button>
+              {isEditMode && (
+                <Button type="button" variant="outline" onClick={resetForm}>
+                  {t("common.cancel")}
+                </Button>
+              )}
+            </div>
           </form>
         </CardContent>
       </Card>
@@ -830,7 +880,12 @@ export default function Donations({
               </span>
             </p>
           </div>
-          <TransactionTable transactions={transactions} />
+          <TransactionTable 
+            transactions={transactions} 
+            onUpdate={handleEditDonation}
+            onDelete={onDeleteTransaction}
+            currentUser={currentUser}
+          />
         </CardContent>
       </Card>
     </div>

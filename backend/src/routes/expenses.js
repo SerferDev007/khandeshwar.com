@@ -59,7 +59,7 @@ const generateId = () => {
 };
 
 // GET /api/expenses - Get all expenses
-router.get('/', authenticate, authorize(['Admin']), async (req, res) => {
+router.get('/', authenticate, authorize(['Admin', 'Treasurer', 'Viewer']), async (req, res) => {
   try {
     const rows = await query(
       'SELECT * FROM transactions WHERE type = ? ORDER BY date DESC, created_at DESC',
@@ -81,7 +81,7 @@ router.get('/', authenticate, authorize(['Admin']), async (req, res) => {
 });
 
 // GET /api/expenses/:id - Get expense by ID
-router.get('/:id', authenticate, authorize(['Admin']), validate(schemas.idParam), async (req, res) => {
+router.get('/:id', authenticate, authorize(['Admin', 'Treasurer', 'Viewer']), validate(schemas.idParam), async (req, res) => {
   try {
     const { id } = req.params;
     const rows = await query(
@@ -111,7 +111,7 @@ router.get('/:id', authenticate, authorize(['Admin']), validate(schemas.idParam)
 });
 
 // POST /api/expenses - Create new expense
-router.post('/', authenticate, authorize(['Admin']), validateExpenseCreate, async (req, res) => {
+router.post('/', authenticate, authorize(['Admin', 'Treasurer']), validateExpenseCreate, async (req, res) => {
   try {
     const expenseData = {
       ...req.body,
@@ -149,7 +149,7 @@ router.post('/', authenticate, authorize(['Admin']), validateExpenseCreate, asyn
 });
 
 // PUT /api/expenses/:id - Update expense
-router.put('/:id', authenticate, authorize(['Admin']), validate(schemas.idParam), validateExpenseUpdate, async (req, res) => {
+router.put('/:id', authenticate, authorize(['Admin', 'Treasurer']), validate(schemas.idParam), validateExpenseUpdate, async (req, res) => {
   try {
     const { id } = req.params;
     const updateData = req.body;
