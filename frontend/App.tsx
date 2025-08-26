@@ -73,9 +73,21 @@ function AppContent() {
     createUser,
     updateUser,
     deleteUser,
+    fetchUsers,
   } = useData();
 
   const [activeTab, setActiveTab] = useState("Dashboard");
+
+  // Handle tab changes and trigger data fetching when needed
+  const handleTabChange = (tab: string) => {
+    setActiveTab(tab);
+    
+    // Fetch users data when Users tab is selected to ensure fresh data
+    if (tab === "Users" && user?.role === "Admin") {
+      // Trigger user data refresh to get latest backend data
+      fetchUsers();
+    }
+  };
 
   // Handle login error display
   React.useEffect(() => {
@@ -433,7 +445,7 @@ function AppContent() {
     <div className="min-h-screen bg-gradient-to-br from-orange-50 via-red-50 to-pink-50">
       <Header
         activeTab={activeTab}
-        onTabChange={setActiveTab}
+        onTabChange={handleTabChange}
         currentUser={user}
         onLogout={() => logout()}
       />
