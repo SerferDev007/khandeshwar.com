@@ -47,6 +47,9 @@ interface UserManagementProps {
   onEditUser: (id: string, user: Partial<User>) => void;
   onDeleteUser: (id: string) => void;
   onToggleUserStatus: (id: string) => void;
+  loading?: boolean;
+  error?: string | null;
+  currentUser?: any; // The current authenticated user
 }
 
 export default function UserManagement({
@@ -55,8 +58,15 @@ export default function UserManagement({
   onEditUser,
   onDeleteUser,
   onToggleUserStatus,
+  loading = false,
+  error = null,
+  currentUser,
 }: UserManagementProps) {
   const { t } = useLanguage();
+  
+  // Check if current user has admin privileges for modifications
+  const isAdmin = currentUser?.role === 'Admin';
+  
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [formData, setFormData] = useState({
@@ -156,13 +166,14 @@ export default function UserManagement({
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>{t("users.title")}</CardTitle>
-          <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-            <DialogTrigger asChild>
-              <Button className="bg-orange-500 hover:bg-orange-600">
-                <Plus className="h-4 w-4 mr-2" />
-                {t("users.addUser")}
-              </Button>
-            </DialogTrigger>
+          {isAdmin && (
+            <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+              <DialogTrigger asChild>
+                <Button className="bg-orange-500 hover:bg-orange-600">
+                  <Plus className="h-4 w-4 mr-2" />
+                  {t("users.addUser")}
+                </Button>
+              </DialogTrigger>
             <DialogContent>
               <DialogHeader>
                 <DialogTitle>{t("users.addNewUser")}</DialogTitle>
@@ -245,6 +256,7 @@ export default function UserManagement({
               </form>
             </DialogContent>
           </Dialog>
+          )}
         </CardHeader>
         <CardContent>
           <Alert className="mb-4">
@@ -260,7 +272,38 @@ export default function UserManagement({
             </AlertDescription>
           </Alert>
 
-          <Table>
+          {/* Error State */}
+          {error && (
+            <Alert className="mb-4 border-red-300 bg-red-50">
+              <AlertDescription className="text-red-700">
+                <strong>Error loading users:</strong> {error}
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {/* Loading State */}
+          {loading && (
+            <div className="flex justify-center items-center py-8">
+              <div className="text-center">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto mb-2"></div>
+                <p className="text-gray-600">Loading users...</p>
+              </div>
+            </div>
+          )}
+
+          {/* Empty State - no users and not loading */}
+          {!loading && !error && users.length === 0 && (
+            <div className="text-center py-8">
+              <p className="text-gray-600 mb-4">No users found.</p>
+              <p className="text-sm text-gray-500">
+                Add your first user using the "Add User" button above.
+              </p>
+            </div>
+          )}
+
+          {/* Users Table - only show if not loading, no error, and has users */}
+          {!loading && !error && users.length > 0 && (
+            <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>{t("users.username")}</TableHead>
@@ -289,38 +332,47 @@ export default function UserManagement({
                   <TableCell>{user.lastLogin || t("users.never")}</TableCell>
                   <TableCell>
                     <div className="flex space-x-2">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => handleEdit(user)}
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => onToggleUserStatus(user.id)}
-                      >
-                        {user.status === "Active" ? (
-                          <UserX className="h-4 w-4" />
-                        ) : (
-                          <UserCheck className="h-4 w-4" />
-                        )}
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => onDeleteUser(user.id)}
-                        className="text-red-600 hover:text-red-700"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      {isAdmin ? (
+                        <>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleEdit(user)}
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => onToggleUserStatus(user.id)}
+                          >
+                            {user.status === "Active" ? (
+                              <UserX className="h-4 w-4" />
+                            ) : (
+                              <UserCheck className="h-4 w-4" />
+                            )}
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => onDeleteUser(user.id)}
+                            className="text-red-600 hover:text-red-700"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </>
+                      ) : (
+                        <span className="text-sm text-gray-500 italic">
+                          View Only
+                        </span>
+                      )}
                     </div>
                   </TableCell>
                 </TableRow>
               ))}
             </TableBody>
           </Table>
+          )}
         </CardContent>
       </Card>
 

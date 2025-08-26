@@ -15,8 +15,8 @@ const router = express.Router();
 // Get user statistics (Admin only)
 router.get('/stats', ...requireRoles(['Admin']), getUserStats);
 
-// Get all users (Admin only)  
-router.get('/', ...requireRoles(['Admin']), validate(schemas.pagination), getAllUsers);
+// Get all users (Admin and Treasurer can view users - relaxed for better user management visibility)
+router.get('/', ...requireRoles(['Admin', 'Treasurer']), validate(schemas.pagination), getAllUsers);
 
 // Get user by ID (Admin or self)
 router.get('/:id', authenticate, validate(schemas.idParam), getUserById);

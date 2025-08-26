@@ -165,7 +165,20 @@ export function DataProvider({ children }: DataProviderProps) {
   };
 
   // Fetch functions
-  const fetchUsers = () => fetchData('users', apiClient.getUsers, setUsers);
+  const fetchUsers = async () => {
+    try {
+      setLoadingState('users', true);
+      setErrorState('users', null);
+      const response = await apiClient.getUsers();
+      // Extract users array from API response: { users: [...], pagination: {...} }
+      const users = response?.users || [];
+      setUsers(users);
+    } catch (error: any) {
+      setErrorState('users', error.message || 'Failed to fetch users');
+    } finally {
+      setLoadingState('users', false);
+    }
+  };
   const fetchShops = () => fetchData('shops', apiClient.getShops, setShops);
   const fetchTenants = () => fetchData('tenants', apiClient.getTenants, setTenants);
   const fetchAgreements = () => fetchData('agreements', apiClient.getAgreements, setAgreements);

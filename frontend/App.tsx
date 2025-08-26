@@ -454,7 +454,7 @@ function AppContent() {
           />
         )}
 
-        {activeTab === "Users" && user?.role === "Admin" && (
+        {activeTab === "Users" && (user?.role === "Admin" || user?.role === "Treasurer") && (
           <UserManagement
             users={users}
             onAddUser={handleAddUser}
@@ -462,6 +462,8 @@ function AppContent() {
             onDeleteUser={handleDeleteUser}
             onToggleUserStatus={handleToggleUserStatus}
             currentUser={user}
+            loading={loading.users}
+            error={errors.users}
           />
         )}
 
