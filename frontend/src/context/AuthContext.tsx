@@ -1,6 +1,12 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import apiClient from '../utils/api';
-import type { User, LoginCredentials, RegisterData } from '../types';
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  ReactNode,
+} from "react";
+import apiClient from "../utils/api";
+import type { User, LoginCredentials, RegisterData } from "../types";
 
 interface AuthContextType {
   user: User | null;
@@ -18,7 +24,7 @@ const AuthContext = createContext<AuthContextType | null>(null);
 export function useAuth() {
   const context = useContext(AuthContext);
   if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    throw new Error("useAuth must be used within an AuthProvider");
   }
   return context;
 }
@@ -28,65 +34,89 @@ interface AuthProviderProps {
 }
 
 export function AuthProvider({ children }: AuthProviderProps) {
-  const [user, setUser] = useState<User | null>(null);
+  // 1) Pre-hydrate user from localStorage so UI can render immediately
+  const [user, setUser] = useState<User | null>(() => {
+    try {
+      const cached = localStorage.getItem("auth_user");
+      return cached ? (JSON.parse(cached) as User) : null;
+    } catch {
+      return null;
+    }
+  });
+
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Consider the user authenticated if a user object exists
   const isAuthenticated = !!user;
 
-  // Global logout function for API client 401 handler
-  const handleUnauthorized = () => {
-    apiClient.setAuthToken(null);
-    setUser(null);
-    setError('Your session has expired. Please login again.');
+  // Keep localStorage in sync with user
+  useEffect(() => {
+    try {
+      if (user) localStorage.setItem("auth_user", JSON.stringify(user));
+      else localStorage.removeItem("auth_user");
+    } catch {
+      // ignore storage errors
+    }
+  }, [user]);
+
+  // Helper: try calling refresh() if apiClient provides it (withCredentials must be enabled in the client)
+  const tryRefresh = async () => {
+    const anyClient = apiClient as any;
+    if (anyClient && typeof anyClient.refresh === "function") {
+      await anyClient.refresh(); // if you don't have this, it will just skip
+    }
   };
 
-  // Set up the global 401 handler on mount
+  // 2) Global 401 handler: try one refresh; if that fails, clear auth
+  const handleUnauthorized = async () => {
+    try {
+      await tryRefresh();
+      // if refresh succeeds, api client should retry the original request (if you added that interceptor)
+    } catch {
+      apiClient.setAuthToken(null);
+      setUser(null);
+      setError("Your session has expired. Please login again.");
+    }
+  };
+
+  // Register global 401 handler once
   useEffect(() => {
     apiClient.setUnauthorizedHandler(handleUnauthorized);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Check for existing session on mount
+  // 3) Bootstrap on mount: init from storage → try refresh → fetch profile
   useEffect(() => {
     const initializeAuth = async () => {
       try {
-        console.log('🔄 AuthContext: Initializing authentication...');
-        
-        // Initialize token from storage first (if not already done by AppRoot)
+        // Load any stored token (if your apiClient stores it)
         apiClient.initFromStorage();
-        
-        const token = apiClient.getAuthToken();
-        console.log('🔍 AuthContext: Checking stored token', {
-          tokenPresent: !!token,
-          tokenStart: token ? token.slice(0, 10) + '...' : 'null',
-        });
-        
-        if (token) {
-          // Verify token is still valid by fetching profile
-          console.log('📋 AuthContext: Verifying token by fetching profile...');
-          const userData = await apiClient.getProfile();
-          setUser(userData);
-          console.log('✅ AuthContext: Token verified, user authenticated', {
-            userId: userData?.id,
-            username: userData?.username || userData?.name
-          });
-        } else {
-          console.log('❌ AuthContext: No stored token found');
+
+        // Try to silently refresh access token (handles expired access)
+        try {
+          await tryRefresh();
+        } catch {
+          // no refresh cookie or refresh failed — that's OK, we'll still try /profile
         }
-      } catch (error) {
-        console.log('⚠️ AuthContext: Token verification failed', error);
-        // Only clear token if it's actually invalid, not on network errors
-        if (error.statusCode === 401) {
-          console.log('🗑️ AuthContext: Clearing invalid token');
+
+        // Verify by fetching profile. Only clear auth on explicit 401.
+        const userData = await apiClient.getProfile();
+        setUser(userData);
+      } catch (err: any) {
+        const status =
+          err?.statusCode ?? err?.status ?? err?.response?.status ?? 0;
+
+        if (status === 401) {
+          // token definitively invalid → clear
           apiClient.setAuthToken(null);
           setUser(null);
         } else {
-          // Keep token for network errors, server errors, etc.
-          console.log('⚠️ AuthContext: Keeping token despite verification error (might be network issue)');
+          // network/server flake: keep pre-hydrated user if we had one
+          // this prevents header flicker on temporary failures
         }
       } finally {
         setIsLoading(false);
-        console.log('🏁 AuthContext: Authentication initialization complete');
       }
     };
 
@@ -98,34 +128,24 @@ export function AuthProvider({ children }: AuthProviderProps) {
       setIsLoading(true);
       setError(null);
 
-      // The API client now handles token extraction and setting automatically
-      const response = await apiClient.login(credentials.email, credentials.password);
-      
-      // Extract user data from response
-      let user: any;
-      if (response.data?.user) {
-        // Wrapped response: { data: { user, accessToken } }
-        user = response.data.user;
-      } else if (response.user) {
-        // Unwrapped response: { user, accessToken }
-        user = response.user;
+      const response = await apiClient.login(
+        credentials.email,
+        credentials.password
+      );
+
+      let nextUser: any;
+      if (response?.data?.user) {
+        nextUser = response.data.user;
+      } else if (response?.user) {
+        nextUser = response.user;
       } else {
-        // Fallback: assume the response is the user data
-        user = response;
+        nextUser = response;
       }
 
-      console.log('✅ Login successful', {
-        userPresent: !!user,
-        userId: user?.id,
-        username: user?.username || user?.name,
-        timestamp: new Date().toISOString()
-      });
-      
-      // Set user data (token is already handled by apiClient.login)
-      setUser(user);
-    } catch (error: any) {
-      setError(error.message || 'Login failed');
-      throw error;
+      setUser(nextUser as User);
+    } catch (err: any) {
+      setError(err?.message || "Login failed");
+      throw err;
     } finally {
       setIsLoading(false);
     }
@@ -136,34 +156,21 @@ export function AuthProvider({ children }: AuthProviderProps) {
       setIsLoading(true);
       setError(null);
 
-      // The API client now handles token extraction and setting automatically
       const response = await apiClient.register(userData);
-      
-      // Extract user data from response  
-      let user: any;
-      if (response.data?.user) {
-        // Wrapped response: { data: { user, accessToken } }
-        user = response.data.user;
-      } else if (response.user) {
-        // Unwrapped response: { user, accessToken }
-        user = response.user;
+
+      let nextUser: any;
+      if (response?.data?.user) {
+        nextUser = response.data.user;
+      } else if (response?.user) {
+        nextUser = response.user;
       } else {
-        // Fallback: assume the response is the user data
-        user = response;
+        nextUser = response;
       }
 
-      console.log('✅ Register successful', {
-        userPresent: !!user,
-        userId: user?.id,
-        username: user?.username || user?.name,
-        timestamp: new Date().toISOString()
-      });
-      
-      // Set user data (token is already handled by apiClient.register)
-      setUser(user);
-    } catch (error: any) {
-      setError(error.message || 'Registration failed');
-      throw error;
+      setUser(nextUser as User);
+    } catch (err: any) {
+      setError(err?.message || "Registration failed");
+      throw err;
     } finally {
       setIsLoading(false);
     }
@@ -172,16 +179,12 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const logout = async () => {
     try {
       setIsLoading(true);
-      
-      // Call logout endpoint if user is authenticated
       if (isAuthenticated) {
         await apiClient.logout();
       }
-    } catch (error) {
-      // Ignore logout errors, just clear local state
-      console.warn('Logout API call failed:', error);
+    } catch {
+      // ignore logout errors
     } finally {
-      // Clear local auth state
       apiClient.setAuthToken(null);
       setUser(null);
       setError(null);
@@ -189,9 +192,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   };
 
-  const clearError = () => {
-    setError(null);
-  };
+  const clearError = () => setError(null);
 
   const value: AuthContextType = {
     user,
@@ -204,9 +205,5 @@ export function AuthProvider({ children }: AuthProviderProps) {
     clearError,
   };
 
-  return (
-    <AuthContext.Provider value={value}>
-      {children}
-    </AuthContext.Provider>
-  );
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
