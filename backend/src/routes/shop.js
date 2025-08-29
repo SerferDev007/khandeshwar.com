@@ -151,6 +151,29 @@ router.post('/', authenticate, authorize(['Admin', 'Treasurer']), validateShopCr
     });
   } catch (error) {
     logger.error('Create shop error:', error);
+    
+    // Provide more specific error messages for common issues
+    if (error.code === 'ER_NO_SUCH_TABLE') {
+      return res.status(500).json({
+        success: false,
+        error: 'Database table not found. Please contact administrator.'
+      });
+    }
+    
+    if (error.code === 'ER_NO_REFERENCED_ROW_2') {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid tenant ID. The specified tenant does not exist.'
+      });
+    }
+    
+    if (error.code === 'ER_DUP_ENTRY') {
+      return res.status(409).json({
+        success: false,
+        error: 'Shop number already exists'
+      });
+    }
+    
     return res.status(500).json({
       success: false,
       error: 'Failed to create shop'
