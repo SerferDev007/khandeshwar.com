@@ -163,6 +163,43 @@ const runMigrations = async () => {
       INDEX idx_status (status)
     ) ENGINE=InnoDB`,
 
+    // Tenants table (created before shops due to foreign key reference)
+    `CREATE TABLE IF NOT EXISTS tenants (
+      id VARCHAR(36) PRIMARY KEY,
+      name VARCHAR(100) NOT NULL,
+      phone VARCHAR(20) NOT NULL,
+      email VARCHAR(100) NOT NULL,
+      address TEXT NOT NULL,
+      business_type VARCHAR(100) NOT NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      status ENUM('Active', 'Inactive') NOT NULL DEFAULT 'Active',
+      id_proof VARCHAR(200) NULL,
+      INDEX idx_name (name),
+      INDEX idx_phone (phone),
+      INDEX idx_email (email),
+      INDEX idx_status (status),
+      INDEX idx_business_type (business_type)
+    ) ENGINE=InnoDB`,
+
+    // Shops table
+    `CREATE TABLE IF NOT EXISTS shops (
+      id VARCHAR(36) PRIMARY KEY,
+      shop_number VARCHAR(20) UNIQUE NOT NULL,
+      size DECIMAL(10,2) NOT NULL,
+      monthly_rent DECIMAL(10,2) NOT NULL,
+      deposit DECIMAL(10,2) NOT NULL,
+      status ENUM('Vacant', 'Occupied', 'Maintenance') NOT NULL DEFAULT 'Vacant',
+      tenant_id VARCHAR(36) NULL,
+      agreement_id VARCHAR(36) NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      description TEXT NULL,
+      INDEX idx_shop_number (shop_number),
+      INDEX idx_status (status),
+      INDEX idx_tenant (tenant_id),
+      INDEX idx_agreement (agreement_id),
+      FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE SET NULL
+    ) ENGINE=InnoDB`,
+
     // Refresh tokens table
     `CREATE TABLE IF NOT EXISTS refresh_tokens (
       id VARCHAR(36) PRIMARY KEY,
@@ -197,7 +234,7 @@ const runMigrations = async () => {
     ) ENGINE=InnoDB`,
   ];
 
-  const migrationNames = ["users", "refresh_tokens", "files"];
+  const migrationNames = ["users", "tenants", "shops", "refresh_tokens", "files"];
 
   for (let i = 0; i < migrations.length; i++) {
     try {
