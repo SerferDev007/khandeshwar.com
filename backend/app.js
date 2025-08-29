@@ -22,6 +22,7 @@ import donationsRoutes from "./src/routes/donations.js";
 import expensesRoutes from "./src/routes/expenses.js";
 import transactionsRoutes from "./src/routes/transactions.js";
 import rentRoutes from "./src/routes/rent.js";
+import shopRoutes from "./src/routes/shop.js";
 
 // Import models
 import { User } from "./src/models/User.js";
@@ -301,6 +302,7 @@ app.use("/api/donations", donationsRoutes);
 app.use("/api/expenses", expensesRoutes);
 app.use("/api/transactions", transactionsRoutes);
 app.use("/api/rent", rentRoutes);
+app.use("/api/shops", shopRoutes);
 
 // Health check (alternative endpoint for backward compatibility)
 app.get("/api/health", (req, res) => {
