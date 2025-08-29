@@ -5,7 +5,7 @@ import pinoPretty from "pino-pretty";
 import mysql from "mysql2/promise";
 import env from "./src/config/env.js";
 import corsMiddleware from "./src/middleware/cors.js";
-import { defaultRateLimit } from "./src/middleware/rateLimit.js";
+import { defaultRateLimit, developmentRateLimit } from "./src/middleware/rateLimit.js";
 import {
   errorHandler,
   notFoundHandler,
@@ -76,8 +76,9 @@ app.set("trust proxy", 1);
 // CORS
 app.use(corsMiddleware);
 
-// Rate limiting
-app.use(defaultRateLimit);
+// Rate limiting - use more lenient rate limiting in development
+const rateLimit = env.NODE_ENV === 'development' ? developmentRateLimit : defaultRateLimit;
+app.use(rateLimit);
 
 // Body parsing middleware
 app.use(express.json({ limit: "10mb" }));

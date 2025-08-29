@@ -308,6 +308,38 @@ class ApiClient {
         throw err;
       }
 
+      // Handle 429 Rate Limit errors with retry logic
+      if (response.status === 429) {
+        const text = await response.text();
+        let parsed: any;
+        try {
+          parsed = JSON.parse(text);
+        } catch {
+          parsed = { error: text };
+        }
+
+        console.warn("⚠️ 429 Rate Limit Exceeded", {
+          endpoint: normalizedEndpoint,
+          parsed,
+          retryCount
+        });
+
+        // Retry for rate limit errors (not just idempotent methods)
+        if (retryCount < 3) { // Allow up to 3 retries for rate limits
+          const delay = Math.pow(2, retryCount) * 1000 + Math.random() * 1000; // Add jitter
+          console.log("⏳ Retry after rate limit", {
+            attempt: retryCount + 1,
+            delay: Math.round(delay),
+          });
+          await this.sleep(delay);
+          return this.request<T>(endpoint, options, retryCount + 1);
+        }
+
+        const err = new Error("Too many requests. Please wait a moment and try again.") as ApiError;
+        err.statusCode = 429;
+        throw err;
+      }
+
       const raw = await response.text();
       let payload: any;
       

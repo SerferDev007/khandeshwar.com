@@ -229,6 +229,7 @@ export default function RentManagement({
   const [shopErrors, setShopErrors] = useState<any>({});
   const [showShopSuccessDialog, setShowShopSuccessDialog] = useState(false);
   const [lastAddedShop, setLastAddedShop] = useState<any>(null);
+  const [isSubmittingShop, setIsSubmittingShop] = useState(false);
 
   // Tenant Form State
   const [tenantFormData, setTenantFormData] = useState({
@@ -393,8 +394,13 @@ export default function RentManagement({
   };
 
   // Handle shop form submission
-  const handleAddShop = (e: React.FormEvent) => {
+  const handleAddShop = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Prevent multiple submissions
+    if (isSubmittingShop) {
+      return;
+    }
 
     if (!validateShopForm()) {
       toast.error(t("shop.validationError"));
@@ -410,19 +416,28 @@ export default function RentManagement({
       description: shopFormData.description.trim(),
     };
 
-    onAddShop(newShopData);
-    setLastAddedShop({ ...newShopData, id: Date.now().toString() });
-    setShowShopSuccessDialog(true);
+    try {
+      setIsSubmittingShop(true);
+      await onAddShop(newShopData);
+      
+      setLastAddedShop({ ...newShopData, id: Date.now().toString() });
+      setShowShopSuccessDialog(true);
 
-    // Reset form
-    setShopFormData({
-      shopNumber: "",
-      size: "",
-      monthlyRent: "",
-      deposit: "",
-      description: "",
-    });
-    setShopErrors({});
+      // Reset form
+      setShopFormData({
+        shopNumber: "",
+        size: "",
+        monthlyRent: "",
+        deposit: "",
+        description: "",
+      });
+      setShopErrors({});
+    } catch (error: any) {
+      // Error handling is done in the parent component
+      console.error('Shop submission error:', error);
+    } finally {
+      setIsSubmittingShop(false);
+    }
   };
 
   // Tenant Form Validation
@@ -1277,8 +1292,8 @@ export default function RentManagement({
                   />
                 </div>
 
-                <Button type="submit" className="w-full">
-                  {t("shop.addShop")}
+                <Button type="submit" className="w-full" disabled={isSubmittingShop}>
+                  {isSubmittingShop ? t("common.submitting") || "Submitting..." : t("shop.addShop")}
                 </Button>
               </form>
             </CardContent>

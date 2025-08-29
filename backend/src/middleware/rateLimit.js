@@ -4,6 +4,30 @@ import pino from 'pino';
 
 const logger = pino({ name: 'rateLimit' });
 
+// Development-friendly rate limiter
+export const developmentRateLimit = rateLimit({
+  windowMs: 60 * 1000, // 1 minute window
+  max: 50, // 50 requests per minute for development
+  message: {
+    success: false,
+    error: 'Too many requests from this IP, please try again later',
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: (req, res) => {
+    logger.warn('Development rate limit exceeded', {
+      ip: req.ip,
+      userAgent: req.get('User-Agent'),
+      url: req.url,
+    });
+    
+    res.status(429).json({
+      success: false,
+      error: 'Too many requests from this IP, please try again later',
+    });
+  },
+});
+
 // Default rate limiter
 export const defaultRateLimit = rateLimit({
   windowMs: env.RATE_LIMIT_WINDOW_MS,

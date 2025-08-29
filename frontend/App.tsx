@@ -230,8 +230,16 @@ function AppContent() {
   const handleAddShop = async (newShop: any) => {
     try {
       await createShop(newShop);
+      toast.success("Shop added successfully!");
     } catch (error: any) {
-      toast.error(error.message || "Failed to add shop");
+      if (error.statusCode === 429) {
+        toast.error("Too many requests. Please wait a moment and try again. The system has rate limiting to prevent overload.");
+      } else if (error.statusCode === 409) {
+        toast.error("Shop number already exists. Please use a different shop number.");
+      } else {
+        toast.error(error.message || "Failed to add shop");
+      }
+      throw error; // Re-throw to allow RentManagement to handle loading state
     }
   };
 
