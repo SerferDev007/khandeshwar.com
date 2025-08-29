@@ -1,277 +1,162 @@
-import jwt from 'jsonwebtoken';
-import env from '../config/env.js';
-import { query } from '../config/db.js';
-import pino from 'pino';
+// middleware/auth.js
+import jwt from "jsonwebtoken";
+import env from "../config/env.js";
+import { query } from "../config/db.js";
+import pino from "pino";
 
-const logger = pino({ name: 'auth' });
+const logger = pino({ name: "auth" });
 
-// JWT Authentication middleware
+/** Normalize DB results to a plain array of rows across drivers/helpers */
+function rowsOf(result) {
+  if (!result) return [];
+  if (Array.isArray(result)) return result; // your query() already returns rows array
+  if (Array.isArray(result?.rows)) return result.rows; // pg style
+  if (Array.isArray(result?.[0])) return result[0]; // mysql2/promise [rows, fields]
+  return [];
+}
+
+/**
+ * Authenticate:
+ * - Expects Authorization: Bearer <token>
+ * - Verifies JWT with env.JWT_SECRET
+ * - Accepts both "id" and "userId" in token payload
+ * - Loads Active user from DB and attaches to req.user
+ * - Never throws; returns 401/503 JSON on failure
+ */
 export const authenticate = async (req, res, next) => {
   try {
-    // Enhanced request logging for all auth-protected endpoints
-    logger.info('Authentication attempt', {
-      method: req.method,
-      url: req.url,
-      route: req.path,
-      ip: req.ip,
-      userAgent: req.get('User-Agent'),
-      authHeaderPresent: !!req.headers.authorization,
-      authHeaderPrefix: req.headers.authorization ? req.headers.authorization.substring(0, 10) : null,
-      contentType: req.get('Content-Type'),
-      referer: req.get('Referer'),
-      timestamp: new Date().toISOString()
-    });
+    const authHeader = req.headers.authorization || "";
+    const [scheme, token] = authHeader.split(" ");
 
-    const authHeader = req.headers.authorization;
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      // Add specific developer warning for POST /api/users without token
-      if (req.method === 'POST' && req.url === '/api/users') {
-        logger.warn('Developer Warning: POST /api/users called without authentication token', {
-          method: req.method,
-          url: req.url,
-          ip: req.ip,
-          userAgent: req.get('User-Agent')
-        });
-      }
-      
-      // Enhanced 401 logging with all relevant headers
-      logger.warn('Authentication failed: no token provided', {
+    if (scheme !== "Bearer" || !token) {
+      logger.warn("No/invalid Authorization header", {
+        path: req.path,
         method: req.method,
-        url: req.url,
-        route: req.path,
-        ip: req.ip,
-        userAgent: req.get('User-Agent'),
-        contentType: req.get('Content-Type'),
-        referer: req.get('Referer'),
-        authHeader: authHeader ? authHeader.substring(0, 20) + '...' : 'null',
-        headers: {
-          accept: req.get('Accept'),
-          origin: req.get('Origin'),
-          host: req.get('Host')
-        },
-        timestamp: new Date().toISOString()
       });
       return res.status(401).json({
         success: false,
-        error: 'Missing token. Authorization header with Bearer token required (format: "Authorization: Bearer <token>")'
+        error: 'Missing token. Use "Authorization: Bearer <token>"',
       });
     }
 
-    const token = authHeader.substring(7);
-    
-    // Log token verification attempt with partial token for debugging
-    logger.info('Token verification attempt', {
-      method: req.method,
-      url: req.url,
-      tokenStart: token.substring(0, 10) + '...',
-      tokenLength: token.length,
-      timestamp: new Date().toISOString()
-    });
-    
-    const decoded = jwt.verify(token, env.JWT_SECRET);
-    
-    // Log token expiry information
-    const tokenExpiry = decoded.exp ? new Date(decoded.exp * 1000) : null;
-    const timeUntilExpiry = tokenExpiry ? tokenExpiry.getTime() - Date.now() : null;
-    
-    logger.info('Token decoded successfully', {
-      userId: decoded.userId,
-      tokenExpiry: tokenExpiry ? tokenExpiry.toISOString() : null,
-      timeUntilExpiryMs: timeUntilExpiry,
-      timeUntilExpiryMin: timeUntilExpiry ? Math.round(timeUntilExpiry / 60000) : null,
-      isExpired: tokenExpiry ? tokenExpiry < new Date() : false
-    });
-    
-    // Check if user still exists and is active
-    const users = await query(
-      'SELECT id, username, email, role, status FROM users WHERE id = ? AND status = ?',
-      [decoded.userId, 'Active']
-    );
-
-    if (users.length === 0) {
-      logger.warn('Authentication failed: invalid user or expired token', {
-        userId: decoded.userId,
-        method: req.method,
-        url: req.url,
-        route: req.path,
-        ip: req.ip,
-        userAgent: req.get('User-Agent'),
-        tokenStart: token.substring(0, 10) + '...',
-        userStatus: 'NOT_FOUND',
-        searchedStatus: 'Active',
-        headers: {
-          accept: req.get('Accept'),
-          origin: req.get('Origin'),
-          host: req.get('Host')
-        },
-        timestamp: new Date().toISOString()
-      });
+    // Verify token
+    let decoded;
+    try {
+      decoded = jwt.verify(token, env.JWT_SECRET);
+    } catch (e) {
+      logger.warn("JWT verify failed", { name: e?.name, message: e?.message });
       return res.status(401).json({
         success: false,
-        error: 'Invalid or expired token'
+        error:
+          e?.name === "TokenExpiredError" ? "Token expired" : "Invalid token",
       });
     }
 
-    req.user = users[0];
-    logger.info('Authentication successful', {
+    // Support tokens that used "id" or "userId"
+    const userId = decoded?.userId ?? decoded?.id;
+    if (!userId) {
+      logger.warn("Token missing user id claim", {
+        decodedKeys: Object.keys(decoded || {}),
+      });
+      return res
+        .status(401)
+        .json({ success: false, error: "Invalid token payload" });
+    }
+
+    // DB lookup: must be Active
+    let userRows;
+    try {
+      const rs = await query(
+        "SELECT id, username, email, role, status FROM users WHERE id = ? AND status = ?",
+        [userId, "Active"]
+      );
+      userRows = rowsOf(rs);
+    } catch (dbErr) {
+      logger.error({ msg: "Auth DB lookup failed", error: dbErr?.message });
+      return res
+        .status(503)
+        .json({ success: false, error: "Auth store unavailable" });
+    }
+
+    if (userRows.length === 0) {
+      logger.warn("User not found or inactive for token", { userId });
+      return res
+        .status(401)
+        .json({ success: false, error: "Invalid or expired token" });
+    }
+
+    req.user = userRows[0]; // { id, username, email, role, status }
+    logger.info("Auth OK", {
       userId: req.user.id,
-      username: req.user.username,
       role: req.user.role,
-      status: req.user.status,
-      method: req.method,
-      url: req.url,
-      route: req.path,
-      ip: req.ip,
-      userAgent: req.get('User-Agent'),
-      tokenExpiryInfo: tokenExpiry ? {
-        expiry: tokenExpiry.toISOString(),
-        timeUntilExpiryMin: Math.round(timeUntilExpiry / 60000)
-      } : null,
-      timestamp: new Date().toISOString()
+      path: req.path,
     });
-    next();
-  } catch (error) {
-    // Enhanced error logging with token details
-    logger.error('Authentication failed:', {
-      errorName: error.name,
-      errorMessage: error.message,
-      method: req.method,
-      url: req.url,
-      route: req.path,
-      ip: req.ip,
-      userAgent: req.get('User-Agent'),
-      tokenStart: req.headers.authorization ? req.headers.authorization.substring(7, 17) + '...' : 'no-token',
-      timestamp: new Date().toISOString()
+    return next();
+  } catch (err) {
+    logger.error("authenticate() crashed", {
+      name: err?.name,
+      message: err?.message,
     });
-    
-    if (error.name === 'JsonWebTokenError') {
-      logger.warn('401 Response: Invalid token format', {
-        method: req.method,
-        url: req.url,
-        route: req.path,
-        reason: 'JsonWebTokenError',
-        errorMessage: error.message,
-        headers: {
-          accept: req.get('Accept'),
-          origin: req.get('Origin'),
-          userAgent: req.get('User-Agent')
-        },
-        timestamp: new Date().toISOString()
-      });
-      return res.status(401).json({
-        success: false,
-        error: 'Invalid token'
-      });
-    }
-    
-    if (error.name === 'TokenExpiredError') {
-      logger.warn('401 Response: Token expired', {
-        method: req.method,
-        url: req.url,
-        route: req.path,
-        reason: 'TokenExpiredError',
-        expiredAt: error.expiredAt ? error.expiredAt.toISOString() : 'unknown',
-        headers: {
-          accept: req.get('Accept'),
-          origin: req.get('Origin'),
-          userAgent: req.get('User-Agent')
-        },
-        timestamp: new Date().toISOString()
-      });
-      return res.status(401).json({
-        success: false,
-        error: 'Token expired'
-      });
-    }
-
-    logger.error('500 Response: Authentication error', {
-      method: req.method,
-      url: req.url,
-      route: req.path,
-      errorName: error.name,
-      errorMessage: error.message,
-      timestamp: new Date().toISOString()
-    });
-    return res.status(500).json({
-      success: false,
-      error: 'Authentication error'
-    });
+    return res
+      .status(401)
+      .json({ success: false, error: "Authentication error" });
   }
 };
 
-// Role-based authorization middleware
+/**
+ * Authorize:
+ * - If roles provided, user role must be one of them
+ * - Returns 401 if not authenticated, 403 if role not allowed
+ */
 export const authorize = (roles = []) => {
   return (req, res, next) => {
-    if (!req.user) {
-      return res.status(401).json({
-        success: false,
-        error: 'Authentication required'
-      });
-    }
-
-    // If no specific roles required, just need to be authenticated
-    if (roles.length === 0) {
+    try {
+      if (!req.user) {
+        return res
+          .status(401)
+          .json({ success: false, error: "Authentication required" });
+      }
+      if (roles.length && !roles.includes(req.user.role)) {
+        return res.status(403).json({
+          success: false,
+          error: `Access denied. Required roles: ${roles.join(", ")}`,
+        });
+      }
       return next();
+    } catch (e) {
+      return res
+        .status(403)
+        .json({ success: false, error: "Role check error" });
     }
-
-    // Check if user has required role
-    if (!roles.includes(req.user.role)) {
-      logger.warn('Authorization failed: insufficient permissions', {
-        userId: req.user.id,
-        userRole: req.user.role,
-        requiredRoles: roles,
-        method: req.method,
-        url: req.url,
-        ip: req.ip,
-        userAgent: req.get('User-Agent')
-      });
-      return res.status(403).json({
-        success: false,
-        error: `Access denied. Required roles: ${roles.join(', ')}`
-      });
-    }
-
-    logger.info('Authorization successful', {
-      userId: req.user.id,
-      userRole: req.user.role,
-      requiredRoles: roles,
-      method: req.method,
-      url: req.url,
-      ip: req.ip,
-      userAgent: req.get('User-Agent')
-    });
-    next();
   };
 };
 
-// Composable guard that combines authentication and authorization
-export const requireRoles = (roles = []) => {
-  return [authenticate, authorize(roles)];
-};
+/** Compose helper: require auth + specific roles */
+export const requireRoles = (roles = []) => [authenticate, authorize(roles)];
 
-// Optional authentication (for endpoints that work with or without auth)
+/**
+ * Optional authentication:
+ * - If token present & valid, attaches req.user (Active only)
+ * - If missing/invalid, continues without user
+ */
 export const optionalAuth = async (req, res, next) => {
   try {
-    const authHeader = req.headers.authorization;
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return next();
-    }
+    const authHeader = req.headers.authorization || "";
+    const [scheme, token] = authHeader.split(" ");
+    if (scheme !== "Bearer" || !token) return next();
 
-    const token = authHeader.substring(7);
     const decoded = jwt.verify(token, env.JWT_SECRET);
-    
-    const users = await query(
-      'SELECT id, username, email, role, status FROM users WHERE id = ? AND status = ?',
-      [decoded.userId, 'Active']
+    const userId = decoded?.userId ?? decoded?.id;
+    if (!userId) return next();
+
+    const rs = await query(
+      "SELECT id, username, email, role, status FROM users WHERE id = ? AND status = ?",
+      [userId, "Active"]
     );
-
-    if (users.length > 0) {
-      req.user = users[0];
-    }
-
+    const userRows = rowsOf(rs);
+    if (userRows.length) req.user = userRows[0];
     return next();
-  } catch (error) {
-    // For optional auth, we continue even if token is invalid
+  } catch {
     return next();
   }
 };

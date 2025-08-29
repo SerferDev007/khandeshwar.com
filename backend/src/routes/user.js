@@ -1,6 +1,7 @@
-import express from 'express';
-import { validate, schemas } from '../middleware/validate.js';
-import { authenticate, authorize, requireRoles } from '../middleware/auth.js';
+// routes/users.js
+import express from "express";
+import { validate, schemas } from "../middleware/validate.js";
+import { requireRoles, authenticate } from "../middleware/auth.js";
 import {
   getAllUsers,
   getUserById,
@@ -8,26 +9,42 @@ import {
   updateUser,
   deleteUser,
   getUserStats,
-} from '../controllers/user.js';
+} from "../controllers/user.js";
 
 const router = express.Router();
 
-// Get user statistics (Admin only)
-router.get('/stats', ...requireRoles(['Admin']), getUserStats);
+// Stats (Admin only)
+router.get("/stats", ...requireRoles(["Admin"]), getUserStats);
 
-// Get all users (Admin and Treasurer can view users - relaxed for better user management visibility)
-router.get('/', ...requireRoles(['Admin', 'Treasurer']), validate(schemas.pagination), getAllUsers);
+// List users (Admin + Treasurer)
+router.get(
+  "/",
+  ...requireRoles(["Admin", "Treasurer"]),
+  // run validation after auth; validator should never throw
+  validate(schemas.pagination),
+  getAllUsers
+);
 
-// Get user by ID (Admin or self)
-router.get('/:id', authenticate, validate(schemas.idParam), getUserById);
+// Get user by id (auth)
+router.get("/:id", authenticate, validate(schemas.idParam), getUserById);
 
-// Create user (Admin only) - authenticate + authorize + validate
-router.post('/', ...requireRoles(['Admin']), validate(schemas.register), createUser);
+// Create (Admin only)
+router.post(
+  "/",
+  ...requireRoles(["Admin"]),
+  validate(schemas.register),
+  createUser
+);
 
-// Update user (Admin or self for basic fields)
-router.put('/:id', authenticate, validate(schemas.updateUser), updateUser);
+// Update (auth)
+router.put("/:id", authenticate, validate(schemas.updateUser), updateUser);
 
-// Delete user (Admin only)
-router.delete('/:id', ...requireRoles(['Admin']), validate(schemas.idParam), deleteUser);
+// Delete (Admin only)
+router.delete(
+  "/:id",
+  ...requireRoles(["Admin"]),
+  validate(schemas.idParam),
+  deleteUser
+);
 
 export default router;

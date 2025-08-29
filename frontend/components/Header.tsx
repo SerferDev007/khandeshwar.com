@@ -35,10 +35,26 @@ export default function Header({
 }: HeaderProps) {
   const { t, language } = useLanguage();
 
-  // (Moved logs out of JSX to avoid hydration issues)
+  // NEW: fallback to persisted user during reload gap
+  const [storedUser, setStoredUser] = React.useState<User | null>(null);
   React.useEffect(() => {
-    // console.log("user", currentUser);
-  }, [currentUser]);
+    try {
+      const raw = localStorage.getItem("auth"); // { token, user }
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed?.user) setStoredUser(parsed.user as User);
+      }
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  // Prefer prop (fresh) else persisted (avoids empty UI after refresh)
+  const effectiveUser: User | null = currentUser ?? storedUser;
+
+  React.useEffect(() => {
+    console.log("effectiveUser", effectiveUser);
+  }, [effectiveUser]);
 
   const getAvailableTabs = () => [
     { key: "Dashboard", label: t("nav.dashboard") },
@@ -75,10 +91,9 @@ export default function Header({
     }
   };
 
-  // Safe fallbacks (won’t change behavior, just avoids empty renders if something races)
-  const username = currentUser?.username ?? "";
-  const role = (currentUser?.role ?? "Viewer") as User["role"];
-  const email = currentUser?.email ?? "";
+  const username = effectiveUser?.username ?? "";
+  const role = (effectiveUser?.role ?? "Viewer") as User["role"];
+  const email = effectiveUser?.email ?? "";
 
   return (
     <header className="bg-blue-600 text-white p-4 shadow-lg header">

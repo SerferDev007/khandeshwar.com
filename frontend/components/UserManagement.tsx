@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
@@ -63,10 +63,26 @@ export default function UserManagement({
   currentUser,
 }: UserManagementProps) {
   const { t } = useLanguage();
-  
-  // Check if current user has admin privileges for modifications
-  const isAdmin = currentUser?.role === 'Admin';
-  
+
+  // NEW: fallback to persisted user during reload gap
+  const [storedUser, setStoredUser] = useState<User | null>(null);
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem("auth"); // { token, user }
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed?.user) setStoredUser(parsed.user as User);
+      }
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  const effectiveUser: User | null = (currentUser as User) ?? storedUser;
+
+  // Use effectiveUser to preserve admin tools across refresh
+  const isAdmin = effectiveUser?.role === "Admin";
+
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [formData, setFormData] = useState({
@@ -76,33 +92,34 @@ export default function UserManagement({
     role: "Viewer" as const,
     status: "Active" as const,
   });
-  const [validationErrors, setValidationErrors] = useState<{[key: string]: string}>({});
+  const [validationErrors, setValidationErrors] = useState<{
+    [key: string]: string;
+  }>({});
 
-  // Validation functions matching backend schema requirements
-  // These functions mirror the validation logic in backend/src/middleware/validate.js
-  // to provide immediate client-side feedback before API calls
   const validateUsername = (username: string): string | null => {
     if (!username) return "Username is required";
     if (username.length < 3) return "Username must be at least 3 characters";
     if (username.length > 50) return "Username must be less than 50 characters";
-    // Only allow letters, numbers, and underscores to match backend regex: /^[a-zA-Z0-9_]+$/
-    if (!/^[a-zA-Z0-9_]+$/.test(username)) return "Username can only contain letters, numbers, and underscores";
+    if (!/^[a-zA-Z0-9_]+$/.test(username))
+      return "Username can only contain letters, numbers, and underscores";
     return null;
   };
 
   const validateEmail = (email: string): string | null => {
     if (!email) return "Email is required";
-    // Basic email validation matching backend requirements
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) return "Invalid email address";
     return null;
   };
 
-  const validatePassword = (password: string, isRequired: boolean = true): string | null => {
+  const validatePassword = (
+    password: string,
+    isRequired: boolean = true
+  ): string | null => {
     if (!password && isRequired) return "Password is required";
-    if (!password && !isRequired) return null; // Password not required for edits
-    if (password && password.length < 8) return "Password must be at least 8 characters";
-    // Password complexity requirements matching backend: uppercase, lowercase, and digit
+    if (!password && !isRequired) return null;
+    if (password && password.length < 8)
+      return "Password must be at least 8 characters";
     if (password && !/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(password)) {
       return "Password must contain at least one lowercase letter, one uppercase letter, and one number";
     }
@@ -110,30 +127,19 @@ export default function UserManagement({
   };
 
   const validateForm = (): boolean => {
-    const errors: {[key: string]: string} = {};
-    
-    // Validate each field using our validation functions
-    // This prevents invalid data from being sent to the API
+    const errors: { [key: string]: string } = {};
     const usernameError = validateUsername(formData.username);
     if (usernameError) errors.username = usernameError;
-    
     const emailError = validateEmail(formData.email);
     if (emailError) errors.email = emailError;
-    
-    // Password is required for new users, optional for edits
-    // When editing, users can leave password blank to keep current password
     const passwordError = validatePassword(formData.password, !editingUser);
     if (passwordError) errors.password = passwordError;
-    
     setValidationErrors(errors);
     return Object.keys(errors).length === 0;
   };
 
-  // Clear validation errors when user starts typing to provide real-time feedback
-  // This improves UX by removing error messages as soon as user starts correcting them
   const handleInputChange = (field: string, value: string) => {
     setFormData({ ...formData, [field]: value });
-    // Clear the error for this field as user is correcting it
     if (validationErrors[field]) {
       setValidationErrors({ ...validationErrors, [field]: "" });
     }
@@ -141,45 +147,32 @@ export default function UserManagement({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // Validate form before submission to prevent unnecessary API calls
-    // This provides immediate feedback without waiting for backend response
     if (!validateForm()) {
       return;
     }
 
     if (editingUser) {
-      // For editing users, don't send password if it's empty
-      // This allows users to update other fields without changing password
       const updateData: any = {
         username: formData.username,
         email: formData.email,
         role: formData.role,
         status: formData.status,
       };
-      
-      // Only include password if user provided one for security
       if (formData.password.trim()) {
         updateData.password = formData.password;
       }
-      
       onEditUser(editingUser.id, updateData);
       setEditingUser(null);
     } else {
-      // For new users, include password and remove status
-      // Backend automatically sets status to 'Active' for new users
-      // This fixed payload structure resolves the original 400 Bad Request issue
       onAddUser({
         username: formData.username,
         email: formData.email,
-        password: formData.password, // CRITICAL FIX: Include password for user creation
+        password: formData.password,
         role: formData.role,
-        // Removed status - backend sets this automatically per schemas.register
       });
       setIsAddDialogOpen(false);
     }
 
-    // Reset form and clear validation errors after successful submission
     setFormData({
       username: "",
       email: "",
@@ -195,11 +188,11 @@ export default function UserManagement({
     setFormData({
       username: user.username,
       email: user.email,
-      password: "", // Don't pre-fill password for security
+      password: "",
       role: user.role,
       status: user.status,
     });
-    setValidationErrors({}); // Clear any existing validation errors
+    setValidationErrors({});
   };
 
   const getRoleColor = (role: string) => {
@@ -251,100 +244,116 @@ export default function UserManagement({
                   {t("users.addUser")}
                 </Button>
               </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>{t("users.addNewUser")}</DialogTitle>
-                <DialogDescription>
-                  {t("users.createAccount")}
-                </DialogDescription>
-              </DialogHeader>
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div>
-                  <Label htmlFor="username">{t("users.username")}</Label>
-                  <Input
-                    id="username"
-                    value={formData.username}
-                    onChange={(e) => handleInputChange("username", e.target.value)}
-                    required
-                    className={validationErrors.username ? "border-red-500" : ""}
-                  />
-                  {validationErrors.username && (
-                    <p className="text-red-500 text-sm mt-1">{validationErrors.username}</p>
-                  )}
-                  <p className="text-gray-500 text-xs mt-1">
-                    3-50 characters, letters, numbers, and underscores only
-                  </p>
-                </div>
-                <div>
-                  <Label htmlFor="email">{t("users.email")}</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    value={formData.email}
-                    onChange={(e) => handleInputChange("email", e.target.value)}
-                    required
-                    className={validationErrors.email ? "border-red-500" : ""}
-                  />
-                  {validationErrors.email && (
-                    <p className="text-red-500 text-sm mt-1">{validationErrors.email}</p>
-                  )}
-                </div>
-                <div>
-                  <Label htmlFor="password">{t("login.password")}</Label>
-                  <Input
-                    id="password"
-                    type="password"
-                    value={formData.password}
-                    onChange={(e) => handleInputChange("password", e.target.value)}
-                    required
-                    className={validationErrors.password ? "border-red-500" : ""}
-                  />
-                  {validationErrors.password && (
-                    <p className="text-red-500 text-sm mt-1">{validationErrors.password}</p>
-                  )}
-                  <p className="text-gray-500 text-xs mt-1">
-                    Min 8 characters with uppercase, lowercase, and number
-                  </p>
-                </div>
-                <div>
-                  <Label htmlFor="role">{t("users.role")}</Label>
-                  <Select
-                    value={formData.role}
-                    onValueChange={(value: any) =>
-                      setFormData({ ...formData, role: value })
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent className="bg-white text-black border border-gray-200 shadow-lg">
-                      <SelectItem
-                        className="hover:font-bold hover:bg-gray-100"
-                        value="Admin"
-                      >
-                        {t("users.admin")}
-                      </SelectItem>
-                      <SelectItem
-                        className="hover:font-bold hover:bg-gray-100"
-                        value="Treasurer"
-                      >
-                        {t("users.treasurer")}
-                      </SelectItem>
-                      <SelectItem
-                        className="hover:font-bold hover:bg-gray-100"
-                        value="Viewer"
-                      >
-                        {t("users.viewer")}
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <Button type="submit" className="w-full">
-                  {t("users.addUser")}
-                </Button>
-              </form>
-            </DialogContent>
-          </Dialog>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>{t("users.addNewUser")}</DialogTitle>
+                  <DialogDescription>
+                    {t("users.createAccount")}
+                  </DialogDescription>
+                </DialogHeader>
+                <form onSubmit={handleSubmit} className="space-y-4">
+                  <div>
+                    <Label htmlFor="username">{t("users.username")}</Label>
+                    <Input
+                      id="username"
+                      value={formData.username}
+                      onChange={(e) =>
+                        handleInputChange("username", e.target.value)
+                      }
+                      required
+                      className={
+                        validationErrors.username ? "border-red-500" : ""
+                      }
+                    />
+                    {validationErrors.username && (
+                      <p className="text-red-500 text-sm mt-1">
+                        {validationErrors.username}
+                      </p>
+                    )}
+                    <p className="text-gray-500 text-xs mt-1">
+                      3-50 characters, letters, numbers, and underscores only
+                    </p>
+                  </div>
+                  <div>
+                    <Label htmlFor="email">{t("users.email")}</Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      value={formData.email}
+                      onChange={(e) =>
+                        handleInputChange("email", e.target.value)
+                      }
+                      required
+                      className={validationErrors.email ? "border-red-500" : ""}
+                    />
+                    {validationErrors.email && (
+                      <p className="text-red-500 text-sm mt-1">
+                        {validationErrors.email}
+                      </p>
+                    )}
+                  </div>
+                  <div>
+                    <Label htmlFor="password">{t("login.password")}</Label>
+                    <Input
+                      id="password"
+                      type="password"
+                      value={formData.password}
+                      onChange={(e) =>
+                        handleInputChange("password", e.target.value)
+                      }
+                      required
+                      className={
+                        validationErrors.password ? "border-red-500" : ""
+                      }
+                    />
+                    {validationErrors.password && (
+                      <p className="text-red-500 text-sm mt-1">
+                        {validationErrors.password}
+                      </p>
+                    )}
+                    <p className="text-gray-500 text-xs mt-1">
+                      Min 8 characters with uppercase, lowercase, and number
+                    </p>
+                  </div>
+                  <div>
+                    <Label htmlFor="role">{t("users.role")}</Label>
+                    <Select
+                      value={formData.role}
+                      onValueChange={(value: any) =>
+                        setFormData({ ...formData, role: value })
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="bg-white text-black border border-gray-200 shadow-lg">
+                        <SelectItem
+                          className="hover:font-bold hover:bg-gray-100"
+                          value="Admin"
+                        >
+                          {t("users.admin")}
+                        </SelectItem>
+                        <SelectItem
+                          className="hover:font-bold hover:bg-gray-100"
+                          value="Treasurer"
+                        >
+                          {t("users.treasurer")}
+                        </SelectItem>
+                        <SelectItem
+                          className="hover:font-bold hover:bg-gray-100"
+                          value="Viewer"
+                        >
+                          {t("users.viewer")}
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <Button type="submit" className="w-full">
+                    {t("users.addUser")}
+                  </Button>
+                </form>
+              </DialogContent>
+            </Dialog>
           )}
         </CardHeader>
         <CardContent>
@@ -361,7 +370,6 @@ export default function UserManagement({
             </AlertDescription>
           </Alert>
 
-          {/* Error State */}
           {error && (
             <Alert className="mb-4 border-red-300 bg-red-50">
               <AlertDescription className="text-red-700">
@@ -370,7 +378,6 @@ export default function UserManagement({
             </Alert>
           )}
 
-          {/* Loading State */}
           {loading && (
             <div className="flex justify-center items-center py-8">
               <div className="text-center">
@@ -380,7 +387,6 @@ export default function UserManagement({
             </div>
           )}
 
-          {/* Empty State - no users and not loading */}
           {!loading && !error && users.length === 0 && (
             <div className="text-center py-8">
               <p className="text-gray-600 mb-4">No users found.</p>
@@ -390,82 +396,80 @@ export default function UserManagement({
             </div>
           )}
 
-          {/* Users Table - only show if not loading, no error, and has users */}
           {!loading && !error && users.length > 0 && (
             <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>{t("users.username")}</TableHead>
-                <TableHead>{t("users.email")}</TableHead>
-                <TableHead>{t("users.role")}</TableHead>
-                <TableHead>{t("users.status")}</TableHead>
-                <TableHead>{t("users.lastLogin")}</TableHead>
-                <TableHead>{t("users.actions")}</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {users.map((user) => (
-                <TableRow key={user.id}>
-                  <TableCell>{user.username}</TableCell>
-                  <TableCell>{user.email}</TableCell>
-                  <TableCell>
-                    <Badge className={getRoleColor(user.role)}>
-                      {getRoleLabel(user.role)}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <Badge className={getStatusColor(user.status)}>
-                      {getStatusLabel(user.status)}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>{user.lastLogin || t("users.never")}</TableCell>
-                  <TableCell>
-                    <div className="flex space-x-2">
-                      {isAdmin ? (
-                        <>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleEdit(user)}
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => onToggleUserStatus(user.id)}
-                          >
-                            {user.status === "Active" ? (
-                              <UserX className="h-4 w-4" />
-                            ) : (
-                              <UserCheck className="h-4 w-4" />
-                            )}
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => onDeleteUser(user.id)}
-                            className="text-red-600 hover:text-red-700"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </>
-                      ) : (
-                        <span className="text-sm text-gray-500 italic">
-                          View Only
-                        </span>
-                      )}
-                    </div>
-                  </TableCell>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>{t("users.username")}</TableHead>
+                  <TableHead>{t("users.email")}</TableHead>
+                  <TableHead>{t("users.role")}</TableHead>
+                  <TableHead>{t("users.status")}</TableHead>
+                  <TableHead>{t("users.lastLogin")}</TableHead>
+                  <TableHead>{t("users.actions")}</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {users.map((user) => (
+                  <TableRow key={user.id}>
+                    <TableCell>{user.username}</TableCell>
+                    <TableCell>{user.email}</TableCell>
+                    <TableCell>
+                      <Badge className={getRoleColor(user.role)}>
+                        {getRoleLabel(user.role)}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Badge className={getStatusColor(user.status)}>
+                        {getStatusLabel(user.status)}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>{user.lastLogin || t("users.never")}</TableCell>
+                    <TableCell>
+                      <div className="flex space-x-2">
+                        {isAdmin ? (
+                          <>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleEdit(user)}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => onToggleUserStatus(user.id)}
+                            >
+                              {user.status === "Active" ? (
+                                <UserX className="h-4 w-4" />
+                              ) : (
+                                <UserCheck className="h-4 w-4" />
+                              )}
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => onDeleteUser(user.id)}
+                              className="text-red-600 hover:text-red-700"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </>
+                        ) : (
+                          <span className="text-sm text-gray-500 italic">
+                            View Only
+                          </span>
+                        )}
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
           )}
         </CardContent>
       </Card>
 
-      {/* Edit User Dialog */}
       <Dialog open={!!editingUser} onOpenChange={() => setEditingUser(null)}>
         <DialogContent>
           <DialogHeader>
@@ -483,7 +487,9 @@ export default function UserManagement({
                 className={validationErrors.username ? "border-red-500" : ""}
               />
               {validationErrors.username && (
-                <p className="text-red-500 text-sm mt-1">{validationErrors.username}</p>
+                <p className="text-red-500 text-sm mt-1">
+                  {validationErrors.username}
+                </p>
               )}
             </div>
             <div>
@@ -497,11 +503,15 @@ export default function UserManagement({
                 className={validationErrors.email ? "border-red-500" : ""}
               />
               {validationErrors.email && (
-                <p className="text-red-500 text-sm mt-1">{validationErrors.email}</p>
+                <p className="text-red-500 text-sm mt-1">
+                  {validationErrors.email}
+                </p>
               )}
             </div>
             <div>
-              <Label htmlFor="edit-password">{t("login.password")} (optional)</Label>
+              <Label htmlFor="edit-password">
+                {t("login.password")} (optional)
+              </Label>
               <Input
                 id="edit-password"
                 type="password"
@@ -511,10 +521,13 @@ export default function UserManagement({
                 className={validationErrors.password ? "border-red-500" : ""}
               />
               {validationErrors.password && (
-                <p className="text-red-500 text-sm mt-1">{validationErrors.password}</p>
+                <p className="text-red-500 text-sm mt-1">
+                  {validationErrors.password}
+                </p>
               )}
               <p className="text-gray-500 text-xs mt-1">
-                Leave blank to keep current password. If changing: min 8 characters with uppercase, lowercase, and number
+                Leave blank to keep current password. If changing: min 8
+                characters with uppercase, lowercase, and number
               </p>
             </div>
             <div>

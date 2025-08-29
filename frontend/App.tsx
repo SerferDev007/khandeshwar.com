@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import Header from "./components/Header";
 import Dashboard from "./components/Dashboard";
 import Donations from "./components/Donations";
@@ -73,7 +73,7 @@ function AppContent() {
     createUser,
     updateUser,
     deleteUser,
-    fetchUsers,
+    fetchUsers, // <-- we'll call this on Users tab
   } = useData();
 
   const [activeTab, setActiveTab] = useState("Dashboard");
@@ -83,8 +83,15 @@ function AppContent() {
     setActiveTab(tab);
   };
 
+  // Fetch users whenever Users tab becomes active
+  useEffect(() => {
+    if (isAuthenticated && user?.role === "Admin" && activeTab === "Users") {
+      fetchUsers();
+    }
+  }, [activeTab, isAuthenticated, user?.role, fetchUsers]);
+
   // Handle login error display
-  React.useEffect(() => {
+  useEffect(() => {
     if (authError) {
       toast.error(authError);
     }
@@ -153,7 +160,7 @@ function AppContent() {
     }
   };
 
-  // Donation handlers (use specific donation API endpoints)
+  // Donation handlers
   const handleAddDonation = async (
     newDonation: Omit<Transaction, "id" | "createdAt">
   ) => {
@@ -186,7 +193,7 @@ function AppContent() {
     }
   };
 
-  // Expense handlers (use specific expense API endpoints)
+  // Expense handlers
   const handleAddExpense = async (
     newExpense: Omit<Transaction, "id" | "createdAt">
   ) => {
@@ -223,7 +230,6 @@ function AppContent() {
   const handleAddShop = async (newShop: any) => {
     try {
       await createShop(newShop);
-      toast.success("Shop added successfully!");
     } catch (error: any) {
       toast.error(error.message || "Failed to add shop");
     }
@@ -331,34 +337,30 @@ function AppContent() {
     }
   };
 
-  // User handlers with enhanced error handling
-  // This provides specific, actionable error messages instead of generic "Failed to add user"
+  // User handlers
   const handleAddUser = async (newUser: any) => {
     try {
       await createUser(newUser);
       toast.success("User added successfully!");
+      // Refresh list after add
+      if (activeTab === "Users") fetchUsers();
     } catch (error: any) {
       console.error("Create user error:", error);
-
-      // Handle validation errors with specific field messages
-      // Backend returns structured error responses with details array for validation failures
       if (
         error.status === 400 &&
         error.details &&
         Array.isArray(error.details)
       ) {
         const fieldErrors = error.details
-          .map((detail: any) => `${detail.field}: ${detail.message}`)
+          .map((d: any) => `${d.field}: ${d.message}`)
           .join(", ");
         toast.error(`Validation failed: ${fieldErrors}`);
       } else if (error.status === 409) {
-        // Handle duplicate user errors (username or email already exists)
         toast.error(
           error.message ||
             "User already exists (username or email already taken)"
         );
       } else {
-        // Fallback for other errors
         toast.error(error.message || "Failed to add user");
       }
     }
@@ -368,22 +370,19 @@ function AppContent() {
     try {
       await updateUser(id, updatedUser);
       toast.success("User updated successfully!");
+      if (activeTab === "Users") fetchUsers();
     } catch (error: any) {
       console.error("Update user error:", error);
-
-      // Handle validation errors with specific field messages
-      // Same error handling pattern as handleAddUser for consistency
       if (
         error.status === 400 &&
         error.details &&
         Array.isArray(error.details)
       ) {
         const fieldErrors = error.details
-          .map((detail: any) => `${detail.field}: ${detail.message}`)
+          .map((d: any) => `${d.field}: ${d.message}`)
           .join(", ");
         toast.error(`Validation failed: ${fieldErrors}`);
       } else if (error.status === 409) {
-        // Handle duplicate user errors during updates
         toast.error(error.message || "Username or email already taken");
       } else {
         toast.error(error.message || "Failed to update user");
@@ -395,6 +394,7 @@ function AppContent() {
     try {
       await deleteUser(id);
       toast.success("User deleted successfully!");
+      if (activeTab === "Users") fetchUsers();
     } catch (error: any) {
       toast.error(error.message || "Failed to delete user");
     }
@@ -411,7 +411,6 @@ function AppContent() {
 
   // Placeholder functions for compatibility
   const handleUpdatePenalty = (id: string, penalty: any) => {
-    // TODO: Implement penalty update
     console.log("Update penalty:", id, penalty);
   };
 
@@ -419,7 +418,6 @@ function AppContent() {
     type: "donations" | "rentIncome",
     count: number
   ) => {
-    // This will be handled by the backend in the future
     console.log(`Update ${type} counter to:`, count);
   };
 
@@ -501,18 +499,19 @@ function AppContent() {
           />
         )}
 
-        {activeTab === "Users" && user?.role === "Admin" && (
-          <UserManagement
-            users={users}
-            onAddUser={handleAddUser}
-            onUpdateUser={handleUpdateUser}
-            onDeleteUser={handleDeleteUser}
-            onToggleUserStatus={handleToggleUserStatus}
-            currentUser={user}
-            loading={loading.users}
-            error={errors.users}
-          />
-        )}
+        {activeTab === "Users" &&
+          (user?.role === "Admin" || user?.role === "Treasurer") && (
+            <UserManagement
+              users={users}
+              onAddUser={handleAddUser}
+              onEditUser={handleUpdateUser}
+              onDeleteUser={handleDeleteUser}
+              onToggleUserStatus={handleToggleUserStatus}
+              currentUser={user}
+              loading={loading.users}
+              error={errors.users}
+            />
+          )}
 
         {activeTab === "RentManagement" && (
           <RentManagement
