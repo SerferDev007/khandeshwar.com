@@ -665,7 +665,152 @@ class ApiClient {
   }
 }
 
+import MockApiClient from './mockApiClient';
+
+// Development fallback mode
+let useMockMode = false;
+let mockClient: MockApiClient | null = null;
+
+class ApiClientWithFallback extends ApiClient {
+  constructor(baseUrl: string) {
+    super(baseUrl);
+  }
+
+  async request<T = any>(endpoint: string, options: RequestInit = {}, retryCount = 0): Promise<T> {
+    try {
+      // Try real API first
+      return await super.request<T>(endpoint, options, retryCount);
+    } catch (error: any) {
+      // If network error and not already using mock mode, switch to mock
+      if (error instanceof TypeError && error.message === 'Failed to fetch' && !useMockMode) {
+        console.warn('🔄 Backend not available, switching to mock mode for development');
+        useMockMode = true;
+        mockClient = new MockApiClient();
+        
+        // Extract auth token if available and set it in mock client
+        const currentToken = this.getAuthToken();
+        if (currentToken) {
+          mockClient.setAuthToken(currentToken);
+        }
+        
+        return this.handleMockRequest<T>(endpoint, options);
+      }
+      
+      // If already using mock mode, handle with mock
+      if (useMockMode && mockClient) {
+        return this.handleMockRequest<T>(endpoint, options);
+      }
+      
+      throw error;
+    }
+  }
+
+  private async handleMockRequest<T = any>(endpoint: string, options: RequestInit = {}): Promise<T> {
+    if (!mockClient) {
+      mockClient = new MockApiClient();
+    }
+
+    const method = options.method || 'GET';
+    const body = options.body ? JSON.parse(options.body as string) : undefined;
+    
+    // Route to appropriate mock method based on endpoint and method
+    try {
+      if (endpoint === '/api/auth/login' && method === 'POST') {
+        return await mockClient.login(body.email, body.password) as T;
+      }
+      
+      if (endpoint === '/api/auth/profile' && method === 'GET') {
+        return await mockClient.getProfile() as T;
+      }
+      
+      if (endpoint === '/api/auth/logout' && method === 'POST') {
+        this.setAuthToken(null); // Clear real client token too
+        return await mockClient.logout() as T;
+      }
+      
+      if (endpoint === '/api/shops') {
+        if (method === 'GET') return await mockClient.getShops() as T;
+        if (method === 'POST') return await mockClient.createShop(body) as T;
+      }
+      
+      if (endpoint.startsWith('/api/shops/')) {
+        const id = endpoint.split('/').pop()!;
+        if (method === 'PUT') return await mockClient.updateShop(id, body) as T;
+        if (method === 'DELETE') return await mockClient.deleteShop(id) as T;
+      }
+      
+      if (endpoint === '/api/tenants') {
+        if (method === 'GET') return await mockClient.getTenants() as T;
+        if (method === 'POST') return await mockClient.createTenant(body) as T;
+      }
+      
+      if (endpoint.startsWith('/api/tenants/')) {
+        const id = endpoint.split('/').pop()!;
+        if (method === 'PUT') return await mockClient.updateTenant(id, body) as T;
+        if (method === 'DELETE') return await mockClient.deleteTenant(id) as T;
+      }
+      
+      if (endpoint === '/api/agreements') {
+        if (method === 'GET') return await mockClient.getAgreements() as T;
+        if (method === 'POST') return await mockClient.createAgreement(body) as T;
+      }
+      
+      if (endpoint.startsWith('/api/agreements/')) {
+        const id = endpoint.split('/').pop()!;
+        if (method === 'PUT') return await mockClient.updateAgreement(id, body) as T;
+        if (method === 'DELETE') return await mockClient.deleteAgreement(id) as T;
+      }
+      
+      if (endpoint === '/api/loans') {
+        if (method === 'GET') return await mockClient.getLoans() as T;
+        if (method === 'POST') return await mockClient.createLoan(body) as T;
+      }
+      
+      if (endpoint.startsWith('/api/loans/')) {
+        const id = endpoint.split('/').pop()!;
+        if (method === 'PUT') return await mockClient.updateLoan(id, body) as T;
+        if (method === 'DELETE') return await mockClient.deleteLoan(id) as T;
+      }
+      
+      if (endpoint === '/api/rent/payments' && method === 'POST') {
+        return await mockClient.createRentPayment(body) as T;
+      }
+      
+      if (endpoint === '/api/rent-penalties') {
+        if (method === 'GET') return await mockClient.getRentPenalties() as T;
+        if (method === 'POST') return await mockClient.createRentPenalty(body) as T;
+      }
+      
+      if (endpoint.startsWith('/api/rent-penalties/')) {
+        const id = endpoint.split('/').pop()!;
+        if (method === 'PUT') return await mockClient.updateRentPenalty(id, body) as T;
+      }
+      
+      // Default responses for other endpoints
+      if (endpoint === '/api/transactions') return [] as T;
+      if (endpoint === '/api/donations') return [] as T;
+      if (endpoint === '/api/expenses') return [] as T;
+      if (endpoint === '/api/users') return await mockClient.getUsers() as T;
+      
+      console.warn(`🚧 Mock endpoint not implemented: ${method} ${endpoint}`);
+      return {} as T;
+      
+    } catch (error: any) {
+      console.error(`Mock API error for ${method} ${endpoint}:`, error);
+      throw error;
+    }
+  }
+  
+  // Override auth token methods to sync with mock client
+  setAuthToken(token: string | null): void {
+    super.setAuthToken(token);
+    if (mockClient) {
+      mockClient.setAuthToken(token);
+    }
+  }
+}
+
 // Singleton
-const apiClient = new ApiClient(API_BASE_URL);
+const apiClient = new ApiClientWithFallback(API_BASE_URL);
 export default apiClient;
 export { ApiClient, type ApiError, AUTH_TOKEN_KEY };
