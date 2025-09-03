@@ -18,19 +18,133 @@ const router = express.Router();
 //   return Date.now().toString() + Math.random().toString(36).substr(2, 9);
 // };
 
-// GET /api/shops - Get all shops
+// GET /api/shops - Get all shops with pagination and filtering
 router.get('/', authenticate, authorize(['Admin', 'Treasurer', 'Viewer']), async (req, res) => {
+  // Generate correlation ID for request tracking
+  const requestId = generateCorrelationId();
+  
   try {
-    const rows = await query(
-      'SELECT * FROM shops ORDER BY shop_number ASC'
-    );
-    const shops = rows.map(row => Shop.fromDbRow(row));
+    // === DIAGNOSTIC PHASE 1: REQUEST INTAKE ===
+    dbg('shop-list', 'request-received', {
+      method: req.method,
+      url: req.url,
+      query: req.query,
+      userAgent: req.headers['user-agent'],
+      userId: req.user?.id,
+      userRole: req.user?.role
+    }, requestId);
+
+    // === PHASE 2: INPUT VALIDATION AND PARSING ===
+    const page = Math.max(1, parseInt(req.query.page) || 1);
+    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit) || 20));
+    const offset = (page - 1) * limit;
+    const status = req.query.status;
+    const search = req.query.search;
+
+    // Validate status if provided
+    const validStatuses = ['Vacant', 'Occupied', 'Maintenance'];
+    if (status && !validStatuses.includes(status)) {
+      dbg('shop-list', 'error', {
+        errorName: 'ValidationError', 
+        message: 'Invalid status value',
+        providedStatus: status,
+        validStatuses
+      }, requestId);
+      
+      return res.status(400).json({
+        success: false,
+        errors: [{ field: 'status', message: `Status must be one of: ${validStatuses.join(', ')}` }]
+      });
+    }
+
+    // === PHASE 3: BUILD DYNAMIC QUERY ===
+    let whereClauses = [];
+    let queryParams = [];
+
+    if (status) {
+      whereClauses.push('status = ?');
+      queryParams.push(status);
+    }
+
+    if (search) {
+      whereClauses.push('(shop_number LIKE ? OR description LIKE ?)');
+      const searchPattern = `%${search}%`;
+      queryParams.push(searchPattern, searchPattern);
+    }
+
+    const whereClause = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
     
-    return res.json({
+    // Build main select query
+    const selectQuery = `
+      SELECT id, shop_number, size, monthly_rent, deposit, status, 
+             tenant_id, agreement_id, description, created_at 
+      FROM shops 
+      ${whereClause} 
+      ORDER BY created_at DESC, id DESC 
+      LIMIT ? OFFSET ?
+    `;
+    
+    // Build count query
+    const countQuery = `SELECT COUNT(*) as total FROM shops ${whereClause}`;
+
+    dbg('shop-list', 'query-built', {
+      selectQuery: selectQuery.replace(/\s+/g, ' ').trim(),
+      countQuery: countQuery.replace(/\s+/g, ' ').trim(),
+      whereClauses,
+      queryParams: queryParams.length,
+      pagination: { page, limit, offset }
+    }, requestId);
+
+    // === PHASE 4: EXECUTE COUNT QUERY ===
+    const countTimer = dbgTimer('shop-list', 'db-count', requestId);
+    const countResults = await query(countQuery, queryParams);
+    const total = countResults[0].total;
+    countTimer({ total });
+
+    // === PHASE 5: EXECUTE MAIN QUERY ===
+    const fetchTimer = dbgTimer('shop-list', 'db-fetch', requestId);
+    const selectParams = [...queryParams, limit, offset];
+    const rows = await query(selectQuery, selectParams);
+    fetchTimer({ itemCount: rows.length });
+
+    // === PHASE 6: TRANSFORM RESULTS ===
+    const shops = rows.map(row => Shop.fromDbRow(row));
+
+    // === PHASE 7: BUILD RESPONSE ===
+    const hasMore = page * limit < total;
+    const pagination = {
+      page,
+      limit, 
+      total,
+      hasMore
+    };
+
+    const response = {
       success: true,
-      data: shops
-    });
+      data: {
+        items: shops,
+        pagination
+      }
+    };
+
+    dbg('shop-list', 'success', {
+      itemCount: shops.length,
+      page,
+      limit,
+      total,
+      hasMore,
+      filters: { status: status || 'none', search: search || 'none' }
+    }, requestId);
+
+    return res.json(response);
+
   } catch (error) {
+    dbg('shop-list', 'error', {
+      errorName: error.name || 'UnknownError',
+      message: error.message,
+      stack: error.stack?.split('\n').slice(0, 3)
+    }, requestId);
+    
     logger.error('Get shops error:', error);
     return res.status(500).json({
       success: false,
