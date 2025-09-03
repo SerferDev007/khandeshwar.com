@@ -138,6 +138,13 @@ export interface ReceiptCounters {
   rentIncome: number;
 }
 
+export interface UsersPagination {
+  page: number;
+  limit: number;
+  total: number;
+  pages: number;
+}
+
 // Authentication types
 export interface LoginCredentials {
   email: string;
