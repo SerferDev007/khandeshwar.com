@@ -9,6 +9,7 @@ import pino from 'pino';
 import { dbg, dbgMySQLError, dbgTimer, generateCorrelationId } from '../utils/debugLogger.js';
 import { filterUndefined, buildInsertStatement, assertNoUndefinedParams } from '../utils/sqlHelpers.js';
 import { validateShopPayload } from '../utils/validation/shopValidation.js';
+import { timedQuery, createRouteWatchdog } from '../utils/timedQuery.js';
 
 const logger = pino({ name: 'shop-router' });
 const router = express.Router();
@@ -74,6 +75,9 @@ router.post('/', authenticate, authorize(['Admin', 'Treasurer']), async (req, re
   // Generate correlation ID for request tracking
   const requestId = generateCorrelationId();
   
+  // === ROUTE-LEVEL WATCHDOG TIMER ===
+  const clearWatchdog = createRouteWatchdog(res, 10000, requestId);
+  
   try {
     // === DIAGNOSTIC PHASE 1: REQUEST INTAKE ===
     dbg('shop-creation', 'request-received', {
@@ -97,6 +101,7 @@ router.post('/', authenticate, authorize(['Admin', 'Treasurer']), async (req, re
         originalPayload: req.body
       }, requestId);
 
+      clearWatchdog(); // Clear watchdog before response
       return res.status(400).json({
         success: false,
         error: 'Validation failed',
@@ -197,9 +202,11 @@ router.post('/', authenticate, authorize(['Admin', 'Treasurer']), async (req, re
       params: [shopData.shopNumber]
     }, requestId);
 
-    const existingShops = await query(
-      'SELECT id FROM shops WHERE shop_number = ?',
-      [shopData.shopNumber]
+    const existingShops = await timedQuery(
+      query,
+      ['SELECT id FROM shops WHERE shop_number = ?', [shopData.shopNumber]],
+      8000,
+      requestId
     );
 
     uniquenessTimer({ existingShopsCount: existingShops.length });
@@ -211,6 +218,7 @@ router.post('/', authenticate, authorize(['Admin', 'Treasurer']), async (req, re
         conflictResolution: '409-conflict-response'
       }, requestId);
 
+      clearWatchdog(); // Clear watchdog before response
       return res.status(409).json({
         success: false,
         error: 'Shop number already exists'
@@ -225,15 +233,19 @@ router.post('/', authenticate, authorize(['Admin', 'Treasurer']), async (req, re
     // === DIAGNOSTIC PHASE 8: BUILD INSERT STATEMENT ===
     const { sql, values, fields, placeholders } = buildInsertStatement('shops', filteredDbObject);
 
-    dbg('shop-creation', 'insert-preparation', {
+    // Enhanced pre-execute values snapshot with undefined token replacement for logging
+    const valuesSnapshot = values.map(v => v === undefined ? '[undefined]' : v);
+    
+    dbg('shop-creation', 'pre-execute-values', {
       fields,
       placeholders,
       valueCount: values.length,
       placeholderCount: (placeholders.match(/\?/g) || []).length,
       parameterMatch: values.length === (placeholders.match(/\?/g) || []).length,
-      sampleValues: values.slice(0, 5), // First 5 values for inspection
+      valuesSnapshot: valuesSnapshot.slice(0, 10), // First 10 values with undefined tokens
+      sampleValues: values.slice(0, 5), // First 5 actual values for inspection
       fieldCount: fields.split(',').length,
-      sql
+      sql: sql.substring(0, 100) + '...' // Truncated SQL for logging
     }, requestId);
 
     // === DEFENSIVE ASSERTION: NO UNDEFINED PARAMETERS ===
@@ -250,26 +262,29 @@ router.post('/', authenticate, authorize(['Admin', 'Treasurer']), async (req, re
         error: assertionError.message,
         errorCode: assertionError.code,
         undefinedFields: assertionError.undefinedFields,
-        undefinedIndexes: assertionError.undefinedIndexes
+        undefinedIndexes: assertionError.undefinedIndexes,
+        phase: 'undefined-param-detected'
       }, requestId);
 
+      clearWatchdog(); // Clear watchdog before response
       return res.status(500).json({
         success: false,
         error: 'Internal parameter binding error. Please contact administrator.'
       });
     }
 
-    // === DIAGNOSTIC PHASE 9: DATABASE INSERT ===
+    // === DIAGNOSTIC PHASE 9: DATABASE INSERT WITH TIMEOUT ===
     const insertTimer = dbgTimer('shop-creation', 'database-insert', requestId);
     
     dbg('shop-creation', 'insert-execution-start', {
       tableName: 'shops',
       operation: 'INSERT',
       fieldCount: fields.split(',').length,
-      valueCount: values.length
+      valueCount: values.length,
+      timeoutMs: 8000
     }, requestId);
 
-    await query(sql, values);
+    await timedQuery(query, [sql, values], 8000, requestId);
 
     insertTimer({ success: true, operation: 'INSERT' });
 
@@ -283,6 +298,9 @@ router.post('/', authenticate, authorize(['Admin', 'Treasurer']), async (req, re
 
     logger.info('Shop created successfully:', { id: shop.id, shopNumber: shop.shopNumber, requestId });
     
+    // Clear watchdog before successful response
+    clearWatchdog();
+    
     // Note: We don't include createdAt in response since it wasn't retrieved from DB
     // Future enhancement could SELECT the row after INSERT to get the actual timestamp
     return res.status(201).json({
@@ -290,6 +308,9 @@ router.post('/', authenticate, authorize(['Admin', 'Treasurer']), async (req, re
       data: shop
     });
   } catch (error) {
+    // Clear watchdog on error
+    clearWatchdog();
+    
     // === DIAGNOSTIC PHASE 11: ERROR HANDLING ===
     dbg('shop-creation', 'error-caught', {
       errorName: error.name,
@@ -306,6 +327,24 @@ router.post('/', authenticate, authorize(['Admin', 'Treasurer']), async (req, re
     }, requestId);
 
     logger.error('Create shop error:', { error: error.message, code: error.code, requestId });
+    
+    // Handle database timeout errors
+    if (error.code === 'DB_TIMEOUT') {
+      dbg('shop-creation', 'error-classification', {
+        errorCode: 'DB_TIMEOUT',
+        diagnosis: 'Database operation exceeded timeout limit',
+        responseStatus: 504,
+        userMessage: 'Database operation timed out',
+        technicalNote: 'Database query took longer than 8 seconds',
+        timeoutMs: error.timeoutMs
+      }, requestId);
+      
+      return res.status(504).json({
+        success: false,
+        error: 'Database operation timed out',
+        code: 'DB_TIMEOUT'
+      });
+    }
     
     // Handle our new UNDEFINED_SQL_PARAM error
     if (error.code === 'UNDEFINED_SQL_PARAM') {
