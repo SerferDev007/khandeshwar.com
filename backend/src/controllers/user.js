@@ -1,11 +1,26 @@
 import { User } from "../models/User.js";
 import { asyncHandler } from "../middleware/error.js";
 import pino from "pino";
+import { v4 as uuidv4 } from "uuid";
 
 const logger = pino({ name: "UserController" });
 
 // Get all users (Admin/Treasurer)
 export const getAllUsers = asyncHandler(async (req, res) => {
+  // Generate unique request ID for tracking
+  const requestId = uuidv4().substring(0, 8);
+  const startTime = Date.now();
+  
+  console.log(`[${new Date().toISOString()}] [USER-API] [${requestId}] 🔍 Starting getAllUsers request`);
+  console.log(`[${new Date().toISOString()}] [REQUEST] [${requestId}] 📋 Request details:`, {
+    method: req.method,
+    url: req.url,
+    userAgent: req.headers['user-agent'],
+    ip: req.ip || req.connection.remoteAddress,
+    userId: req.user?.id,
+    userRole: req.user?.role
+  });
+
   try {
     // ✅ Don’t assume validator ran; fall back to query and sane defaults
     const v = req.validatedData ?? {};
@@ -17,6 +32,15 @@ export const getAllUsers = asyncHandler(async (req, res) => {
     const rawOrder = v.order ?? q.order ?? "desc";
     const rawRole = v.role ?? q.role;
     const rawStatus = v.status ?? q.status;
+
+    console.log(`[${new Date().toISOString()}] [PARAMS] [${requestId}] 📥 Raw parameters:`, {
+      page: rawPage,
+      limit: rawLimit,
+      sort: rawSort,
+      order: rawOrder,
+      role: rawRole,
+      status: rawStatus
+    });
 
     logger.info("getAllUsers request (raw):", {
       page: rawPage,
@@ -56,14 +80,27 @@ export const getAllUsers = asyncHandler(async (req, res) => {
       safeOptions.status = rawStatus;
     }
 
+    console.log(`[${new Date().toISOString()}] [SANITIZED] [${requestId}] ✅ Sanitized parameters:`, safeOptions);
     logger.info("getAllUsers sanitized options:", safeOptions);
 
+    console.log(`[${new Date().toISOString()}] [MODEL-CALL] [${requestId}] 📤 Calling User.findAll with options:`, safeOptions);
     // ✅ Call model safely
-    const result = await User.findAll(safeOptions);
+    const result = await User.findAll(safeOptions, requestId);
+
+    console.log(`[${new Date().toISOString()}] [MODEL-RESULT] [${requestId}] 📥 User.findAll result:`, {
+      resultExists: !!result,
+      resultType: typeof result,
+      hasUsers: !!result?.users,
+      usersIsArray: Array.isArray(result?.users),
+      usersCount: result?.users?.length || 0,
+      hasPagination: !!result?.pagination
+    });
 
     if (!result || typeof result !== "object") {
+      console.log(`[${new Date().toISOString()}] [ERROR] [${requestId}] ❌ User.findAll returned unexpected value`);
       logger.error("User.findAll returned unexpected value", {
         resultType: typeof result,
+        requestId
       });
       return res.status(500).json({
         success: false,
@@ -79,10 +116,22 @@ export const getAllUsers = asyncHandler(async (req, res) => {
       pages: Math.ceil((users.length || 1) / safeOptions.limit),
     };
 
+    const processingTime = Date.now() - startTime;
+    console.log(`[${new Date().toISOString()}] [SUCCESS] [${requestId}] ✅ getAllUsers completed successfully`);
+    console.log(`[${new Date().toISOString()}] [PERFORMANCE] [${requestId}] ⏱️ Request processing time: ${processingTime}ms`);
+    console.log(`[${new Date().toISOString()}] [RESPONSE] [${requestId}] 📤 Response data:`, {
+      usersCount: users.length,
+      totalPages: pagination.pages,
+      currentPage: pagination.page,
+      totalUsers: pagination.total
+    });
+
     logger.info("getAllUsers success:", {
       usersCount: users.length,
       totalPages: pagination.pages,
       currentPage: pagination.page,
+      processingTime,
+      requestId
     });
 
     return res.json({
@@ -95,24 +144,25 @@ export const getAllUsers = asyncHandler(async (req, res) => {
       },
     });
   } catch (error) {
-    // Enhanced error logging for better debugging
-    logger.error("getAllUsers failed with comprehensive error details:", {
-      errorInfo: {
-        message: error.message,
-        code: error.code,
-        errno: error.errno,
-        sqlState: error.sqlState,
-        sqlMessage: error.sqlMessage
-      },
-      requestInfo: {
-        method: req.method,
-        url: req.originalUrl,
-        params: req.validatedData,
-        userAgent: req.get('User-Agent'),
-        ip: req.ip
-      },
-      stackTrace: error.stack,
-      timestamp: new Date().toISOString()
+
+    const processingTime = Date.now() - startTime;
+    console.log(`[${new Date().toISOString()}] [ERROR] [${requestId}] ❌ getAllUsers failed after ${processingTime}ms`);
+    console.log(`[${new Date().toISOString()}] [ERROR-DETAILS] [${requestId}] 🔍 Error information:`, {
+      name: error.name,
+      message: error.message,
+      code: error.code,
+      sqlState: error.sqlState,
+      sqlMessage: error.sqlMessage,
+      stack: error.stack?.split('\n').slice(0, 5).join('\n') // First 5 lines of stack
+    });
+
+    logger.error("getAllUsers failed:", {
+      error: error.message,
+      stack: error.stack,
+      params: req.validatedData,
+      requestId,
+      processingTime
+
     });
 
     // Determine appropriate status code and error message based on error type

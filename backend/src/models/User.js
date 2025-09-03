@@ -81,7 +81,10 @@ export class User {
   }
 
   // Get all users with pagination
-  static async findAll(options = {}) {
+  static async findAll(options = {}, requestId = null) {
+    const reqId = requestId || 'no-req-id';
+    console.log(`[${new Date().toISOString()}] [DB-MODEL] [${reqId}] 🔍 User.findAll called with options:`, options);
+    
     const {
       page = 1,
       limit = 10,
@@ -92,21 +95,39 @@ export class User {
     } = options;
     const offset = (page - 1) * limit;
 
-    // Declare variables outside try block for error logging
-    let whereClause = "";
-    let params = [];
+
+    console.log(`[${new Date().toISOString()}] [DB-PARAMS] [${reqId}] 📊 Calculated parameters:`, {
+      page,
+      limit,
+      offset,
+      sort,
+      order,
+      role,
+      status
+    });
 
     try {
+      let whereClause = "";
+      const params = [];
+
+      console.log(`[${new Date().toISOString()}] [DB-WHERE] [${reqId}] 🔧 Building WHERE clause`);
+
+
       // Build WHERE clause with proper parameters
       if (role) {
         whereClause += " WHERE role = ?";
         params.push(role);
+        console.log(`[${new Date().toISOString()}] [DB-WHERE] [${reqId}] 📝 Added role filter:`, role);
       }
 
       if (status) {
         whereClause += whereClause ? " AND status = ?" : " WHERE status = ?";
         params.push(status);
+        console.log(`[${new Date().toISOString()}] [DB-WHERE] [${reqId}] 📝 Added status filter:`, status);
       }
+
+      console.log(`[${new Date().toISOString()}] [DB-WHERE] [${reqId}] ✅ Final WHERE clause:`, whereClause);
+      console.log(`[${new Date().toISOString()}] [DB-WHERE] [${reqId}] 📋 Parameters:`, params);
 
       // Validate sort column to prevent SQL injection
       const validSortColumns = [
@@ -123,37 +144,50 @@ export class User {
       const sortColumn = validSortColumns.includes(sort) ? sort : "created_at";
       const sortOrder = order && order.toLowerCase() === "asc" ? "ASC" : "DESC";
 
-      // Enhanced logging before query execution
-      logger.info("User.findAll executing with parameters:", {
-        options: {
-          page,
-          limit,
-          sort,
-          order,
-          role,
-          status
-        },
-        computed: {
-          whereClause,
-          paramCount: params.length,
-          sortColumn,
-          sortOrder,
-          offset
-        },
-        params: params.map(p => typeof p === 'string' && p.length > 50 ? p.substring(0, 50) + '...' : p)
+
+      console.log(`[${new Date().toISOString()}] [DB-SORT] [${reqId}] 🔍 Sort validation:`, {
+        requestedSort: sort,
+        validSort: sortColumn,
+        requestedOrder: order,
+        finalOrder: sortOrder,
+        isValidSort: validSortColumns.includes(sort)
       });
 
-      // Get total count with detailed logging
+      logger.info("User.findAll query params:", {
+        whereClause,
+        params: params.length,
+        sortColumn,
+        sortOrder,
+        limit,
+        offset,
+      });
+
+      console.log(`[${new Date().toISOString()}] [DB-QUERY-PREP] [${reqId}] 📊 Query preparation complete:`, {
+        whereClause,
+        paramCount: params.length,
+        sortColumn,
+        sortOrder,
+        limit,
+        offset
+      });
+
+      // Get total count
       const countQuery = `SELECT COUNT(*) as count FROM users${whereClause}`;
-      logger.debug("Executing count query:", {
+      console.log(`[${new Date().toISOString()}] [DB-QUERY] [${reqId}] 📤 Executing count query:`, {
         sql: countQuery,
-        params: params,
-        parameterCount: params.length,
-        placeholderCount: (countQuery.match(/\?/g) || []).length
+        params: params
       });
-
+      
+      const queryStartTime = Date.now();
       const totalResults = await query(countQuery, params);
+      const countQueryTime = Date.now() - queryStartTime;
+
       const total = totalResults[0].count;
+      
+      console.log(`[${new Date().toISOString()}] [DB-RESULT] [${reqId}] 📥 Count query result:`, {
+        total,
+        queryTime: `${countQueryTime}ms`
+      });
 
       logger.info("Count query successful:", {
         totalCount: total,
@@ -161,31 +195,29 @@ export class User {
       });
 
       // Get paginated results - use safe column name and order
-      const selectQuery = `SELECT id, username, email, role, status, email_verified, last_login, created_at, updated_at
+
+      const dataQuery = `SELECT id, username, email, role, status, email_verified, last_login, created_at, updated_at
    FROM users${whereClause}
    ORDER BY ${sortColumn} ${sortOrder}
    LIMIT ? OFFSET ?`;
+   
+      const dataParams = [...params, limit, offset];
+      console.log(`[${new Date().toISOString()}] [DB-QUERY] [${reqId}] 📤 Executing data query:`, {
+        sql: dataQuery,
+        params: dataParams
+      });
       
-      const selectParams = [...params, limit, offset];
+      const dataQueryStartTime = Date.now();
+      const users = await query(dataQuery, dataParams);
+      const dataQueryTime = Date.now() - dataQueryStartTime;
       
-      logger.debug("Executing select query:", {
-        sql: selectQuery.replace(/\s+/g, ' ').trim(),
-        params: selectParams,
-        parameterCount: selectParams.length,
-        placeholderCount: (selectQuery.match(/\?/g) || []).length
+      console.log(`[${new Date().toISOString()}] [DB-RESULT] [${reqId}] 📥 Data query result:`, {
+        rowCount: users.length,
+        queryTime: `${dataQueryTime}ms`
+
       });
 
-      const users = await query(selectQuery, selectParams);
-
-      logger.info("User.findAll query completed successfully:", {
-        totalCount: total,
-        returnedCount: users.length,
-        page,
-        limit,
-        hasUsers: users.length > 0
-      });
-
-      return {
+      const result = {
         users: users.map((user) => new User(user)),
         pagination: {
           page,
@@ -194,34 +226,42 @@ export class User {
           pages: Math.ceil(total / limit),
         },
       };
+
+      console.log(`[${new Date().toISOString()}] [DB-SUCCESS] [${reqId}] ✅ User.findAll completed successfully:`, {
+        totalCount: total,
+        returnedCount: users.length,
+        page,
+        limit,
+        totalPages: result.pagination.pages,
+        totalQueryTime: `${countQueryTime + dataQueryTime}ms`
+      });
+
+      logger.info("User.findAll results:", {
+        totalCount: total,
+        returnedCount: users.length,
+        page,
+        limit,
+        requestId: reqId
+      });
+
+      return result;
     } catch (error) {
-      // Enhanced error logging with comprehensive details
-      logger.error("User.findAll failed with detailed error information:", {
-        errorDetails: {
-          message: error.message,
-          code: error.code,
-          errno: error.errno,
-          sqlState: error.sqlState,
-          sqlMessage: error.sqlMessage,
-          sql: error.sql
-        },
-        requestContext: {
-          options,
-          page,
-          limit,
-          sort,
-          order,
-          role,
-          status,
-          offset
-        },
-        queryContext: {
-          whereClause: whereClause || '(no WHERE clause)',
-          paramCount: params?.length || 0,
-          params: params?.map(p => typeof p === 'string' && p.length > 50 ? p.substring(0, 50) + '...' : p) || []
-        },
-        stackTrace: error.stack,
-        timestamp: new Date().toISOString()
+
+      console.log(`[${new Date().toISOString()}] [DB-ERROR] [${reqId}] ❌ User.findAll failed:`, {
+        name: error.name,
+        message: error.message,
+        code: error.code,
+        sqlState: error.sqlState,
+        sqlMessage: error.sqlMessage,
+        stack: error.stack?.split('\n').slice(0, 3).join('\n')
+      });
+
+      logger.error("Failed to find users:", {
+        error: error.message,
+        stack: error.stack,
+        options,
+        requestId: reqId
+
       });
 
       // Provide specific error guidance based on error type

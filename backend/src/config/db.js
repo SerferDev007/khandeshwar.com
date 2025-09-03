@@ -206,6 +206,62 @@ export const query = async (sql, params = []) => {
   }
 };
 
+// Database connection health check
+export const checkDatabaseHealth = async () => {
+  console.log(`[${new Date().toISOString()}] [DB-HEALTH] 🔍 Starting database health check`);
+  
+  try {
+    if (!pool) {
+      throw new Error('Database pool is not initialized');
+    }
+
+    // Test basic connection
+    console.log(`[${new Date().toISOString()}] [DB-HEALTH] 📡 Testing database connection`);
+    const connection = await pool.getConnection();
+    
+    // Test basic query
+    console.log(`[${new Date().toISOString()}] [DB-HEALTH] 🔍 Testing basic query execution`);
+    const [result] = await connection.execute('SELECT 1 as test');
+    console.log(`[${new Date().toISOString()}] [DB-HEALTH] ✅ Basic query successful:`, result);
+    
+    // Check users table exists
+    console.log(`[${new Date().toISOString()}] [DB-HEALTH] 📋 Checking users table existence`);
+    try {
+      const [tables] = await connection.execute("SHOW TABLES LIKE 'users'");
+      if (tables.length === 0) {
+        console.log(`[${new Date().toISOString()}] [DB-HEALTH] ⚠️ Users table does not exist`);
+      } else {
+        console.log(`[${new Date().toISOString()}] [DB-HEALTH] ✅ Users table exists`);
+        
+        // Check table structure
+        const [columns] = await connection.execute("DESCRIBE users");
+        console.log(`[${new Date().toISOString()}] [DB-HEALTH] 📊 Users table columns:`, columns.map(col => ({
+          field: col.Field,
+          type: col.Type,
+          null: col.Null,
+          key: col.Key
+        })));
+      }
+    } catch (tableError) {
+      console.log(`[${new Date().toISOString()}] [DB-HEALTH] ❌ Error checking users table:`, tableError.message);
+    }
+    
+    connection.release();
+    
+    console.log(`[${new Date().toISOString()}] [DB-HEALTH] ✅ Database health check completed successfully`);
+    return { healthy: true, message: 'Database connection is healthy' };
+    
+  } catch (error) {
+    console.log(`[${new Date().toISOString()}] [DB-HEALTH] ❌ Database health check failed:`, {
+      name: error.name,
+      message: error.message,
+      code: error.code
+    });
+    
+    return { healthy: false, message: error.message, error: error.name };
+  }
+};
+
 // Transaction helper
 export const transaction = async (callback) => {
   const connection = await pool.getConnection();
