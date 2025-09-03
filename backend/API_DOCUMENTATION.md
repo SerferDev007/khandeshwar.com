@@ -201,12 +201,27 @@ Transaction (1) ←→ (many) UploadedFiles
 - `PUT /api/shops/:id` - Update shop
 - `DELETE /api/shops/:id` - Delete shop
 
-### Tenants
-- `GET /api/tenants` - List all tenants
-- `GET /api/tenants/:id` - Get tenant by ID
-- `POST /api/tenants` - Create new tenant
-- `PUT /api/tenants/:id` - Update tenant
-- `DELETE /api/tenants/:id` - Delete tenant
+### Rent Management
+All rent-related endpoints are consolidated under `/api/rent/`:
+
+#### Rental Units (Shops)
+- `GET /api/rent/units` - List all rental units
+
+#### Tenants  
+- `GET /api/rent/tenants` - List all tenants
+- `GET /api/rent/tenants/:id` - Get tenant by ID
+- `POST /api/rent/tenants` - Create new tenant
+- `PUT /api/rent/tenants/:id` - Update tenant
+- `DELETE /api/rent/tenants/:id` - Delete tenant
+
+#### Leases (Agreements)
+- `GET /api/rent/leases` - List all lease agreements
+
+#### Rent Payments
+- `GET /api/rent/payments` - List all rent payments
+- `GET /api/rent/payments/:id` - Get rent payment by ID
+- `POST /api/rent/payments` - Create new rent payment  
+- `DELETE /api/rent/payments/:id` - Delete rent payment
 
 ### Agreements
 - `GET /api/agreements` - List all agreements
