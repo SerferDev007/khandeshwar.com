@@ -9,6 +9,7 @@ import {
   DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
 import { User as UserIcon, LogOut, Settings, UserCog } from "lucide-react";
+import { useNavigate, useLocation } from "react-router-dom";
 import LanguageSwitcher from "./LanguageSwitcher";
 import { useLanguage } from "./LanguageContext";
 
@@ -21,19 +22,17 @@ interface User {
 }
 
 interface HeaderProps {
-  activeTab: string;
-  onTabChange: (tab: string) => void;
   currentUser: User;
   onLogout: () => void;
 }
 
 export default function Header({
-  activeTab,
-  onTabChange,
   currentUser,
   onLogout,
 }: HeaderProps) {
   const { t, language } = useLanguage();
+  const navigate = useNavigate();
+  const location = useLocation();
 
   // NEW: fallback to persisted user during reload gap
   const [storedUser, setStoredUser] = React.useState<User | null>(null);
@@ -57,13 +56,17 @@ export default function Header({
   }, [effectiveUser]);
 
   const getAvailableTabs = () => [
-    { key: "Dashboard", label: t("nav.dashboard") },
-    { key: "Donations", label: t("nav.donations") },
-    { key: "Expenses", label: t("nav.expenses") },
-    { key: "RentManagement", label: t("nav.rentManagement") },
-    { key: "Reports", label: t("nav.reports") },
-    { key: "Users", label: t("nav.users") },
+    { key: "dashboard", label: t("nav.dashboard"), path: "/admin/dashboard" },
+    { key: "donations", label: t("nav.donations"), path: "/admin/donations" },
+    { key: "expenses", label: t("nav.expenses"), path: "/admin/expenses" },
+    { key: "rent", label: t("nav.rentManagement"), path: "/admin/rent" },
+    { key: "reports", label: t("nav.reports"), path: "/admin/reports" },
+    { key: "users", label: t("nav.users"), path: "/admin/users" },
   ];
+
+  const isActiveTab = (path: string) => {
+    return location.pathname === path;
+  };
 
   const getRoleColor = (role: string) => {
     switch (role) {
@@ -115,10 +118,10 @@ export default function Header({
               {getAvailableTabs().map((tab) => (
                 <Button
                   key={tab.key}
-                  variant={activeTab === tab.key ? "secondary" : "ghost"}
-                  onClick={() => onTabChange(tab.key)}
+                  variant={isActiveTab(tab.path) ? "secondary" : "ghost"}
+                  onClick={() => navigate(tab.path)}
                   className={`${
-                    activeTab === tab.key
+                    isActiveTab(tab.path)
                       ? "bg-white text-blue-600 hover:bg-gray-100"
                       : "text-white hover:bg-blue-700"
                   }`}
@@ -165,7 +168,7 @@ export default function Header({
                   {t("user.settings")}
                 </DropdownMenuItem>
                 {role === "Admin" && (
-                  <DropdownMenuItem onClick={() => onTabChange("Users")}>
+                  <DropdownMenuItem onClick={() => navigate("/admin/users")}>
                     <UserCog className="h-4 w-4 mr-2" />
                     {t("user.userManagement")}
                   </DropdownMenuItem>
