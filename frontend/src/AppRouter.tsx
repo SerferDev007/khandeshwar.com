@@ -1,5 +1,11 @@
 import { createBrowserRouter, RouterProvider, Navigate } from 'react-router-dom';
 import App from '../App';
+import { DashboardRoute } from './routes/DashboardRoute';
+import { DonationsRoute } from './routes/DonationsRoute';
+import { ExpensesRoute } from './routes/ExpensesRoute';
+import { ReportsRoute } from './routes/ReportsRoute';
+import { UsersRoute } from './routes/UsersRoute';
+import { RentManagementRoute } from './routes/RentManagementRoute';
 
 // Define the routes including the admin routes as required
 const router = createBrowserRouter([
@@ -20,22 +26,30 @@ const router = createBrowserRouter([
           },
           {
             path: 'dashboard',
-            element: <div>Dashboard</div>, // This will be handled by App.tsx activeTab
+            element: <DashboardRoute />,
           },
           {
             path: 'donations',
-            element: <div>Donations</div>, // This will be handled by App.tsx activeTab
+            element: <DonationsRoute />,
           },
           {
             path: 'expenses', 
-            element: <div>Expenses</div>, // This will be handled by App.tsx activeTab
+            element: <ExpensesRoute />,
+          },
+          {
+            path: 'reports',
+            element: <ReportsRoute />,
+          },
+          {
+            path: 'users',
+            element: <UsersRoute />,
           },
           {
             path: 'rent',
             children: [
               {
                 index: true,
-                element: <div>Rent Management</div>, // This will be handled by App.tsx activeTab
+                element: <RentManagementRoute />,
               },
               {
                 path: 'units',
