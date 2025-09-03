@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode, useRef } from 'react';
 import apiClient from '../utils/api';
 import { useAuth } from './AuthContext';
 import type { 
@@ -11,7 +11,8 @@ import type {
   User,
   LoadingState,
   ErrorState,
-  ReceiptCounters
+  ReceiptCounters,
+  UsersPagination
 } from '../types';
 
 interface DataContextType {
@@ -24,6 +25,9 @@ interface DataContextType {
   penalties: RentPenalty[];
   transactions: Transaction[];
   receiptCounters: ReceiptCounters;
+  
+  // Pagination data
+  usersPagination: UsersPagination | null;
 
   // Loading states
   loading: LoadingState;
@@ -112,6 +116,12 @@ export function DataProvider({ children }: DataProviderProps) {
     rentIncome: 5001
   });
 
+  // Pagination state for users
+  const [usersPagination, setUsersPagination] = useState<UsersPagination | null>(null);
+
+  // In-flight request tracking to prevent overlapping fetches
+  const usersFetchRef = useRef(false);
+
   // Loading state
   const [loading, setLoading] = useState<LoadingState>({
     users: false,
@@ -164,18 +174,91 @@ export function DataProvider({ children }: DataProviderProps) {
     }
   };
 
-  // Fetch functions
+  // Enhanced fetchUsers function with idempotent guard and dual response shape support
   const fetchUsers = async () => {
+    // Prevent multiple concurrent fetch calls (React Strict Mode double-mount protection)
+    if (usersFetchRef.current) {
+      console.debug('🔄 fetchUsers already in progress, skipping duplicate call');
+      return;
+    }
+
     try {
+      usersFetchRef.current = true;
       setLoadingState('users', true);
       setErrorState('users', null);
+
+      console.debug('🔍 fetchUsers: Starting API call to /api/users');
       const response = await apiClient.getUsers();
-      // Extract users array from API response: { users: [...], pagination: {...} }
-      const users = response?.users || [];
+
+      // Log the raw response structure for development diagnostics
+      if (process.env.NODE_ENV === 'development') {
+        console.debug('🔬 fetchUsers: Raw API response structure:', {
+          hasUsers: !!response?.users,
+          hasData: !!response?.data,
+          hasDataUsers: !!response?.data?.users,
+          hasPagination: !!response?.pagination,
+          hasDataPagination: !!response?.data?.pagination,
+          responseKeys: Object.keys(response || {}),
+          dataKeys: response?.data ? Object.keys(response.data) : null
+        });
+      }
+
+      /**
+       * Safely parse users from response, handling both:
+       * 1. Direct response shape: { users: [...], pagination: {...} }
+       * 2. Wrapped response shape: { data: { users: [...], pagination: {...} } }
+       */
+      const users = response?.data?.users || response?.users || [];
+      const pagination = response?.data?.pagination || response?.pagination || null;
+
+      if (!Array.isArray(users)) {
+        throw new Error('Invalid response: users is not an array');
+      }
+
+      console.debug('✅ fetchUsers: Successfully parsed response', {
+        usersCount: users.length,
+        hasPagination: !!pagination,
+        paginationInfo: pagination ? {
+          page: pagination.page,
+          total: pagination.total,
+          pages: pagination.pages
+        } : null
+      });
+
       setUsers(users);
+      
+      // Store pagination data if available
+      if (pagination) {
+        setUsersPagination(pagination);
+      }
     } catch (error: any) {
-      setErrorState('users', error.message || 'Failed to fetch users');
+      console.error('❌ fetchUsers failed:', {
+        message: error.message,
+        status: error.statusCode,
+        details: error.details,
+        stack: error.stack?.split('\n').slice(0, 3).join('\n')
+      });
+
+      // Enhanced error message with server details in development
+      let errorMessage = 'Failed to fetch users';
+      if (process.env.NODE_ENV === 'development') {
+        if (error.statusCode === 500) {
+          errorMessage += ` (Server Error ${error.statusCode}): ${error.message}`;
+        } else if (error.statusCode) {
+          errorMessage += ` (HTTP ${error.statusCode}): ${error.message}`;
+        } else {
+          errorMessage += `: ${error.message}`;
+        }
+      } else {
+        errorMessage += '. Please try again.';
+      }
+
+      setErrorState('users', errorMessage);
+      
+      // Don't clear existing users on failure - preserve previous successful data
+      console.debug('🔄 fetchUsers: Preserving existing users data on failure');
     } finally {
+      usersFetchRef.current = false;
       setLoadingState('users', false);
     }
   };
@@ -418,6 +501,9 @@ export function DataProvider({ children }: DataProviderProps) {
     penalties,
     transactions,
     receiptCounters,
+    
+    // Pagination data
+    usersPagination,
 
     // Loading states
     loading,
