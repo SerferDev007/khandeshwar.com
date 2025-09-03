@@ -191,10 +191,130 @@ interface RentManagementProps {
   }) => void;
 }
 
+// ShopCard component for enhanced UI display
+interface ShopCardProps {
+  shop: Shop;
+  onUpdate: (id: string, updates: Partial<Shop>) => void;
+  onDelete: (id: string) => void;
+  onViewDetails?: (shop: Shop) => void;
+}
+
+function ShopCard({ shop, onUpdate, onDelete, onViewDetails }: ShopCardProps) {
+  const { t } = useLanguage();
+  
+  const getStatusColor = (status: Shop['status']) => {
+    switch (status) {
+      case 'Vacant':
+        return 'bg-green-100 text-green-800 border-green-200';
+      case 'Occupied':
+        return 'bg-blue-100 text-blue-800 border-blue-200';
+      case 'Maintenance':
+        return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+      default:
+        return 'bg-gray-100 text-gray-800 border-gray-200';
+    }
+  };
+
+  const getStatusIcon = (status: Shop['status']) => {
+    switch (status) {
+      case 'Vacant':
+        return <Home className="h-4 w-4" />;
+      case 'Occupied':
+        return <Users className="h-4 w-4" />;
+      case 'Maintenance':
+        return <AlertTriangle className="h-4 w-4" />;
+      default:
+        return <Building className="h-4 w-4" />;
+    }
+  };
+
+  return (
+    <Card className="hover:shadow-lg transition-shadow duration-200 border-l-4 border-l-blue-500">
+      <CardHeader className="pb-3">
+        <div className="flex items-center justify-between">
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <Building className="h-5 w-5 text-blue-600" />
+            {t("shop.title")} {shop.shopNumber}
+          </CardTitle>
+          <Badge 
+            variant="outline" 
+            className={`${getStatusColor(shop.status)} flex items-center gap-1`}
+          >
+            {getStatusIcon(shop.status)}
+            {shop.status}
+          </Badge>
+        </div>
+      </CardHeader>
+      <CardContent className="pt-0">
+        <div className="grid grid-cols-2 gap-4 mb-4">
+          <div className="flex items-center gap-2 text-sm">
+            <MapPin className="h-4 w-4 text-gray-500" />
+            <span className="font-medium">Size:</span>
+            <span>{shop.size} sq ft</span>
+          </div>
+          <div className="flex items-center gap-2 text-sm">
+            <IndianRupee className="h-4 w-4 text-gray-500" />
+            <span className="font-medium">Rent:</span>
+            <span>₹{shop.monthlyRent.toLocaleString()}</span>
+          </div>
+          <div className="flex items-center gap-2 text-sm">
+            <CreditCard className="h-4 w-4 text-gray-500" />
+            <span className="font-medium">Deposit:</span>
+            <span>₹{shop.deposit.toLocaleString()}</span>
+          </div>
+          <div className="flex items-center gap-2 text-sm">
+            <Calendar className="h-4 w-4 text-gray-500" />
+            <span className="font-medium">Created:</span>
+            <span>{new Date(shop.createdAt).toLocaleDateString()}</span>
+          </div>
+        </div>
+        
+        {shop.description && (
+          <div className="mb-4 p-3 bg-gray-50 rounded-lg">
+            <p className="text-sm text-gray-700">{shop.description}</p>
+          </div>
+        )}
+        
+        <div className="flex gap-2 justify-end">
+          {onViewDetails && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => onViewDetails(shop)}
+              className="flex items-center gap-1"
+            >
+              <Eye className="h-4 w-4" />
+              {t("common.view") || "View"}
+            </Button>
+          )}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => onUpdate(shop.id, {})}
+            className="flex items-center gap-1"
+          >
+            <Edit className="h-4 w-4" />
+            {t("common.edit") || "Edit"}
+          </Button>
+          <Button
+            variant="destructive"
+            size="sm"
+            onClick={() => onDelete(shop.id)}
+            className="flex items-center gap-1"
+          >
+            <Trash2 className="h-4 w-4" />
+            {t("common.delete") || "Delete"}
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 export default function RentManagement({
   onAddRentIncome,
   nextReceiptNumber,
-  shops,
+  shops: propsShops,
   tenants,
   agreements,
   loans,
@@ -216,6 +336,63 @@ export default function RentManagement({
   const { t } = useLanguage();
 
   const [selectedTab, setSelectedTab] = useState("shops");
+
+  // Robust shop fetching state management
+  const [localShops, setLocalShops] = useState<Shop[]>([]);
+  const [shopsLoading, setShopsLoading] = useState(false);
+  const [shopsError, setShopsError] = useState<string | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
+  
+  // Use props shops if available and not empty, otherwise use local shops
+  const shops = (propsShops && propsShops.length > 0) ? propsShops : localShops;
+
+  // Robust shop fetching logic
+  const fetchShops = async (isRetry = false) => {
+    try {
+      setShopsLoading(true);
+      setShopsError(null);
+      
+      console.log('🏪 Fetching shops...', { isRetry, attempt: retryCount + 1 });
+      const response = await apiClient.getShops();
+      
+      // Handle both wrapped and unwrapped responses
+      const shopsData = response?.data?.items || response?.items || response || [];
+      
+      if (Array.isArray(shopsData)) {
+        setLocalShops(shopsData);
+        setRetryCount(0); // Reset retry count on success
+        console.log('✅ Shops fetched successfully:', { count: shopsData.length });
+      } else {
+        throw new Error('Invalid shops data format received');
+      }
+    } catch (error: any) {
+      console.error('❌ Failed to fetch shops:', error);
+      setShopsError(error.message || 'Failed to fetch shops');
+      
+      // Auto-retry logic for network errors
+      if (error instanceof TypeError && error.message === 'Failed to fetch' && retryCount < 3) {
+        setTimeout(() => {
+          setRetryCount(prev => prev + 1);
+          fetchShops(true);
+        }, Math.pow(2, retryCount) * 1000); // Exponential backoff
+      }
+    } finally {
+      setShopsLoading(false);
+    }
+  };
+
+  // Auto-fetch shops if not provided via props or props are empty
+  useEffect(() => {
+    if (!propsShops || propsShops.length === 0) {
+      fetchShops();
+    }
+  }, [propsShops]);
+
+  // Retry function for manual retry
+  const handleRetryShops = () => {
+    setRetryCount(0);
+    fetchShops(true);
+  };
 
   // Shop Form State
   const [shopFormData, setShopFormData] = useState({
@@ -1299,76 +1476,80 @@ export default function RentManagement({
             </CardContent>
           </Card>
 
-          {/* Shops Table */}
+          {/* Shops Display - Enhanced Card View */}
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Building className="h-5 w-5" />
-                {t("shop.title")}
-              </CardTitle>
+              <div className="flex items-center justify-between">
+                <CardTitle className="flex items-center gap-2">
+                  <Building className="h-5 w-5" />
+                  {t("shop.title")}
+                </CardTitle>
+                {(shopsLoading || shopsError) && (
+                  <div className="flex items-center gap-2">
+                    {shopsLoading && (
+                      <div className="flex items-center gap-2 text-sm text-gray-600">
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                        Loading shops...
+                      </div>
+                    )}
+                    {shopsError && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleRetryShops}
+                        className="text-red-600 border-red-200 hover:bg-red-50"
+                      >
+                        Retry
+                      </Button>
+                    )}
+                  </div>
+                )}
+              </div>
             </CardHeader>
             <CardContent>
-              {(shops ?? []).length === 0 ? (
+              {shopsError && (
+                <Alert className="mb-4 border-red-200 bg-red-50">
+                  <AlertCircle className="h-4 w-4 text-red-600" />
+                  <AlertDescription className="text-red-700">
+                    {shopsError}
+                    {retryCount > 0 && ` (Retry attempt: ${retryCount}/3)`}
+                  </AlertDescription>
+                </Alert>
+              )}
+              
+              {(shops ?? []).length === 0 && !shopsLoading ? (
                 <Alert>
                   <AlertCircle className="h-4 w-4" />
                   <AlertDescription>
-                    No shops found. Add a new shop to get started.
+                    {shopsError 
+                      ? "Unable to load shops. Please check your connection and try again."
+                      : "No shops found. Add a new shop to get started."
+                    }
                   </AlertDescription>
                 </Alert>
               ) : (
-                <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>{t("shop.shopNumber")}</TableHead>
-                        <TableHead>{t("shop.shopSize")}</TableHead>
-                        <TableHead>{t("shop.monthlyRent")}</TableHead>
-                        <TableHead>{t("shop.securityDeposit")}</TableHead>
-                        <TableHead>{t("shop.shopStatus")}</TableHead>
-                        <TableHead>{t("common.actions")}</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {(shops ?? []).map((shop) => (
-                        <TableRow key={shop.id}>
-                          <TableCell className="font-medium">
-                            {shop.shopNumber}
-                          </TableCell>
-                          <TableCell>{shop.size} sq ft</TableCell>
-                          <TableCell>
-                            {formatCurrency(shop.monthlyRent)}
-                          </TableCell>
-                          <TableCell>{formatCurrency(shop.deposit)}</TableCell>
-                          <TableCell>
-                            <Badge className={getStatusColor(shop.status)}>
-                              {getStatusLabel(shop.status)}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex items-center gap-2">
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => {
-                                  // Implement edit functionality
-                                }}
-                              >
-                                <Edit className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => onDeleteShop(shop.id)}
-                                disabled={shop.status === "Occupied"}
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {(shops ?? []).map((shop) => (
+                    <ShopCard
+                      key={shop.id}
+                      shop={shop}
+                      onUpdate={(id, updates) => {
+                        // TODO: Implement edit functionality
+                        console.log('Edit shop:', id, updates);
+                      }}
+                      onDelete={(id) => {
+                        if (shop.status === "Occupied") {
+                          toast.error("Cannot delete an occupied shop");
+                          return;
+                        }
+                        onDeleteShop(id);
+                      }}
+                      onViewDetails={(shop) => {
+                        // TODO: Implement view details functionality
+                        console.log('View shop details:', shop);
+                      }}
+                    />
+                  ))}
                 </div>
               )}
             </CardContent>
