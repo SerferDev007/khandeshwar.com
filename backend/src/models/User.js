@@ -92,10 +92,11 @@ export class User {
     } = options;
     const offset = (page - 1) * limit;
 
-    try {
-      let whereClause = "";
-      const params = [];
+    // Declare variables outside try block for error logging
+    let whereClause = "";
+    let params = [];
 
+    try {
       // Build WHERE clause with proper parameters
       if (role) {
         whereClause += " WHERE role = ?";
@@ -122,36 +123,66 @@ export class User {
       const sortColumn = validSortColumns.includes(sort) ? sort : "created_at";
       const sortOrder = order && order.toLowerCase() === "asc" ? "ASC" : "DESC";
 
-      logger.info("User.findAll query params:", {
-        whereClause,
-        params: params.length,
-        sortColumn,
-        sortOrder,
-        limit,
-        offset,
+      // Enhanced logging before query execution
+      logger.info("User.findAll executing with parameters:", {
+        options: {
+          page,
+          limit,
+          sort,
+          order,
+          role,
+          status
+        },
+        computed: {
+          whereClause,
+          paramCount: params.length,
+          sortColumn,
+          sortOrder,
+          offset
+        },
+        params: params.map(p => typeof p === 'string' && p.length > 50 ? p.substring(0, 50) + '...' : p)
       });
 
-      // Get total count
-      const totalResults = await query(
-        `SELECT COUNT(*) as count FROM users${whereClause}`,
-        params
-      );
+      // Get total count with detailed logging
+      const countQuery = `SELECT COUNT(*) as count FROM users${whereClause}`;
+      logger.debug("Executing count query:", {
+        sql: countQuery,
+        params: params,
+        parameterCount: params.length,
+        placeholderCount: (countQuery.match(/\?/g) || []).length
+      });
+
+      const totalResults = await query(countQuery, params);
       const total = totalResults[0].count;
 
+      logger.info("Count query successful:", {
+        totalCount: total,
+        query: countQuery.substring(0, 100) + (countQuery.length > 100 ? '...' : '')
+      });
+
       // Get paginated results - use safe column name and order
-      const users = await query(
-        `SELECT id, username, email, role, status, email_verified, last_login, created_at, updated_at
+      const selectQuery = `SELECT id, username, email, role, status, email_verified, last_login, created_at, updated_at
    FROM users${whereClause}
    ORDER BY ${sortColumn} ${sortOrder}
-   LIMIT ? OFFSET ?`,
-        [...params, limit, offset]
-      );
+   LIMIT ? OFFSET ?`;
+      
+      const selectParams = [...params, limit, offset];
+      
+      logger.debug("Executing select query:", {
+        sql: selectQuery.replace(/\s+/g, ' ').trim(),
+        params: selectParams,
+        parameterCount: selectParams.length,
+        placeholderCount: (selectQuery.match(/\?/g) || []).length
+      });
 
-      logger.info("User.findAll results:", {
+      const users = await query(selectQuery, selectParams);
+
+      logger.info("User.findAll query completed successfully:", {
         totalCount: total,
         returnedCount: users.length,
         page,
         limit,
+        hasUsers: users.length > 0
       });
 
       return {
@@ -164,11 +195,50 @@ export class User {
         },
       };
     } catch (error) {
-      logger.error("Failed to find users:", {
-        error: error.message,
-        stack: error.stack,
-        options,
+      // Enhanced error logging with comprehensive details
+      logger.error("User.findAll failed with detailed error information:", {
+        errorDetails: {
+          message: error.message,
+          code: error.code,
+          errno: error.errno,
+          sqlState: error.sqlState,
+          sqlMessage: error.sqlMessage,
+          sql: error.sql
+        },
+        requestContext: {
+          options,
+          page,
+          limit,
+          sort,
+          order,
+          role,
+          status,
+          offset
+        },
+        queryContext: {
+          whereClause: whereClause || '(no WHERE clause)',
+          paramCount: params?.length || 0,
+          params: params?.map(p => typeof p === 'string' && p.length > 50 ? p.substring(0, 50) + '...' : p) || []
+        },
+        stackTrace: error.stack,
+        timestamp: new Date().toISOString()
       });
+
+      // Provide specific error guidance based on error type
+      if (error.code === 'ER_NO_SUCH_TABLE') {
+        logger.error("🚨 Database table 'users' does not exist. Run database migrations.");
+      } else if (error.code === 'ER_BAD_FIELD_ERROR') {
+        logger.error("🚨 Invalid column name in query. Check table schema.");
+      } else if (error.code === 'ER_PARSE_ERROR') {
+        logger.error("🚨 SQL syntax error in User.findAll query.");
+      } else if (error.code === 'ECONNREFUSED') {
+        logger.error("🚨 Cannot connect to database. Check database connection.");
+      } else if (error.message?.includes('Parameter count mismatch')) {
+        logger.error("🚨 SQL parameter mismatch detected. Check query placeholders.");
+      } else if (error.code === 'ER_ACCESS_DENIED_ERROR') {
+        logger.error("🚨 Database access denied. Check user credentials.");
+      }
+
       throw error;
     }
   }
