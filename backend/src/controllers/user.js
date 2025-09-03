@@ -144,6 +144,7 @@ export const getAllUsers = asyncHandler(async (req, res) => {
       },
     });
   } catch (error) {
+
     const processingTime = Date.now() - startTime;
     console.log(`[${new Date().toISOString()}] [ERROR] [${requestId}] ❌ getAllUsers failed after ${processingTime}ms`);
     console.log(`[${new Date().toISOString()}] [ERROR-DETAILS] [${requestId}] 🔍 Error information:`, {
@@ -161,12 +162,45 @@ export const getAllUsers = asyncHandler(async (req, res) => {
       params: req.validatedData,
       requestId,
       processingTime
+
     });
-    return res.status(500).json({
+
+    // Determine appropriate status code and error message based on error type
+    let statusCode = 500;
+    let errorMessage = "Failed to load users. Please try again.";
+    let errorCode = "INTERNAL_ERROR";
+
+    if (error.code === 'ECONNREFUSED') {
+      statusCode = 503;
+      errorMessage = "Database service unavailable. Please try again later.";
+      errorCode = "DATABASE_CONNECTION_ERROR";
+      logger.error("🚨 Database connection refused - service may be down");
+    } else if (error.code === 'ER_NO_SUCH_TABLE') {
+      statusCode = 503;
+      errorMessage = "User data service temporarily unavailable.";
+      errorCode = "DATABASE_SCHEMA_ERROR";
+      logger.error("🚨 Users table missing - database migration required");
+    } else if (error.code === 'ER_ACCESS_DENIED_ERROR') {
+      statusCode = 503;
+      errorMessage = "Database service configuration error.";
+      errorCode = "DATABASE_ACCESS_ERROR";
+      logger.error("🚨 Database access denied - check credentials");
+    } else if (error.message?.includes('Parameter count mismatch')) {
+      statusCode = 500;
+      errorMessage = "Query parameter error detected.";
+      errorCode = "QUERY_PARAMETER_ERROR";
+      logger.error("🚨 SQL parameter mismatch in User.findAll");
+    }
+
+    return res.status(statusCode).json({
       success: false,
-      error: "Failed to load users. Please try again.",
-      details:
-        process.env.NODE_ENV === "development" ? error.message : undefined,
+      error: errorMessage,
+      errorCode,
+      details: process.env.NODE_ENV === "development" ? {
+        message: error.message,
+        code: error.code,
+        sqlState: error.sqlState
+      } : undefined,
     });
   }
 });

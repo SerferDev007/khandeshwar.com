@@ -95,6 +95,7 @@ export class User {
     } = options;
     const offset = (page - 1) * limit;
 
+
     console.log(`[${new Date().toISOString()}] [DB-PARAMS] [${reqId}] 📊 Calculated parameters:`, {
       page,
       limit,
@@ -110,6 +111,7 @@ export class User {
       const params = [];
 
       console.log(`[${new Date().toISOString()}] [DB-WHERE] [${reqId}] 🔧 Building WHERE clause`);
+
 
       // Build WHERE clause with proper parameters
       if (role) {
@@ -141,6 +143,7 @@ export class User {
       ];
       const sortColumn = validSortColumns.includes(sort) ? sort : "created_at";
       const sortOrder = order && order.toLowerCase() === "asc" ? "ASC" : "DESC";
+
 
       console.log(`[${new Date().toISOString()}] [DB-SORT] [${reqId}] 🔍 Sort validation:`, {
         requestedSort: sort,
@@ -178,6 +181,7 @@ export class User {
       const queryStartTime = Date.now();
       const totalResults = await query(countQuery, params);
       const countQueryTime = Date.now() - queryStartTime;
+
       const total = totalResults[0].count;
       
       console.log(`[${new Date().toISOString()}] [DB-RESULT] [${reqId}] 📥 Count query result:`, {
@@ -185,7 +189,13 @@ export class User {
         queryTime: `${countQueryTime}ms`
       });
 
+      logger.info("Count query successful:", {
+        totalCount: total,
+        query: countQuery.substring(0, 100) + (countQuery.length > 100 ? '...' : '')
+      });
+
       // Get paginated results - use safe column name and order
+
       const dataQuery = `SELECT id, username, email, role, status, email_verified, last_login, created_at, updated_at
    FROM users${whereClause}
    ORDER BY ${sortColumn} ${sortOrder}
@@ -204,6 +214,7 @@ export class User {
       console.log(`[${new Date().toISOString()}] [DB-RESULT] [${reqId}] 📥 Data query result:`, {
         rowCount: users.length,
         queryTime: `${dataQueryTime}ms`
+
       });
 
       const result = {
@@ -235,6 +246,7 @@ export class User {
 
       return result;
     } catch (error) {
+
       console.log(`[${new Date().toISOString()}] [DB-ERROR] [${reqId}] ❌ User.findAll failed:`, {
         name: error.name,
         message: error.message,
@@ -249,7 +261,24 @@ export class User {
         stack: error.stack,
         options,
         requestId: reqId
+
       });
+
+      // Provide specific error guidance based on error type
+      if (error.code === 'ER_NO_SUCH_TABLE') {
+        logger.error("🚨 Database table 'users' does not exist. Run database migrations.");
+      } else if (error.code === 'ER_BAD_FIELD_ERROR') {
+        logger.error("🚨 Invalid column name in query. Check table schema.");
+      } else if (error.code === 'ER_PARSE_ERROR') {
+        logger.error("🚨 SQL syntax error in User.findAll query.");
+      } else if (error.code === 'ECONNREFUSED') {
+        logger.error("🚨 Cannot connect to database. Check database connection.");
+      } else if (error.message?.includes('Parameter count mismatch')) {
+        logger.error("🚨 SQL parameter mismatch detected. Check query placeholders.");
+      } else if (error.code === 'ER_ACCESS_DENIED_ERROR') {
+        logger.error("🚨 Database access denied. Check user credentials.");
+      }
+
       throw error;
     }
   }
