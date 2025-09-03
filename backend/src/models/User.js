@@ -80,26 +80,72 @@ export class User {
     }
   }
 
-  // Get all users with pagination
+  /**
+   * Get all users with pagination and robust parameter validation
+   * 
+   * @param {Object} options - Query options
+   * @param {number} options.page - Page number (1-based)
+   * @param {number} options.limit - Items per page (1-100)
+   * @param {string} options.sort - Sort column
+   * @param {string} options.order - Sort order (asc/desc)
+   * @param {string} options.role - Role filter
+   * @param {string} options.status - Status filter
+   * @param {string} requestId - Request tracking ID
+   * @returns {Object} Result with users and pagination info
+   * 
+   * Note: This method includes a fallback mechanism for ER_WRONG_ARGUMENTS errors.
+   * If parameterized queries fail due to parameter binding issues, it retries
+   * with inlined LIMIT/OFFSET values to ensure reliability.
+   */
   static async findAll(options = {}, requestId = null) {
     const reqId = requestId || 'no-req-id';
     console.log(`[${new Date().toISOString()}] [DB-MODEL] [${reqId}] 🔍 User.findAll called with options:`, options);
     
     const {
-      page = 1,
-      limit = 10,
+      page: rawPage = 1,
+      limit: rawLimit = 10,
       sort = "created_at",
       order = "desc",
       role,
       status,
     } = options;
-    const offset = (page - 1) * limit;
 
+    // ✅ Robust parameter sanitization with detailed logging
+    let safeLimit = parseInt(rawLimit, 10);
+    if (isNaN(safeLimit) || safeLimit < 1 || safeLimit > 100) {
+      console.log(`[${new Date().toISOString()}] [DB-PARAM-CHECK] [${reqId}] ⚠️ Invalid limit, using fallback:`, {
+        raw: rawLimit,
+        parsed: safeLimit,
+        fallback: 10
+      });
+      safeLimit = 10;
+    }
 
-    console.log(`[${new Date().toISOString()}] [DB-PARAMS] [${reqId}] 📊 Calculated parameters:`, {
-      page,
-      limit,
-      offset,
+    let safePage = parseInt(rawPage, 10);
+    if (isNaN(safePage) || safePage < 1) {
+      console.log(`[${new Date().toISOString()}] [DB-PARAM-CHECK] [${reqId}] ⚠️ Invalid page, using fallback:`, {
+        raw: rawPage,
+        parsed: safePage,
+        fallback: 1
+      });
+      safePage = 1;
+    }
+
+    const safeOffset = (safePage - 1) * safeLimit;
+
+    // Log parameter validation details
+    console.log(`[${new Date().toISOString()}] [DB-PARAM-CHECK] [${reqId}] 🔢 Parameter validation complete:`, {
+      limit: { value: safeLimit, type: typeof safeLimit, isInteger: Number.isInteger(safeLimit) },
+      page: { value: safePage, type: typeof safePage, isInteger: Number.isInteger(safePage) },
+      offset: { value: safeOffset, type: typeof safeOffset, isInteger: Number.isInteger(safeOffset) },
+      sort: { value: sort, type: typeof sort },
+      order: { value: order, type: typeof order }
+    });
+
+    console.log(`[${new Date().toISOString()}] [DB-PARAMS] [${reqId}] 📊 Final parameters for query:`, {
+      page: safePage,
+      limit: safeLimit,
+      offset: safeOffset,
       sort,
       order,
       role,
@@ -158,8 +204,8 @@ export class User {
         params: params.length,
         sortColumn,
         sortOrder,
-        limit,
-        offset,
+        limit: safeLimit,
+        offset: safeOffset,
       });
 
       console.log(`[${new Date().toISOString()}] [DB-QUERY-PREP] [${reqId}] 📊 Query preparation complete:`, {
@@ -167,8 +213,8 @@ export class User {
         paramCount: params.length,
         sortColumn,
         sortOrder,
-        limit,
-        offset
+        limit: safeLimit,
+        offset: safeOffset
       });
 
       // Get total count
@@ -194,44 +240,104 @@ export class User {
         query: countQuery.substring(0, 100) + (countQuery.length > 100 ? '...' : '')
       });
 
-      // Get paginated results - use safe column name and order
-
+      // Get paginated results with retry mechanism for ER_WRONG_ARGUMENTS
       const dataQuery = `SELECT id, username, email, role, status, email_verified, last_login, created_at, updated_at
    FROM users${whereClause}
    ORDER BY ${sortColumn} ${sortOrder}
    LIMIT ? OFFSET ?`;
    
-      const dataParams = [...params, limit, offset];
-      console.log(`[${new Date().toISOString()}] [DB-QUERY] [${reqId}] 📤 Executing data query:`, {
+      const dataParams = [...params, safeLimit, safeOffset];
+      
+      // Log detailed parameter information before query execution
+      console.log(`[${new Date().toISOString()}] [DB-PARAM-CHECK] [${reqId}] 🔍 Pre-query parameter diagnostic:`, {
+        totalParams: dataParams.length,
+        parameterDetails: dataParams.map((param, index) => ({
+          index,
+          value: param,
+          type: typeof param,
+          isNaN: typeof param === 'number' ? isNaN(param) : 'N/A',
+          isInteger: typeof param === 'number' ? Number.isInteger(param) : 'N/A'
+        }))
+      });
+      
+      console.log(`[${new Date().toISOString()}] [DB-QUERY] [${reqId}] 📤 Executing data query (attempt 1):`, {
         sql: dataQuery,
         params: dataParams
       });
       
+      let users;
+      let dataQueryTime;
       const dataQueryStartTime = Date.now();
-      const users = await query(dataQuery, dataParams);
-      const dataQueryTime = Date.now() - dataQueryStartTime;
       
-      console.log(`[${new Date().toISOString()}] [DB-RESULT] [${reqId}] 📥 Data query result:`, {
-        rowCount: users.length,
-        queryTime: `${dataQueryTime}ms`
-
-      });
+      try {
+        // First attempt with parameterized query
+        users = await query(dataQuery, dataParams);
+        dataQueryTime = Date.now() - dataQueryStartTime;
+        
+        console.log(`[${new Date().toISOString()}] [DB-RESULT] [${reqId}] 📥 Data query result (parameterized):`, {
+          rowCount: users.length,
+          queryTime: `${dataQueryTime}ms`
+        });
+      } catch (error) {
+        dataQueryTime = Date.now() - dataQueryStartTime;
+        
+        if (error.code === 'ER_WRONG_ARGUMENTS') {
+          console.log(`[${new Date().toISOString()}] [DB-RETRY] [${reqId}] ⚠️ ER_WRONG_ARGUMENTS detected, attempting fallback with inlined LIMIT/OFFSET`);
+          logger.warn("ER_WRONG_ARGUMENTS detected, retrying with inlined values", {
+            originalParams: dataParams,
+            requestId: reqId
+          });
+          
+          // Retry with inlined LIMIT/OFFSET (no parameter binding for LIMIT/OFFSET)
+          const fallbackQuery = `SELECT id, username, email, role, status, email_verified, last_login, created_at, updated_at
+   FROM users${whereClause}
+   ORDER BY ${sortColumn} ${sortOrder}
+   LIMIT ${safeLimit} OFFSET ${safeOffset}`;
+          
+          console.log(`[${new Date().toISOString()}] [DB-RETRY] [${reqId}] 🔄 Executing fallback query (attempt 2):`, {
+            sql: fallbackQuery,
+            params: params, // Only WHERE clause parameters
+            inlinedLimit: safeLimit,
+            inlinedOffset: safeOffset
+          });
+          
+          const fallbackStartTime = Date.now();
+          users = await query(fallbackQuery, params); // Only WHERE clause params
+          const fallbackQueryTime = Date.now() - fallbackStartTime;
+          dataQueryTime += fallbackQueryTime; // Add both attempt times
+          
+          console.log(`[${new Date().toISOString()}] [DB-RETRY] [${reqId}] ✅ Fallback query successful:`, {
+            rowCount: users.length,
+            fallbackQueryTime: `${fallbackQueryTime}ms`,
+            totalQueryTime: `${dataQueryTime}ms`
+          });
+          
+          logger.info("Fallback query successful after ER_WRONG_ARGUMENTS", {
+            rowCount: users.length,
+            totalTime: dataQueryTime,
+            requestId: reqId
+          });
+        } else {
+          // Re-throw non-ER_WRONG_ARGUMENTS errors
+          throw error;
+        }
+      }
 
       const result = {
         users: users.map((user) => new User(user)),
         pagination: {
-          page,
-          limit,
+          page: safePage,
+          limit: safeLimit,
           total,
-          pages: Math.ceil(total / limit),
+          pages: Math.ceil(total / safeLimit),
         },
       };
 
       console.log(`[${new Date().toISOString()}] [DB-SUCCESS] [${reqId}] ✅ User.findAll completed successfully:`, {
         totalCount: total,
         returnedCount: users.length,
-        page,
-        limit,
+        page: safePage,
+        limit: safeLimit,
         totalPages: result.pagination.pages,
         totalQueryTime: `${countQueryTime + dataQueryTime}ms`
       });
@@ -239,8 +345,8 @@ export class User {
       logger.info("User.findAll results:", {
         totalCount: total,
         returnedCount: users.length,
-        page,
-        limit,
+        page: safePage,
+        limit: safeLimit,
         requestId: reqId
       });
 
@@ -275,6 +381,8 @@ export class User {
         logger.error("🚨 Cannot connect to database. Check database connection.");
       } else if (error.message?.includes('Parameter count mismatch')) {
         logger.error("🚨 SQL parameter mismatch detected. Check query placeholders.");
+      } else if (error.code === 'ER_WRONG_ARGUMENTS') {
+        logger.error("🚨 ER_WRONG_ARGUMENTS - Incorrect arguments to mysqld_stmt_execute. Parameter binding issue detected.");
       } else if (error.code === 'ER_ACCESS_DENIED_ERROR') {
         logger.error("🚨 Database access denied. Check user credentials.");
       }

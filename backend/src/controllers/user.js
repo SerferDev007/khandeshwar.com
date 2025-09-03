@@ -52,10 +52,33 @@ export const getAllUsers = asyncHandler(async (req, res) => {
       user: req.user?.id,
     });
 
-    // ✅ Safety sanitize
+    // ✅ Enhanced parameter sanitization with explicit validation
+    // Parse and validate page parameter
+    let safePage = parseInt(rawPage, 10);
+    if (isNaN(safePage) || safePage < 1) {
+      console.log(`[${new Date().toISOString()}] [PARAM-SANITIZE] [${requestId}] ⚠️ Invalid page parameter:`, {
+        raw: rawPage,
+        parsed: safePage,
+        fallback: 1
+      });
+      safePage = 1;
+    }
+
+    // Parse and validate limit parameter with bounds checking
+    let safeLimit = parseInt(rawLimit, 10);
+    if (isNaN(safeLimit) || safeLimit < 1 || safeLimit > 100) {
+      console.log(`[${new Date().toISOString()}] [PARAM-SANITIZE] [${requestId}] ⚠️ Invalid limit parameter:`, {
+        raw: rawLimit,
+        parsed: safeLimit,
+        fallback: 10,
+        reason: isNaN(safeLimit) ? 'NaN' : (safeLimit < 1 ? 'below minimum' : 'above maximum')
+      });
+      safeLimit = 10; // Use default instead of Math.min/Math.max with potentially invalid values
+    }
+
     const safeOptions = {
-      page: Math.max(1, parseInt(rawPage, 10) || 1),
-      limit: Math.min(100, Math.max(1, parseInt(rawLimit, 10) || 10)),
+      page: safePage,
+      limit: safeLimit,
       sort: [
         "created_at",
         "username",
@@ -81,6 +104,11 @@ export const getAllUsers = asyncHandler(async (req, res) => {
     }
 
     console.log(`[${new Date().toISOString()}] [SANITIZED] [${requestId}] ✅ Sanitized parameters:`, safeOptions);
+    console.log(`[${new Date().toISOString()}] [PARAM-VALIDATION] [${requestId}] 🔢 Parameter validation details:`, {
+      page: { value: safeOptions.page, type: typeof safeOptions.page, isInteger: Number.isInteger(safeOptions.page) },
+      limit: { value: safeOptions.limit, type: typeof safeOptions.limit, isInteger: Number.isInteger(safeOptions.limit) },
+      calculatedOffset: (safeOptions.page - 1) * safeOptions.limit
+    });
     logger.info("getAllUsers sanitized options:", safeOptions);
 
     console.log(`[${new Date().toISOString()}] [MODEL-CALL] [${requestId}] 📤 Calling User.findAll with options:`, safeOptions);
@@ -190,6 +218,12 @@ export const getAllUsers = asyncHandler(async (req, res) => {
       errorMessage = "Query parameter error detected.";
       errorCode = "QUERY_PARAMETER_ERROR";
       logger.error("🚨 SQL parameter mismatch in User.findAll");
+    } else if (error.code === 'ER_WRONG_ARGUMENTS') {
+      statusCode = 500;
+      errorMessage = "Database query parameter error. Please try again.";
+      errorCode = "DATABASE_PARAMETER_ERROR";
+      logger.error("🚨 ER_WRONG_ARGUMENTS - Database parameter mismatch detected");
+      console.log(`[${new Date().toISOString()}] [ERROR-SPECIFIC] [${requestId}] 🚨 ER_WRONG_ARGUMENTS detected - this indicates parameter binding issues`);
     }
 
     return res.status(statusCode).json({
