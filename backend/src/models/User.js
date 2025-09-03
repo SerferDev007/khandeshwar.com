@@ -92,10 +92,11 @@ export class User {
     } = options;
     const offset = (page - 1) * limit;
 
-    try {
-      let whereClause = "";
-      const params = [];
+    // Declare variables outside try block for error logging
+    let whereClause = "";
+    let params = [];
 
+    try {
       // Build WHERE clause with proper parameters
       if (role) {
         whereClause += " WHERE role = ?";
