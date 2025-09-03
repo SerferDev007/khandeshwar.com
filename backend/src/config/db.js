@@ -65,22 +65,143 @@ export const query = async (sql, params = []) => {
     const [results] = await pool.execute(sql, params);
     return results;
   } catch (error) {
-    // Enhanced error logging for MySQL parameter errors
-    if (error.message && error.message.includes('mysqld_stmt_execute')) {
-      logger.error("MySQL statement execution error - possible parameter mismatch:", { 
-        sql: sql.substring(0, 200) + '...',
-        paramCount: params.length,
-        placeholderCount: (sql.match(/\?/g) || []).length,
-        error: error.message,
-        params: params.map(p => typeof p === 'string' && p.length > 50 ? p.substring(0, 50) + '...' : p)
+    // Enhanced error logging for comprehensive MySQL error diagnosis
+    const errorDetails = {
+      message: error.message,
+      code: error.code,
+      errno: error.errno,
+      sqlState: error.sqlState,
+      sqlMessage: error.sqlMessage,
+      sql: error.sql,
+      timestamp: new Date().toISOString()
+    };
+
+    const queryInfo = {
+      sql: sql.substring(0, 300) + (sql.length > 300 ? '...' : ''),
+      paramCount: params.length,
+      placeholderCount: (sql.match(/\?/g) || []).length,
+      params: params.map(p => {
+        if (p === null || p === undefined) return p;
+        if (typeof p === 'string' && p.length > 100) return p.substring(0, 100) + '...';
+        return p;
+      })
+    };
+
+    // Specific error type handling with detailed diagnostics
+    if (error.code === 'ECONNREFUSED') {
+      logger.error("Database connection refused:", {
+        ...errorDetails,
+        diagnosis: "MySQL server is not running or not accessible",
+        suggestions: [
+          "Check if MySQL service is running",
+          "Verify database host and port configuration", 
+          "Check firewall settings",
+          "Ensure database server is accessible"
+        ],
+        queryInfo
+      });
+    } else if (error.code === 'ER_ACCESS_DENIED_ERROR') {
+      logger.error("Database access denied:", {
+        ...errorDetails,
+        diagnosis: "Invalid database credentials or insufficient permissions",
+        suggestions: [
+          "Check database username and password",
+          "Verify user has necessary privileges",
+          "Check database exists and is accessible"
+        ],
+        queryInfo
+      });
+    } else if (error.code === 'ER_BAD_DB_ERROR') {
+      logger.error("Database does not exist:", {
+        ...errorDetails,
+        diagnosis: "Specified database does not exist",
+        suggestions: [
+          "Create the database",
+          "Check database name configuration",
+          "Run database initialization scripts"
+        ],
+        queryInfo
+      });
+    } else if (error.code === 'ER_NO_SUCH_TABLE') {
+      logger.error("Table does not exist:", {
+        ...errorDetails,
+        diagnosis: "Referenced table does not exist in database",
+        suggestions: [
+          "Run database migrations",
+          "Check table name spelling",
+          "Verify database schema is up to date"
+        ],
+        queryInfo
+      });
+    } else if (error.code === 'ER_BAD_FIELD_ERROR') {
+      logger.error("Invalid column reference:", {
+        ...errorDetails,
+        diagnosis: "Referenced column does not exist in table",
+        suggestions: [
+          "Check column name spelling",
+          "Verify table schema",
+          "Run database migrations if needed"
+        ],
+        queryInfo
+      });
+    } else if (error.code === 'ER_PARSE_ERROR') {
+      logger.error("SQL syntax error:", {
+        ...errorDetails,
+        diagnosis: "SQL query has syntax errors",
+        suggestions: [
+          "Check SQL query syntax",
+          "Verify parameter placeholders",
+          "Check for typos in SQL keywords"
+        ],
+        queryInfo
+      });
+    } else if (error.message && error.message.includes('mysqld_stmt_execute')) {
+      logger.error("MySQL statement execution error - likely parameter mismatch:", {
+        ...errorDetails,
+        diagnosis: "Parameter count mismatch between placeholders and provided parameters",
+        mismatchDetails: {
+          placeholderCount: queryInfo.placeholderCount,
+          parameterCount: queryInfo.paramCount,
+          difference: queryInfo.placeholderCount - queryInfo.paramCount
+        },
+        suggestions: [
+          "Check SQL query for correct number of ? placeholders",
+          "Verify parameter array length matches placeholders",
+          "Look for missing or extra parameters in query logic"
+        ],
+        queryInfo
+      });
+    } else if (error.message?.includes('Parameter count mismatch')) {
+      logger.error("Parameter count mismatch detected in query helper:", {
+        ...errorDetails,
+        diagnosis: "Pre-execution validation caught parameter mismatch",
+        mismatchDetails: {
+          placeholderCount: queryInfo.placeholderCount,
+          parameterCount: queryInfo.paramCount,
+          difference: queryInfo.placeholderCount - queryInfo.paramCount
+        },
+        suggestions: [
+          "Review SQL query building logic",
+          "Check conditional parameter additions",
+          "Verify WHERE clause construction"
+        ],
+        queryInfo
       });
     } else {
-      logger.error("Database query failed:", { 
-        sql: sql.substring(0, 200) + '...',
-        paramCount: params.length,
-        error: error.message 
+      // Generic database error with comprehensive logging
+      logger.error("Database query failed with unknown error:", {
+        ...errorDetails,
+        diagnosis: "Unhandled database error occurred",
+        suggestions: [
+          "Check database server status",
+          "Review query logic and syntax",
+          "Check application logs for patterns",
+          "Consider database server resources"
+        ],
+        queryInfo
       });
     }
+    
     throw error;
   }
 };
