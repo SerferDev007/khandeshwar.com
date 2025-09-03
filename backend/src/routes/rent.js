@@ -7,15 +7,11 @@ import { Shop } from '../models/Shop.js';
 import { Tenant } from '../models/Tenant.js';
 import { Agreement } from '../models/Agreement.js';
 import { Transaction } from '../models/Transaction.js';
+import { generateId } from '../utils/helpers.js';
 import pino from 'pino';
 
 const logger = pino({ name: 'rent-router' });
 const router = express.Router();
-
-// Generate unique ID
-const generateId = () => {
-  return Date.now().toString() + Math.random().toString(36).substr(2, 9);
-};
 
 // Validation schemas using Zod
 const rentPaymentCreateSchema = z.object({
@@ -28,6 +24,19 @@ const rentPaymentCreateSchema = z.object({
 });
 
 const rentPaymentUpdateSchema = rentPaymentCreateSchema.partial();
+
+// Tenant validation schemas using Zod
+const tenantCreateSchema = z.object({
+  name: z.string().min(2, 'Name must be at least 2 characters').max(100, 'Name must be at most 100 characters'),
+  phone: z.string().min(5, 'Phone must be at least 5 characters').max(20, 'Phone must be at most 20 characters'),
+  email: z.string().email('Invalid email format'),
+  address: z.string().min(5, 'Address must be at least 5 characters'),
+  businessType: z.string().min(2, 'Business type must be at least 2 characters').max(100, 'Business type must be at most 100 characters'),
+  status: z.enum(['Active', 'Inactive']).optional(),
+  idProof: z.string().optional()
+});
+
+const tenantUpdateSchema = tenantCreateSchema.partial();
 
 // Middleware to validate rent payment creation
 const validateRentPaymentCreate = (req, res, next) => {
@@ -66,7 +75,7 @@ router.get('/units', authenticate, authorize(['Admin']), async (req, res) => {
 // GET /api/rent/tenants - Get all tenants
 router.get('/tenants', authenticate, authorize(['Admin']), async (req, res) => {
   try {
-    const rows = await query('SELECT * FROM tenants ORDER BY tenant_name');
+    const rows = await query('SELECT * FROM tenants ORDER BY name');
     const tenants = rows.map(row => Tenant.fromDbRow(row));
     
     return res.json({
@@ -78,6 +87,264 @@ router.get('/tenants', authenticate, authorize(['Admin']), async (req, res) => {
     return res.status(500).json({
       success: false,
       error: 'Failed to fetch tenants'
+    });
+  }
+});
+
+// POST /api/rent/tenants - Create new tenant
+router.post('/tenants', authenticate, authorize(['Admin']), async (req, res) => {
+  try {
+    // Validate input
+    const validatedData = tenantCreateSchema.parse(req.body);
+    
+    // Check for existing tenant with same phone or email
+    const existingTenant = await query(
+      'SELECT id, phone, email FROM tenants WHERE phone = ? OR email = ?',
+      [validatedData.phone, validatedData.email]
+    );
+    
+    if (existingTenant.length > 0) {
+      const existing = existingTenant[0];
+      const conflictField = existing.phone === validatedData.phone ? 'phone' : 'email';
+      return res.status(409).json({
+        success: false,
+        error: `Tenant with this ${conflictField} already exists`
+      });
+    }
+    
+    // Create new tenant
+    const tenantData = {
+      id: generateId(),
+      name: validatedData.name,
+      phone: validatedData.phone,
+      email: validatedData.email,
+      address: validatedData.address,
+      businessType: validatedData.businessType,
+      status: validatedData.status || 'Active',
+      idProof: validatedData.idProof || null
+      // created_at will be set by database default
+    };
+    
+    const tenant = new Tenant(tenantData);
+    const dbObject = tenant.toDbObject();
+    
+    // Remove created_at to let database handle it
+    delete dbObject.created_at;
+    
+    const fields = Object.keys(dbObject).join(', ');
+    const placeholders = Object.keys(dbObject).map(() => '?').join(', ');
+    const values = Object.values(dbObject);
+    
+    await query(
+      `INSERT INTO tenants (${fields}) VALUES (${placeholders})`,
+      values
+    );
+    
+    // Fetch the created tenant with the database-generated created_at
+    const createdTenantRows = await query('SELECT * FROM tenants WHERE id = ?', [tenant.id]);
+    const createdTenant = Tenant.fromDbRow(createdTenantRows[0]);
+    
+    logger.info('Tenant created successfully:', { id: tenant.id, name: tenant.name });
+    return res.status(201).json({
+      success: true,
+      data: createdTenant
+    });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return res.status(422).json({
+        success: false,
+        error: 'Validation failed',
+        details: error.errors
+      });
+    }
+    
+    logger.error('Create tenant error:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Failed to create tenant'
+    });
+  }
+});
+
+// GET /api/rent/tenants/:id - Get tenant by ID
+router.get('/tenants/:id', authenticate, authorize(['Admin']), validate(schemas.idParam), async (req, res) => {
+  try {
+    const { id } = req.params;
+    const rows = await query('SELECT * FROM tenants WHERE id = ?', [id]);
+    
+    if (rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: 'Tenant not found'
+      });
+    }
+    
+    const tenant = Tenant.fromDbRow(rows[0]);
+    
+    return res.json({
+      success: true,
+      data: tenant
+    });
+  } catch (error) {
+    logger.error('Get tenant by ID error:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Failed to fetch tenant'
+    });
+  }
+});
+
+// PUT /api/rent/tenants/:id - Update tenant
+router.put('/tenants/:id', authenticate, authorize(['Admin']), validate(schemas.idParam), async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    // Check if tenant exists
+    const existingRows = await query('SELECT * FROM tenants WHERE id = ?', [id]);
+    if (existingRows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: 'Tenant not found'
+      });
+    }
+    
+    // Validate input
+    const validatedData = tenantUpdateSchema.parse(req.body);
+    
+    // Check for conflicts if phone or email is being updated
+    if (validatedData.phone || validatedData.email) {
+      const conflictQuery = [];
+      const conflictValues = [];
+      
+      if (validatedData.phone) {
+        conflictQuery.push('phone = ?');
+        conflictValues.push(validatedData.phone);
+      }
+      
+      if (validatedData.email) {
+        conflictQuery.push('email = ?');
+        conflictValues.push(validatedData.email);
+      }
+      
+      conflictValues.push(id); // Exclude current tenant from conflict check
+      
+      const existingTenant = await query(
+        `SELECT id, phone, email FROM tenants WHERE (${conflictQuery.join(' OR ')}) AND id != ?`,
+        conflictValues
+      );
+      
+      if (existingTenant.length > 0) {
+        const existing = existingTenant[0];
+        let conflictField = 'phone';
+        if (validatedData.email && existing.email === validatedData.email) {
+          conflictField = 'email';
+        }
+        return res.status(409).json({
+          success: false,
+          error: `Another tenant with this ${conflictField} already exists`
+        });
+      }
+    }
+    
+    // Build update query
+    const updateFields = [];
+    const updateValues = [];
+    
+    Object.entries(validatedData).forEach(([key, value]) => {
+      if (value !== undefined) {
+        // Convert camelCase to snake_case for database
+        const dbField = key === 'businessType' ? 'business_type' : 
+                       key === 'idProof' ? 'id_proof' : key;
+        updateFields.push(`${dbField} = ?`);
+        updateValues.push(value);
+      }
+    });
+    
+    if (updateFields.length === 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'No valid fields to update'
+      });
+    }
+    
+    updateValues.push(id);
+    
+    await query(
+      `UPDATE tenants SET ${updateFields.join(', ')} WHERE id = ?`,
+      updateValues
+    );
+    
+    // Fetch updated tenant
+    const updatedRows = await query('SELECT * FROM tenants WHERE id = ?', [id]);
+    const updatedTenant = Tenant.fromDbRow(updatedRows[0]);
+    
+    logger.info('Tenant updated successfully:', { id, updatedFields: Object.keys(validatedData) });
+    return res.json({
+      success: true,
+      data: updatedTenant
+    });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return res.status(422).json({
+        success: false,
+        error: 'Validation failed',
+        details: error.errors
+      });
+    }
+    
+    logger.error('Update tenant error:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Failed to update tenant'
+    });
+  }
+});
+
+// DELETE /api/rent/tenants/:id - Delete tenant
+router.delete('/tenants/:id', authenticate, authorize(['Admin']), validate(schemas.idParam), async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    // Check if tenant exists
+    const existingRows = await query('SELECT * FROM tenants WHERE id = ?', [id]);
+    if (existingRows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: 'Tenant not found'
+      });
+    }
+    
+    // Check if tenant is referenced by any shops or agreements
+    const referencedInShops = await query('SELECT id FROM shops WHERE tenant_id = ?', [id]);
+    const referencedInAgreements = await query('SELECT id FROM agreements WHERE tenant_id = ?', [id]);
+    
+    if (referencedInShops.length > 0 || referencedInAgreements.length > 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'Cannot delete tenant: tenant is referenced by existing shops or agreements'
+      });
+    }
+    
+    // Delete tenant
+    const result = await query('DELETE FROM tenants WHERE id = ?', [id]);
+    
+    if (result.affectedRows === 0) {
+      return res.status(404).json({
+        success: false,
+        error: 'Tenant not found'
+      });
+    }
+    
+    logger.info('Tenant deleted successfully:', { id });
+    return res.json({
+      success: true,
+      data: { message: 'Tenant deleted successfully' }
+    });
+  } catch (error) {
+    logger.error('Delete tenant error:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Failed to delete tenant'
     });
   }
 });
