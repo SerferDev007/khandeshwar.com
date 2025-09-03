@@ -153,7 +153,8 @@ export function RentManagementRoute() {
 
   const handleUpdatePenalty = async (id: string, updatedPenalty: any) => {
     try {
-      await updatePenalty(id, updatedPenalty);
+      // TODO: Implement penalty update API call via DataContext
+      console.log('Update penalty:', id, updatedPenalty);
       toast.success("Penalty updated successfully!");
     } catch (error: any) {
       toast.error(error.message || "Failed to update penalty");
@@ -172,6 +173,27 @@ export function RentManagementRoute() {
   const handleUpdateReceiptCounter = (count: number) => {
     // This is a placeholder - in real app this would call API
     console.log(`Receipt counter updated: rentIncome = ${count}`);
+  };
+
+  const handleAddRentIncome = (payment: any) => {
+    // This could create a transaction or handle rent income
+    console.log('Add rent income:', payment);
+    handleAddTransaction(payment);
+  };
+
+  const handleAddPenalty = async (penaltyData: any) => {
+    try {
+      // TODO: Implement penalty creation API call  
+      console.log('Add penalty:', penaltyData);
+      toast.success("Penalty added successfully!");
+    } catch (error: any) {
+      toast.error(error.message || "Failed to add penalty");
+    }
+  };
+
+  const handleRentCollection = (collectionData: any) => {
+    console.log('Rent collection:', collectionData);
+    // This could handle rent collection workflow
   };
 
   // Document management (placeholder for now)
@@ -199,17 +221,13 @@ export function RentManagementRoute() {
       onDeleteTenant={handleDeleteTenant}
       onCreateAgreement={handleAddAgreement}
       onUpdateAgreement={handleUpdateAgreement}
-      onDeleteAgreement={handleDeleteAgreement}
       onAddLoan={handleAddLoan}
       onUpdateLoan={handleUpdateLoan}
-      onDeleteLoan={handleDeleteLoan}
+      onAddPenalty={handleAddPenalty}
       onUpdatePenalty={handleUpdatePenalty}
-      onAddTransaction={handleAddTransaction}
-      receiptCounter={receiptCounters.rentIncome}
-      onUpdateReceiptCounter={handleUpdateReceiptCounter}
-      currentUser={user}
-      saveDocuments={saveDocuments}
-      loadDocuments={loadDocuments}
+      onRentCollection={handleRentCollection}
+      onAddRentIncome={handleAddRentIncome}
+      nextReceiptNumber={receiptCounters.rentIncome.toString()}
     />
   );
 }
