@@ -7,53 +7,11 @@ import { Shop } from '../models/Shop.js';
 import { generateId } from '../utils/helpers.js';
 import pino from 'pino';
 import { dbg, dbgMySQLError, dbgTimer, generateCorrelationId } from '../utils/debugLogger.js';
+import { filterUndefined, buildInsertStatement, assertNoUndefinedParams } from '../utils/sqlHelpers.js';
+import { validateShopPayload } from '../utils/validation/shopValidation.js';
 
 const logger = pino({ name: 'shop-router' });
 const router = express.Router();
-
-// Validation schemas using Zod
-const shopCreateSchema = z.object({
-  shopNumber: z.string().min(1, 'Shop number is required'),
-  size: z.number().positive('Size must be positive'),
-  monthlyRent: z.number().positive('Monthly rent must be positive'),
-  deposit: z.number().positive('Deposit must be positive'),
-  status: z.enum(['Vacant', 'Occupied', 'Maintenance']).default('Vacant'),
-  tenantId: z.string().optional(),
-  agreementId: z.string().optional(),
-  description: z.string().optional(),
-});
-
-const shopUpdateSchema = shopCreateSchema.partial().omit({ shopNumber: true });
-
-// Middleware to validate shop creation
-const validateShopCreate = (req, res, next) => {
-  try {
-    req.body = shopCreateSchema.parse(req.body);
-    next();
-  } catch (error) {
-    logger.error('Shop validation error:', error);
-    return res.status(422).json({
-      success: false,
-      error: 'Validation failed',
-      details: error.errors
-    });
-  }
-};
-
-// Middleware to validate shop update
-const validateShopUpdate = (req, res, next) => {
-  try {
-    req.body = shopUpdateSchema.parse(req.body);
-    next();
-  } catch (error) {
-    logger.error('Shop update validation error:', error);
-    return res.status(422).json({
-      success: false,
-      error: 'Validation failed',
-      details: error.errors
-    });
-  }
-};
 
 // Generate unique ID is imported from helpers
 // const generateId = () => {
@@ -112,7 +70,7 @@ router.get('/:id', authenticate, authorize(['Admin', 'Treasurer', 'Viewer']), va
 });
 
 // POST /api/shops - Create new shop
-router.post('/', authenticate, authorize(['Admin', 'Treasurer']), validateShopCreate, async (req, res) => {
+router.post('/', authenticate, authorize(['Admin', 'Treasurer']), async (req, res) => {
   // Generate correlation ID for request tracking
   const requestId = generateCorrelationId();
   
@@ -129,22 +87,56 @@ router.post('/', authenticate, authorize(['Admin', 'Treasurer']), validateShopCr
       userRole: req.user?.role
     }, requestId);
 
-    // === DIAGNOSTIC PHASE 2: DATA PREPARATION ===
+    // === DIAGNOSTIC PHASE 2: PAYLOAD VALIDATION ===
+    const validationResult = validateShopPayload(req.body);
+    
+    if (validationResult && validationResult.errors) {
+      dbg('shop-creation', 'validation-failed', {
+        errorCount: validationResult.errors.length,
+        errors: validationResult.errors,
+        originalPayload: req.body
+      }, requestId);
+
+      return res.status(400).json({
+        success: false,
+        error: 'Validation failed',
+        details: validationResult.errors
+      });
+    }
+
+    dbg('shop-creation', 'validation-passed', {
+      validatedFields: Object.keys(req.body || {}),
+      proceedToDataPreparation: true
+    }, requestId);
+
+    // === DIAGNOSTIC PHASE 3: DATA PREPARATION WITH DEFAULTS ===
     const shopData = {
-      ...req.body,
       id: generateId(),
-      createdAt: new Date().toISOString(),
+      shopNumber: req.body.shopNumber,
+      size: req.body.size,
+      monthlyRent: req.body.monthlyRent,
+      deposit: req.body.deposit,
+      status: req.body.status || 'Vacant', // Default to 'Vacant' if not provided
+      tenantId: req.body.tenantId || null, // Explicit null for optional fields
+      agreementId: req.body.agreementId || null, // Explicit null for optional fields
+      // Omit createdAt intentionally to let DB default (CURRENT_TIMESTAMP) apply
+      description: req.body.description || null // Explicit null for optional field
     };
     
     dbg('shop-creation', 'shop-data-prepared', {
       shopData,
       generatedId: shopData.id,
-      createdAt: shopData.createdAt,
+      appliedDefaults: {
+        status: !req.body.status ? 'Vacant' : 'from_request',
+        tenantId: !req.body.tenantId ? 'null' : 'from_request',
+        agreementId: !req.body.agreementId ? 'null' : 'from_request',
+        description: !req.body.description ? 'null' : 'from_request'
+      },
       originalBodyKeys: Object.keys(req.body || {}),
       finalDataKeys: Object.keys(shopData)
     }, requestId);
 
-    // === DIAGNOSTIC PHASE 3: MODEL CONSTRUCTION ===
+    // === DIAGNOSTIC PHASE 4: MODEL CONSTRUCTION ===
     const shop = new Shop(shopData);
     dbg('shop-creation', 'shop-model-created', {
       shopId: shop.id,
@@ -153,7 +145,7 @@ router.post('/', authenticate, authorize(['Admin', 'Treasurer']), validateShopCr
       constructorSuccess: true
     }, requestId);
 
-    // === DIAGNOSTIC PHASE 4: DATABASE OBJECT CONVERSION ===
+    // === DIAGNOSTIC PHASE 5: DATABASE OBJECT CONVERSION ===
     const dbObject = shop.toDbObject();
     dbg('shop-creation', 'db-object-created', {
       dbObjectKeys: Object.keys(dbObject),
@@ -170,20 +162,33 @@ router.post('/', authenticate, authorize(['Admin', 'Treasurer']), validateShopCr
       undefinedValues: Object.entries(dbObject).filter(([k, v]) => v === undefined).map(([k]) => k)
     }, requestId);
 
-    // Validate that all expected columns are present
-    const expectedColumns = ['id', 'shop_number', 'size', 'monthly_rent', 'deposit', 'status', 'tenant_id', 'agreement_id', 'created_at', 'description'];
-    const missingColumns = expectedColumns.filter(col => !(col in dbObject));
-    const extraColumns = Object.keys(dbObject).filter(col => !expectedColumns.includes(col));
+    // === DIAGNOSTIC PHASE 6: FILTER UNDEFINED VALUES ===
+    const { filtered: filteredDbObject, removed: removedColumns } = filterUndefined(dbObject);
+    
+    if (removedColumns.length > 0) {
+      dbg('shop-creation', 'undefined-columns-removed', {
+        removedColumns,
+        originalColumnCount: Object.keys(dbObject).length,
+        filteredColumnCount: Object.keys(filteredDbObject).length,
+        removedForDbDefaults: removedColumns.includes('created_at') ? ['created_at'] : [],
+        removedOther: removedColumns.filter(col => col !== 'created_at')
+      }, requestId);
+    }
+
+    // Validate that all expected columns are present after filtering
+    const expectedColumns = ['id', 'shop_number', 'size', 'monthly_rent', 'deposit', 'status', 'tenant_id', 'agreement_id', 'description'];
+    const actualColumns = Object.keys(filteredDbObject);
+    const missingColumns = expectedColumns.filter(col => !(col in filteredDbObject));
     
     dbg('shop-creation', 'column-mapping-validation', {
       expectedColumns,
-      actualColumns: Object.keys(dbObject),
+      actualColumns,
       missingColumns,
-      extraColumns,
-      columnCount: { expected: expectedColumns.length, actual: Object.keys(dbObject).length }
+      columnCount: { expected: expectedColumns.length, actual: actualColumns.length },
+      createdAtOmitted: removedColumns.includes('created_at') ? 'intentional_for_db_default' : false
     }, requestId);
 
-    // === DIAGNOSTIC PHASE 5: UNIQUENESS CHECK ===
+    // === DIAGNOSTIC PHASE 7: UNIQUENESS CHECK ===
     const uniquenessTimer = dbgTimer('shop-creation', 'uniqueness-check', requestId);
     
     dbg('shop-creation', 'uniqueness-check-start', {
@@ -217,10 +222,8 @@ router.post('/', authenticate, authorize(['Admin', 'Treasurer']), validateShopCr
       proceedToInsert: true
     }, requestId);
 
-    // === DIAGNOSTIC PHASE 6: INSERT PREPARATION ===
-    const fields = Object.keys(dbObject).join(', ');
-    const placeholders = Object.keys(dbObject).map(() => '?').join(', ');
-    const values = Object.values(dbObject);
+    // === DIAGNOSTIC PHASE 8: BUILD INSERT STATEMENT ===
+    const { sql, values, fields, placeholders } = buildInsertStatement('shops', filteredDbObject);
 
     dbg('shop-creation', 'insert-preparation', {
       fields,
@@ -229,10 +232,34 @@ router.post('/', authenticate, authorize(['Admin', 'Treasurer']), validateShopCr
       placeholderCount: (placeholders.match(/\?/g) || []).length,
       parameterMatch: values.length === (placeholders.match(/\?/g) || []).length,
       sampleValues: values.slice(0, 5), // First 5 values for inspection
-      sql: `INSERT INTO shops (${fields}) VALUES (${placeholders})`
+      fieldCount: fields.split(',').length,
+      sql
     }, requestId);
 
-    // === DIAGNOSTIC PHASE 7: DATABASE INSERT ===
+    // === DEFENSIVE ASSERTION: NO UNDEFINED PARAMETERS ===
+    try {
+      assertNoUndefinedParams(values, fields);
+      
+      dbg('shop-creation', 'parameter-validation-passed', {
+        valueCount: values.length,
+        allParametersValid: true,
+        proceedToExecution: true
+      }, requestId);
+    } catch (assertionError) {
+      dbg('shop-creation', 'parameter-validation-failed', {
+        error: assertionError.message,
+        errorCode: assertionError.code,
+        undefinedFields: assertionError.undefinedFields,
+        undefinedIndexes: assertionError.undefinedIndexes
+      }, requestId);
+
+      return res.status(500).json({
+        success: false,
+        error: 'Internal parameter binding error. Please contact administrator.'
+      });
+    }
+
+    // === DIAGNOSTIC PHASE 9: DATABASE INSERT ===
     const insertTimer = dbgTimer('shop-creation', 'database-insert', requestId);
     
     dbg('shop-creation', 'insert-execution-start', {
@@ -242,28 +269,28 @@ router.post('/', authenticate, authorize(['Admin', 'Treasurer']), validateShopCr
       valueCount: values.length
     }, requestId);
 
-    await query(
-      `INSERT INTO shops (${fields}) VALUES (${placeholders})`,
-      values
-    );
+    await query(sql, values);
 
     insertTimer({ success: true, operation: 'INSERT' });
 
-    // === DIAGNOSTIC PHASE 8: SUCCESS RESPONSE ===
+    // === DIAGNOSTIC PHASE 10: SUCCESS RESPONSE ===
     dbg('shop-creation', 'creation-success', {
       shopId: shop.id,
       shopNumber: shop.shopNumber,
       responseStatus: 201,
-      totalProcessingSteps: 8
+      totalProcessingSteps: 10
     }, requestId);
 
     logger.info('Shop created successfully:', { id: shop.id, shopNumber: shop.shopNumber, requestId });
+    
+    // Note: We don't include createdAt in response since it wasn't retrieved from DB
+    // Future enhancement could SELECT the row after INSERT to get the actual timestamp
     return res.status(201).json({
       success: true,
       data: shop
     });
   } catch (error) {
-    // === DIAGNOSTIC PHASE 9: ERROR HANDLING ===
+    // === DIAGNOSTIC PHASE 11: ERROR HANDLING ===
     dbg('shop-creation', 'error-caught', {
       errorName: error.name,
       errorMessage: error.message,
@@ -280,7 +307,23 @@ router.post('/', authenticate, authorize(['Admin', 'Treasurer']), validateShopCr
 
     logger.error('Create shop error:', { error: error.message, code: error.code, requestId });
     
-    // Enhanced error classification with diagnostic logging
+    // Handle our new UNDEFINED_SQL_PARAM error
+    if (error.code === 'UNDEFINED_SQL_PARAM') {
+      dbg('shop-creation', 'error-classification', {
+        errorCode: 'UNDEFINED_SQL_PARAM',
+        diagnosis: 'Undefined parameters detected in values array',
+        responseStatus: 500,
+        userMessage: 'Internal parameter binding error. Please contact administrator.',
+        technicalNote: 'Check parameter filtering and default value assignment'
+      }, requestId);
+      
+      return res.status(500).json({
+        success: false,
+        error: 'Internal parameter binding error. Please contact administrator.'
+      });
+    }
+    
+    // Enhanced error classification with diagnostic logging (existing error handlers remain the same)
     if (error.code === 'ER_NO_SUCH_TABLE') {
       dbg('shop-creation', 'error-classification', {
         errorCode: 'ER_NO_SUCH_TABLE',
@@ -424,7 +467,7 @@ router.post('/', authenticate, authorize(['Admin', 'Treasurer']), validateShopCr
 });
 
 // PUT /api/shops/:id - Update shop
-router.put('/:id', authenticate, authorize(['Admin', 'Treasurer']), validate(schemas.idParam), validateShopUpdate, async (req, res) => {
+router.put('/:id', authenticate, authorize(['Admin', 'Treasurer']), validate(schemas.idParam), async (req, res) => {
   try {
     const { id } = req.params;
     const updateData = req.body;
