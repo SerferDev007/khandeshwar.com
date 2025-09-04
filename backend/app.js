@@ -12,6 +12,7 @@ import {
   handleUncaughtException,
   handleUnhandledRejection,
 } from "./src/middleware/error.js";
+import { activityLogger } from "./src/middleware/activityLogger.js";
 
 // Import routes
 import authRoutes from "./src/routes/auth.js";
@@ -84,7 +85,10 @@ app.use(rateLimit);
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 
-// Request logging
+// Comprehensive route activity logging
+app.use(activityLogger);
+
+// Request logging (keep existing pino logger for compatibility)
 app.use((req, res, next) => {
   logger.info(
     {
