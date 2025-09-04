@@ -1,4 +1,4 @@
-import sequelize from '../config/sequelize.js';
+import sequelize from '../../config/sequelize.js';
 import Tenant from './Tenant.js';
 import Agreement from './Agreement.js';
 import Loan from './Loan.js';
