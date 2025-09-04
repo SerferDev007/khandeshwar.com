@@ -5,7 +5,7 @@ import pino from 'pino';
 const logger = pino({ name: 'TenantController' });
 
 export class TenantController {
-  // GET /api/tenants - Get all tenants
+  // GET /api/rent/tenants - Get all tenants
   static async getAll(req, res) {
     try {
       const { page = 1, limit = 10, include_relations } = req.query;
@@ -58,7 +58,7 @@ export class TenantController {
     }
   }
 
-  // GET /api/tenants/:id - Get tenant by ID
+  // GET /api/rent/tenants/:id - Get tenant by ID
   static async getById(req, res) {
     try {
       const { id } = req.params;
@@ -106,7 +106,7 @@ export class TenantController {
     }
   }
 
-  // POST /api/tenants - Create new tenant
+  // POST /api/rent/tenants - Create new tenant
   static async create(req, res) {
     try {
       const tenantData = {
@@ -160,7 +160,7 @@ export class TenantController {
     }
   }
 
-  // PUT /api/tenants/:id - Update tenant
+  // PUT /api/rent/tenants/:id - Update tenant
   static async update(req, res) {
     try {
       const { id } = req.params;
@@ -213,7 +213,7 @@ export class TenantController {
     }
   }
 
-  // DELETE /api/tenants/:id - Delete tenant
+  // DELETE /api/rent/tenants/:id - Delete tenant
   static async delete(req, res) {
     try {
       const { id } = req.params;

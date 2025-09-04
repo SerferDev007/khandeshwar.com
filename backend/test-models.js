@@ -174,7 +174,7 @@ entities.forEach(entity => {
 // Additional specialized endpoints
 endpoints.push('GET /api/uploaded-files/entity/:entityType/:entityId');
 endpoints.push('GET /api/transactions/type/:type');
-endpoints.push('GET /api/agreements/tenant/:tenantId');
+endpoints.push('GET /api/rent/agreements/tenant/:tenantId');
 endpoints.push('GET /api/loans/agreement/:agreementId');
 endpoints.push('GET /api/rent-penalties/agreement/:agreementId');
 endpoints.push('GET /api/health');

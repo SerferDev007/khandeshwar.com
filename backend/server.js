@@ -1,15 +1,23 @@
-import app, { createAdditionalTables, initializeSequelizeModels } from "./app.js";
+import app, {
+  createAdditionalTables,
+  initializeSequelizeModels,
+} from "./app.js";
+
 import {
-  closeDatabaseConnection,
   initializeDatabase,
+  closeDatabaseConnection,
 } from "./src/config/db.js";
-import { closeConnection } from "./src/config/sequelize.js";
+
+import { closeConnection as closeSequelizeConnection } from "./src/config/sequelize.js";
 import { RefreshToken } from "./src/models/RefreshToken.js";
 import env from "./src/config/env.js";
+
 import pino from "pino";
 import pinoPretty from "pino-pretty";
 
-// Create logger
+// --------------------------------------------------
+// Logger (mirror logic in app.js for consistency)
+// --------------------------------------------------
 const logger = pino(
   env.NODE_ENV === "development"
     ? pinoPretty({
@@ -20,107 +28,138 @@ const logger = pino(
     : {}
 );
 
+// --------------------------------------------------
+// Liveness / Readiness (distinct from app.js /health)
+// app.js already provides /health and /api/health
+// --------------------------------------------------
+app.get("/healthz", (req, res) => {
+  res.status(200).json({ status: "OK", type: "liveness" });
+});
+
+app.get("/readiness", async (req, res) => {
+  // Minimal readiness indicator (could be extended to do a lightweight query)
+  res.status(200).json({
+    status: "READY",
+    timestamp: new Date().toISOString(),
+    environment: env.NODE_ENV,
+  });
+});
+
+// --------------------------------------------------
+// Server lifecycle
+// --------------------------------------------------
 let server;
+let shuttingDown = false;
 
 const startServer = async () => {
   try {
-    // Initialize database
+    logger.info(">> Initializing primary (non-Sequelize) database...");
     await initializeDatabase();
-
-    // Create additional tables
+    logger.info(">> Running additional table creation (idempotent)...");
     await createAdditionalTables();
-
-    // Initialize Sequelize models
+    logger.info(">> Initializing Sequelize models / connection...");
     await initializeSequelizeModels();
 
-    // Start server
-    server = app.listen(env.PORT, () => {
-      logger.info(
-        `>> Khandeshwar Management API Server running on port ${env.PORT}`
-      );
+    const port = Number(env.PORT) || 3000;
+
+    server = app.listen(port, "0.0.0.0", () => {
+      logger.info(`>> Khandeshwar Management API Server running on port ${port}`);
       logger.info(`>> Environment: ${env.NODE_ENV}`);
-      logger.info(`>> Health check: http://localhost:${env.PORT}/health`);
-      logger.info(`>> API endpoints:`);
-      logger.info(`   * Authentication: http://localhost:${env.PORT}/api/auth`);
-      logger.info(`   * Users: http://localhost:${env.PORT}/api/users`);
-      logger.info(`   * Files: http://localhost:${env.PORT}/api/files`);
-      logger.info(`   * Shops: http://localhost:${env.PORT}/api/shops`);
-      logger.info(`   * Tenants: http://localhost:${env.PORT}/api/tenants`);
-      logger.info(
-        `   * Agreements: http://localhost:${env.PORT}/api/agreements`
-      );
-      logger.info(`   * Loans: http://localhost:${env.PORT}/api/loans`);
-      logger.info(
-        `   * Rent Penalties: http://localhost:${env.PORT}/api/rent-penalties`
-      );
-      logger.info(
-        `   * Transactions: http://localhost:${env.PORT}/api/transactions`
-      );
-      logger.info(
-        `   * Uploaded Files: http://localhost:${env.PORT}/api/uploaded-files`
-      );
-      logger.info(
-        `   * Sequelize Tenants: http://localhost:${env.PORT}/api/sequelize/tenants`
-      );
-      logger.info(
-        `   * Sequelize Agreements: http://localhost:${env.PORT}/api/sequelize/agreements`
-      );
-      logger.info(
-        `   * Sequelize Loans: http://localhost:${env.PORT}/api/sequelize/loans`
-      );
-      logger.info(
-        `   * Sequelize Rent Penalties: http://localhost:${env.PORT}/api/sequelize/rent-penalties`
-      );
-      logger.info(
-        `   * Sequelize Uploaded Files: http://localhost:${env.PORT}/api/sequelize/uploaded-files`
-      );
+      logger.info(">> Core health endpoints:");
+      logger.info(`   * Liveness:        http://localhost:${port}/healthz`);
+      logger.info(`   * Readiness:       http://localhost:${port}/readiness`);
+      logger.info(`   * Health (JSON):   http://localhost:${port}/health`);
+      logger.info(`   * Health (Legacy): http://localhost:${port}/api/health`);
+      logger.info(">> API route groups:");
+      logger.info(`   * Auth:            /api/auth`);
+      logger.info(`   * Users:           /api/users`);
+      logger.info(`   * Files:           /api/files`);
+      logger.info(`   * Admin:           /api/admin`);
+      logger.info(`   * Donations:       /api/donations`);
+      logger.info(`   * Expenses:        /api/expenses`);
+      logger.info(`   * Transactions:    /api/transactions`);
+      logger.info(`   * Rent:            /api/rent`);
+      logger.info(`   * Shops:           /api/shops`);
+      logger.info(`   * Tenants:         /api/rent/tenants`);
+      logger.info(`   * Agreements:      /api/rent/agreements`);
+      logger.info(`   * Loans:           /api/loans`);
+      logger.info(`   * Rent Penalties:  /api/rent-penalties`);
+      logger.info(`   * Uploaded Files:  /api/uploaded-files`);
+      logger.info(`   * Sequelize API:   /api/sequelize`);
     });
 
-    // Cleanup expired refresh tokens every hour
+    // Refresh token cleanup job (hourly)
     setInterval(async () => {
       try {
         await RefreshToken.cleanupExpired();
-      } catch (error) {
-        logger.error("Failed to cleanup expired refresh tokens:", error);
+      } catch (err) {
+        logger.error({ err }, "Failed to cleanup expired refresh tokens");
       }
-    }, 60 * 60 * 1000); // 1 hour
+    }, 60 * 60 * 1000);
   } catch (error) {
-    logger.error(">> Failed to start server:", error);
+    logger.error({ err: error }, ">> Failed to start server");
     process.exit(1);
   }
 };
 
+// --------------------------------------------------
 // Graceful shutdown
+// --------------------------------------------------
 const gracefulShutdown = async (signal) => {
+  if (shuttingDown) return;
+  shuttingDown = true;
+
   logger.info(`>> Received ${signal}. Starting graceful shutdown...`);
 
-  if (server) {
-    server.close((error) => {
-      if (error) {
-        logger.error(">> Error during server shutdown:", error);
-        process.exit(1);
-      }
-      logger.info(">> Server closed");
+  const closeHttpServer = () =>
+    new Promise((resolve) => {
+      if (!server) return resolve();
+      server.close((err) => {
+        if (err) {
+          logger.error({ err }, ">> Error while closing HTTP server");
+        } else {
+          logger.info(">> HTTP server closed");
+        }
+        resolve();
+      });
     });
-  }
 
   try {
-    await closeDatabaseConnection();
-    logger.info(">> Database connection closed");
-    
-    await closeConnection();
-    logger.info(">> Sequelize connection closed");
-  } catch (error) {
-    logger.error(">> Error closing database connections:", error);
-  }
+    await closeHttpServer();
 
-  logger.info(">> Graceful shutdown completed");
-  process.exit(0);
+    try {
+      await closeDatabaseConnection();
+      logger.info(">> Primary database connection closed");
+    } catch (err) {
+      logger.error({ err }, ">> Error closing primary database connection");
+    }
+
+    try {
+      await closeSequelizeConnection();
+      logger.info(">> Sequelize connection closed");
+    } catch (err) {
+      logger.error({ err }, ">> Error closing Sequelize connection");
+    }
+  } catch (outerErr) {
+    logger.error({ err: outerErr }, ">> Unexpected error during shutdown");
+  } finally {
+    logger.info(">> Graceful shutdown complete");
+    process.exit(0);
+  }
 };
 
-// Handle shutdown signals
 process.on("SIGTERM", () => gracefulShutdown("SIGTERM"));
 process.on("SIGINT", () => gracefulShutdown("SIGINT"));
 
-// Start the server
+// NOTE: Uncaught / unhandled handlers are already set in app.js via:
+//   process.on("uncaughtException", handleUncaughtException);
+//   process.on("unhandledRejection", handleUnhandledRejection);
+// We intentionally do NOT duplicate them here.
+
+// --------------------------------------------------
+// Auto-start (if run directly)
+// --------------------------------------------------
 startServer();
+
+// Optionally export for testing
+export { startServer, gracefulShutdown };

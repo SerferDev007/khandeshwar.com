@@ -83,12 +83,12 @@ All rent-related endpoints are consolidated under `/api/rent/`:
 - `DELETE /api/rent/payments/:id` - Delete rent payment
 
 ### Agreements
-- `GET /api/agreements` - List all agreements
-- `GET /api/agreements/:id` - Get agreement by ID
-- `GET /api/agreements/tenant/:tenantId` - Get agreements by tenant
-- `POST /api/agreements` - Create new agreement
-- `PUT /api/agreements/:id` - Update agreement
-- `DELETE /api/agreements/:id` - Delete agreement
+- `GET /api/rent/agreements` - List all agreements
+- `GET /api/rent/agreements/:id` - Get agreement by ID
+- `GET /api/rent/agreements/tenant/:tenantId` - Get agreements by tenant
+- `POST /api/rent/agreements` - Create new agreement
+- `PUT /api/rent/agreements/:id` - Update agreement
+- `DELETE /api/rent/agreements/:id` - Delete agreement
 
 ### Loans
 - `GET /api/loans` - List all loans

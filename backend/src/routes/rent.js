@@ -411,6 +411,74 @@ router.get('/payments', authenticate, authorize(['Admin']), async (req, res) => 
   }
 });
 
+// GET /api/rent/agreements/:id - Get agreement by ID
+router.get('/agreements/:id', authenticate, authorize(['Admin']), validate(schemas.idParam), async (req, res) => {
+  try {
+    const { id } = req.params;
+    const rows = await query(`
+      SELECT a.*, s.shop_number, t.tenant_name
+      FROM agreements a
+      LEFT JOIN shops s ON a.shop_id = s.id
+      LEFT JOIN tenants t ON a.tenant_id = t.id
+      WHERE a.id = ?
+    `, [id]);
+
+    if (rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: 'Agreement not found'
+      });
+    }
+
+    const agreement = {
+      ...Agreement.fromDbRow(rows[0]),
+      shopNumber: rows[0].shop_number,
+      tenantName: rows[0].tenant_name
+    };
+
+    return res.json({
+      success: true,
+      data: agreement
+    });
+  } catch (error) {
+    logger.error('Get agreement by ID error:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Failed to fetch agreement'
+    });
+  }
+});
+
+// GET /api/rent/agreements
+router.get('/agreements', authenticate, authorize(['Admin']), async (req, res) => {
+  try {
+    const rows = await query(`
+      SELECT a.*, s.shop_number, t.tenant_name
+      FROM agreements a
+      LEFT JOIN shops s ON a.shop_id = s.id
+      LEFT JOIN tenants t ON a.tenant_id = t.id
+      ORDER BY a.agreement_date DESC
+    `);
+
+    const agreements = rows.map(row => ({
+      ...Agreement.fromDbRow(row),
+      shopNumber: row.shop_number,
+      tenantName: row.tenant_name
+    }));
+
+    return res.json({
+      success: true,
+      data: agreements
+    });
+  } catch (error) {
+    logger.error('Get agreements error:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Failed to fetch agreements'
+    });
+  }
+});
+
 // POST /api/rent/payments - Create new rent payment
 router.post('/payments', authenticate, authorize(['Admin']), validateRentPaymentCreate, async (req, res) => {
   try {

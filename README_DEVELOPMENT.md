@@ -67,8 +67,8 @@ The backend provides these main endpoints:
 - `POST /api/auth/register` - User registration
 - `GET /api/users` - User management (Admin only)
 - `GET /api/shops` - Shop management
-- `GET /api/tenants` - Tenant management  
-- `GET /api/agreements` - Rental agreements
+- `GET /api/rent/tenants` - Tenant management  
+- `GET /api/rent/agreements` - Rental agreements
 - `GET /api/loans` - Loan management
 - `GET /api/transactions` - Financial transactions
 

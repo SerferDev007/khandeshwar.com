@@ -5,7 +5,7 @@ import pino from 'pino';
 const logger = pino({ name: 'AgreementController' });
 
 export class AgreementController {
-  // GET /api/agreements - Get all agreements
+  // GET /api/rent/agreements - Get all agreements
   static async getAll(req, res) {
     try {
       const { page = 1, limit = 10, include_relations } = req.query;
@@ -58,7 +58,7 @@ export class AgreementController {
     }
   }
 
-  // GET /api/agreements/:id - Get agreement by ID
+  // GET /api/rent/agreements/:id - Get agreement by ID
   static async getById(req, res) {
     try {
       const { id } = req.params;
@@ -106,7 +106,7 @@ export class AgreementController {
     }
   }
 
-  // POST /api/agreements - Create new agreement
+  // POST /api/rent/agreements - Create new agreement
   static async create(req, res) {
     try {
       const agreementData = {
@@ -172,7 +172,7 @@ export class AgreementController {
     }
   }
 
-  // PUT /api/agreements/:id - Update agreement
+  // PUT /api/rent/agreements/:id - Update agreement
   static async update(req, res) {
     try {
       const { id } = req.params;
@@ -239,7 +239,7 @@ export class AgreementController {
     }
   }
 
-  // DELETE /api/agreements/:id - Delete agreement
+  // DELETE /api/rent/agreements/:id - Delete agreement
   static async delete(req, res) {
     try {
       const { id } = req.params;

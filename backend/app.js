@@ -327,6 +327,7 @@ app.use("/api/transactions", transactionsRoutes);
 app.use("/api/rent", rentRoutes);
 app.use("/api/shops", shopRoutes);
 
+
 // Sequelize-based API routes (new implementation)
 app.use("/api/sequelize", sequelizeRoutes);
 
@@ -345,7 +346,7 @@ app.get("/api/health", (req, res) => {
 // 
 // The generic controller routes below have been removed to prevent bypassing authentication:
 // - /api/transactions (donations/expenses should use their specific endpoints)
-// - /api/shops, /api/tenants, /api/agreements (should use /api/rent endpoints) 
+// - /api/shops, /api/rent/tenants, /api/rent/agreements (should use /api/rent endpoints) 
 // - /api/loans, /api/rent-penalties (currently unprotected - TODO: create protected routers)
 
 // Note: All entity-specific routes have been removed to prevent bypassing authentication

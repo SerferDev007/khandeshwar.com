@@ -16,8 +16,15 @@
  * 4. 401 responses automatically clear tokens and trigger logout handler
  */
 
-const API_BASE_URL =
-  import.meta.env.VITE_BACKEND_URL || "http://localhost:8081";
+// Add this type declaration at the top of your file (or in a global .d.ts file)
+interface ImportMetaEnv {
+  VITE_BACKEND_URL?: string;
+}
+interface ImportMeta {
+  env: ImportMetaEnv;
+}
+
+const API_BASE_URL = "http://localhost:8081";
 
 const AUTH_TOKEN_KEY = "auth_token";
 
@@ -228,7 +235,7 @@ class ApiClient {
     return m === "GET" || m === "HEAD" || m === "OPTIONS";
   }
 
-  private async request<T = any>(
+  protected async request<T = any>(
     endpoint: string,
     options: RequestInit = {},
     retryCount = 0
@@ -550,38 +557,38 @@ class ApiClient {
   }
 
   getTenants() {
-    return this.get("/api/tenants");
+    return this.get("/api/rent/tenants");
   }
   getTenant(id: string) {
-    return this.get(`/api/tenants/${id}`);
+    return this.get(`/api/rent/tenants/${id}`);
   }
   createTenant(d: any) {
-    return this.post("/api/tenants", d);
+    return this.post("/api/rent/tenants", d);
   }
   updateTenant(id: string, d: any) {
-    return this.put(`/api/tenants/${id}`, d);
+    return this.put(`/api/rent/tenants/${id}`, d);
   }
   deleteTenant(id: string) {
-    return this.delete(`/api/tenants/${id}`);
+    return this.delete(`/api/rent/tenants/${id}`);
   }
 
   getAgreements() {
-    return this.get("/api/agreements");
+    return this.get("/api/rent/agreements");
   }
   getAgreement(id: string) {
-    return this.get(`/api/agreements/${id}`);
+    return this.get(`/api/rent/agreements/${id}`);
   }
   createAgreement(d: any) {
-    return this.post("/api/agreements", d);
+    return this.post("/api/rent/agreements", d);
   }
   updateAgreement(id: string, d: any) {
-    return this.put(`/api/agreements/${id}`, d);
+    return this.put(`/api/rent/agreements/${id}`, d);
   }
   deleteAgreement(id: string) {
-    return this.delete(`/api/agreements/${id}`);
+    return this.delete(`/api/rent/agreements/${id}`);
   }
   getAgreementsByTenant(tenantId: string) {
-    return this.get(`/api/agreements/tenant/${tenantId}`);
+    return this.get(`/api/rent/agreements/tenant/${tenantId}`);
   }
 
   getLoans() {
@@ -771,23 +778,23 @@ class ApiClientWithFallback extends ApiClient {
         if (method === 'DELETE') return await mockClient.deleteShop(id) as T;
       }
       
-      if (endpoint === '/api/tenants') {
+      if (endpoint === '/api/rent/tenants') {
         if (method === 'GET') return await mockClient.getTenants() as T;
         if (method === 'POST') return await mockClient.createTenant(body) as T;
       }
       
-      if (endpoint.startsWith('/api/tenants/')) {
+      if (endpoint.startsWith('/api/rent/tenants/')) {
         const id = endpoint.split('/').pop()!;
         if (method === 'PUT') return await mockClient.updateTenant(id, body) as T;
         if (method === 'DELETE') return await mockClient.deleteTenant(id) as T;
       }
       
-      if (endpoint === '/api/agreements') {
+      if (endpoint === '/api/rent/agreements') {
         if (method === 'GET') return await mockClient.getAgreements() as T;
         if (method === 'POST') return await mockClient.createAgreement(body) as T;
       }
       
-      if (endpoint.startsWith('/api/agreements/')) {
+      if (endpoint.startsWith('/api/rent/agreements/')) {
         const id = endpoint.split('/').pop()!;
         if (method === 'PUT') return await mockClient.updateAgreement(id, body) as T;
         if (method === 'DELETE') return await mockClient.deleteAgreement(id) as T;

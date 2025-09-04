@@ -350,14 +350,14 @@ export const demoAuthRoutes = (app) => {
     });
   });
 
-  app.get('/api/tenants', demoAuthMiddleware, (req, res) => {
+  app.get('/api/rent/tenants', demoAuthMiddleware, (req, res) => {
     res.json({
       success: true,
       data: []
     });
   });
 
-  app.get('/api/agreements', demoAuthMiddleware, (req, res) => {
+  app.get('/api/rent/agreements', demoAuthMiddleware, (req, res) => {
     res.json({
       success: true,
       data: []
