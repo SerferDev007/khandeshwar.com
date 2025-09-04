@@ -1,8 +1,9 @@
-import app, { createAdditionalTables } from "./app.js";
+import app, { createAdditionalTables, initializeSequelizeModels } from "./app.js";
 import {
   closeDatabaseConnection,
   initializeDatabase,
 } from "./src/config/db.js";
+import { closeConnection } from "./src/config/sequelize.js";
 import { RefreshToken } from "./src/models/RefreshToken.js";
 import env from "./src/config/env.js";
 import pino from "pino";
@@ -29,6 +30,9 @@ const startServer = async () => {
     // Create additional tables
     await createAdditionalTables();
 
+    // Initialize Sequelize models
+    await initializeSequelizeModels();
+
     // Start server
     server = app.listen(env.PORT, () => {
       logger.info(
@@ -54,6 +58,21 @@ const startServer = async () => {
       );
       logger.info(
         `   * Uploaded Files: http://localhost:${env.PORT}/api/uploaded-files`
+      );
+      logger.info(
+        `   * Sequelize Tenants: http://localhost:${env.PORT}/api/sequelize/tenants`
+      );
+      logger.info(
+        `   * Sequelize Agreements: http://localhost:${env.PORT}/api/sequelize/agreements`
+      );
+      logger.info(
+        `   * Sequelize Loans: http://localhost:${env.PORT}/api/sequelize/loans`
+      );
+      logger.info(
+        `   * Sequelize Rent Penalties: http://localhost:${env.PORT}/api/sequelize/rent-penalties`
+      );
+      logger.info(
+        `   * Sequelize Uploaded Files: http://localhost:${env.PORT}/api/sequelize/uploaded-files`
       );
     });
 
@@ -88,8 +107,11 @@ const gracefulShutdown = async (signal) => {
   try {
     await closeDatabaseConnection();
     logger.info(">> Database connection closed");
+    
+    await closeConnection();
+    logger.info(">> Sequelize connection closed");
   } catch (error) {
-    logger.error(">> Error closing database connection:", error);
+    logger.error(">> Error closing database connections:", error);
   }
 
   logger.info(">> Graceful shutdown completed");
