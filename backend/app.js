@@ -24,6 +24,9 @@ import transactionsRoutes from "./src/routes/transactions.js";
 import rentRoutes from "./src/routes/rent.js";
 import shopRoutes from "./src/routes/shop.js";
 
+// Import Sequelize routes
+import sequelizeRoutes from "./src/routes/sequelize/index.js";
+
 // Import models
 import { User } from "./src/models/User.js";
 import { UploadedFile } from "./src/models/UploadedFile.js";
@@ -33,6 +36,9 @@ import { Agreement } from "./src/models/Agreement.js";
 import { Loan } from "./src/models/Loan.js";
 import { RentPenalty } from "./src/models/RentPenalty.js";
 import { Transaction } from "./src/models/Transaction.js";
+
+// Import Sequelize configuration
+import { initializeSequelize } from "./src/config/sequelize.js";
 
 // Create logger
 const logger = pino(
@@ -126,6 +132,18 @@ const createAdditionalTables = async () => {
         error.message
       );
     }
+  }
+};
+
+// Initialize Sequelize models and sync database
+const initializeSequelizeModels = async () => {
+  try {
+    logger.info("Initializing Sequelize models...");
+    await initializeSequelize();
+    logger.info("✅ Sequelize models initialized successfully");
+  } catch (error) {
+    logger.error("❌ Failed to initialize Sequelize models:", error);
+    throw error;
   }
 };
 
@@ -305,6 +323,9 @@ app.use("/api/transactions", transactionsRoutes);
 app.use("/api/rent", rentRoutes);
 app.use("/api/shops", shopRoutes);
 
+// Sequelize-based API routes (new implementation)
+app.use("/api/sequelize", sequelizeRoutes);
+
 // Health check (alternative endpoint for backward compatibility)
 app.get("/api/health", (req, res) => {
   res.json({ status: "OK", timestamp: new Date().toISOString() });
@@ -337,6 +358,6 @@ app.use(notFoundHandler);
 app.use(errorHandler);
 
 // Export the additional tables function
-export { createAdditionalTables };
+export { createAdditionalTables, initializeSequelizeModels };
 
 export default app;
