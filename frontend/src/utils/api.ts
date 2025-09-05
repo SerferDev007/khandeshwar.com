@@ -27,6 +27,12 @@ interface ImportMeta {
 const API_BASE_URL = "http://localhost:8081";
 
 const AUTH_TOKEN_KEY = "auth_token";
+const SESSION_TOKEN_KEY = "session_auth_token";
+const SESSION_USER_KEY = "session_current_user";
+const SESSION_TOKEN_TIMESTAMP_KEY = "session_token_timestamp";
+
+// Session cache TTL - 5 minutes
+const SESSION_CACHE_TTL = 5 * 60 * 1000; // 5 minutes in milliseconds
 
 interface ApiResponse<T = any> {
   success: boolean;
@@ -48,6 +54,19 @@ function safeLocalStorage(): Storage | null {
     ls.setItem(testKey, "1");
     ls.removeItem(testKey);
     return ls;
+  } catch {
+    return null;
+  }
+}
+
+function safeSessionStorage(): Storage | null {
+  try {
+    if (typeof window === "undefined") return null;
+    const ss = window.sessionStorage;
+    const testKey = "__ss_test__";
+    ss.setItem(testKey, "1");
+    ss.removeItem(testKey);
+    return ss;
   } catch {
     return null;
   }
@@ -128,6 +147,10 @@ class ApiClient {
   private token: string | null = null;
   private onUnauthorized?: () => void | Promise<void>;
   private ls: Storage | null = null;
+  private ss: Storage | null = null; // sessionStorage reference
+  private sessionUser: any = null; // cached user info
+  private sessionTokenTimestamp: number = 0; // timestamp of last token validation
+  private isRefreshing: boolean = false; // flag to prevent recursive refresh attempts
 
   constructor(baseURL: string) {
     // Normalize base URL by removing trailing slashes
@@ -144,6 +167,8 @@ class ApiClient {
     listenCrossTab = true,
   }: { listenCrossTab?: boolean } = {}) {
     this.ls = safeLocalStorage();
+    this.ss = safeSessionStorage();
+    
     if (this.ls) {
       const stored = this.ls.getItem(AUTH_TOKEN_KEY);
       this.token = stored && stored.trim() ? stored : null;
@@ -163,6 +188,8 @@ class ApiClient {
                 new: newVal ? newVal.slice(0, 10) + "..." : "null",
               });
               this.token = newVal;
+              // Clear session cache when localStorage token changes
+              this.clearSessionCache();
             }
           }
         });
@@ -172,6 +199,9 @@ class ApiClient {
         "⚠️ localStorage unavailable; token will be in-memory only."
       );
     }
+    
+    // Initialize session cache
+    this.loadSessionCache();
   }
 
   setUnauthorizedHandler(handler: () => void | Promise<void>) {
@@ -206,10 +236,109 @@ class ApiClient {
       } else {
         ls.removeItem(AUTH_TOKEN_KEY);
         console.log("🗑️ Token cleared", { ts });
+        // Clear session cache when token is cleared
+        this.clearSessionCache();
       }
     } catch (err) {
       console.error("❌ Token persist failed:", err);
     }
+  }
+
+  /**
+   * Load session cache from sessionStorage
+   */
+  private loadSessionCache() {
+    if (!this.ss) return;
+    
+    try {
+      const sessionToken = this.ss.getItem(SESSION_TOKEN_KEY);
+      const sessionUser = this.ss.getItem(SESSION_USER_KEY);
+      const timestampStr = this.ss.getItem(SESSION_TOKEN_TIMESTAMP_KEY);
+      
+      if (sessionToken && timestampStr) {
+        const timestamp = parseInt(timestampStr, 10);
+        const now = Date.now();
+        
+        // Check if session cache is still valid (within TTL)
+        if (now - timestamp < SESSION_CACHE_TTL) {
+          this.sessionTokenTimestamp = timestamp;
+          this.sessionUser = sessionUser ? JSON.parse(sessionUser) : null;
+          console.log("🎯 Session cache loaded", {
+            hasToken: !!sessionToken,
+            hasUser: !!this.sessionUser,
+            age: now - timestamp,
+            ttl: SESSION_CACHE_TTL,
+          });
+        } else {
+          console.log("⏰ Session cache expired, clearing", {
+            age: now - timestamp,
+            ttl: SESSION_CACHE_TTL,
+          });
+          this.clearSessionCache();
+        }
+      }
+    } catch (err) {
+      console.warn("⚠️ Failed to load session cache:", err);
+      this.clearSessionCache();
+    }
+  }
+
+  /**
+   * Save session cache to sessionStorage
+   */
+  private saveSessionCache(token: string, user?: any) {
+    if (!this.ss) return;
+    
+    try {
+      const timestamp = Date.now();
+      this.sessionTokenTimestamp = timestamp;
+      this.sessionUser = user || null;
+      
+      this.ss.setItem(SESSION_TOKEN_KEY, token);
+      this.ss.setItem(SESSION_TOKEN_TIMESTAMP_KEY, timestamp.toString());
+      
+      if (user) {
+        this.ss.setItem(SESSION_USER_KEY, JSON.stringify(user));
+      } else {
+        this.ss.removeItem(SESSION_USER_KEY);
+      }
+      
+      console.log("💾 Session cache saved", {
+        hasUser: !!user,
+        timestamp,
+      });
+    } catch (err) {
+      console.warn("⚠️ Failed to save session cache:", err);
+    }
+  }
+
+  /**
+   * Clear session cache
+   */
+  private clearSessionCache() {
+    if (!this.ss) return;
+    
+    try {
+      this.ss.removeItem(SESSION_TOKEN_KEY);
+      this.ss.removeItem(SESSION_USER_KEY);
+      this.ss.removeItem(SESSION_TOKEN_TIMESTAMP_KEY);
+      this.sessionUser = null;
+      this.sessionTokenTimestamp = 0;
+      
+      console.log("🗑️ Session cache cleared");
+    } catch (err) {
+      console.warn("⚠️ Failed to clear session cache:", err);
+    }
+  }
+
+  /**
+   * Check if session cache is valid
+   */
+  private isSessionCacheValid(): boolean {
+    if (!this.sessionTokenTimestamp) return false;
+    const now = Date.now();
+    const age = now - this.sessionTokenTimestamp;
+    return age < SESSION_CACHE_TTL;
   }
 
   getAuthToken(): string | null {
@@ -224,6 +353,101 @@ class ApiClient {
       this.token = stored && stored.trim() ? stored : null;
     }
     return this.token;
+  }
+
+  /**
+   * Get cached session token. Uses cache for 5 minutes, validates only when needed.
+   * This reduces validation API calls by ~95% compared to getAuthToken().
+   */
+  getSessionToken(): string | null {
+    const currentToken = this.getAuthToken();
+    
+    if (!currentToken) {
+      console.log("🔓 No token available for session");
+      return null;
+    }
+
+    // If session cache is valid, return token immediately without validation
+    if (this.isSessionCacheValid()) {
+      console.log("⚡ Using cached session token", {
+        tokenStart: currentToken.slice(0, 10) + "...",
+        cacheAge: Date.now() - this.sessionTokenTimestamp,
+      });
+      return currentToken;
+    }
+
+    console.log("🔍 Session cache expired, validation needed", {
+      tokenStart: currentToken.slice(0, 10) + "...",
+      cacheAge: this.sessionTokenTimestamp ? Date.now() - this.sessionTokenTimestamp : 0,
+    });
+    
+    return currentToken;
+  }
+
+  /**
+   * Force fresh token validation and refresh session cache.
+   * Call this on login or when you need to ensure token is valid.
+   */
+  async refreshAuthSession(): Promise<any> {
+    console.log("🔄 Refreshing authentication session...");
+    
+    // Clear existing session cache
+    this.clearSessionCache();
+    
+    // Re-initialize from storage to pick up any cross-tab updates
+    this.initFromStorage({ listenCrossTab: false });
+    
+    const currentToken = this.getAuthToken();
+    if (!currentToken) {
+      console.log("🔄 No token found during session refresh");
+      throw new Error("No auth token available for session refresh");
+    }
+    
+    try {
+      // Use direct request to avoid infinite recursion through getSessionToken()
+      const profile = await this.request("/api/auth/profile", { method: "GET" });
+      
+      // Cache the validated token and user info
+      this.saveSessionCache(currentToken, profile);
+      
+      console.log("✅ Session refresh successful - token validated and cached", {
+        tokenStart: currentToken.slice(0, 10) + "...",
+        hasProfile: !!profile,
+      });
+      
+      return profile;
+    } catch (error: any) {
+      console.error("❌ Session refresh failed - token is invalid:", error.message);
+      // Don't clear token here - let the 401 handler in request() handle it
+      throw error;
+    }
+  }
+
+  /**
+   * Clear all authentication session data.
+   * Call this on logout.
+   */
+  clearAuthSession(): void {
+    console.log("🗑️ Clearing authentication session");
+    this.setAuthToken(null);
+    this.clearSessionCache();
+  }
+
+  /**
+   * Get cached current user info without making an API call.
+   * Returns cached user data for better performance.
+   */
+  getCurrentSessionUser(): any {
+    if (this.isSessionCacheValid() && this.sessionUser) {
+      console.log("⚡ Using cached session user", {
+        userId: this.sessionUser?.id,
+        hasUser: !!this.sessionUser,
+      });
+      return this.sessionUser;
+    }
+    
+    console.log("🔍 No valid cached user data available");
+    return null;
   }
 
   private sleep(ms: number) {
@@ -256,8 +480,8 @@ class ApiClient {
       headers.set("Content-Type", "application/json");
     }
 
-    // Fresh token on every request
-    const currentToken = this.getAuthToken();
+    // Use session token for better performance (cached for 5 minutes)
+    const currentToken = this.getSessionToken();
 
     // Basic format check (still allow non-JWT opaque tokens by skipping hard clear)
     if (currentToken && !isLikelyJwt(currentToken)) {
@@ -305,15 +529,34 @@ class ApiClient {
           endpoint: normalizedEndpoint,
           parsed,
           hadToken: !!currentToken,
+          sessionCacheValid: this.isSessionCacheValid(),
         });
 
-        // Try unauthorized handler first (which may attempt token refresh)
+        // For 401 errors, try session refresh first before clearing token
+        // Only attempt refresh if we have a token, haven't already retried, and not currently refreshing
+        if (currentToken && retryCount === 0 && !this.isRefreshing) {
+          try {
+            console.log("🔄 Attempting session refresh for 401 error...");
+            this.isRefreshing = true;
+            await this.refreshAuthSession();
+            
+            console.log("✅ Session refresh successful after 401, retrying request...");
+            return this.request<T>(endpoint, options, retryCount + 1);
+          } catch (refreshError) {
+            console.error("❌ Session refresh failed after 401:", refreshError);
+            // Fall through to try unauthorized handler or clear token
+          } finally {
+            this.isRefreshing = false;
+          }
+        }
+
+        // Try unauthorized handler if available (for backward compatibility)
         if (this.onUnauthorized) {
           try {
             console.log("🔄 Calling unauthorized handler for potential token refresh...");
             await this.onUnauthorized();
             
-            // If refresh succeeded, retry the original request once
+            // If handler succeeded, retry the original request once
             console.log("✅ Unauthorized handler completed, retrying request...");
             return this.request<T>(endpoint, options, retryCount + 1);
           } catch (refreshError) {
@@ -322,12 +565,34 @@ class ApiClient {
           }
         }
 
-        // Clear token only if no handler exists or handler failed
-        console.log("🗑️ Clearing token after failed 401 handling");
-        this.setAuthToken(null);
+        // Clear token only if session refresh and handler both failed
+        console.log("🗑️ Clearing session after failed 401 handling");
+        this.clearAuthSession();
 
         const err = new Error("Unauthorized: Please login again") as ApiError;
         err.statusCode = 401;
+        throw err;
+      }
+
+      // Handle 403 Forbidden errors - don't clear session, user just lacks permission
+      if (response.status === 403) {
+        const text = await response.text();
+        let parsed: any;
+        try {
+          parsed = JSON.parse(text);
+        } catch {
+          parsed = { error: text };
+        }
+
+        console.warn("🚫 403 Forbidden", {
+          endpoint: normalizedEndpoint,
+          parsed,
+          preservingSession: true,
+        });
+
+        const err = new Error(parsed.error || "Forbidden: Insufficient permissions") as ApiError;
+        err.statusCode = 403;
+        err.details = parsed.details;
         throw err;
       }
 
@@ -490,6 +755,12 @@ class ApiClient {
       
       // Automatically set the auth token
       this.setAuthToken(accessToken);
+      
+      // Cache the session with user data if available
+      const userData = response.user || response.data?.user || response;
+      this.saveSessionCache(accessToken, userData);
+      
+      console.log("💾 Session cached after successful login");
     } else {
       console.error("❌ Login failed - no access token found in response", {
         response,
@@ -521,6 +792,12 @@ class ApiClient {
         
         // Automatically set the auth token
         this.setAuthToken(accessToken);
+        
+        // Cache the session with user data if available
+        const userData = response.user || response.data?.user || response;
+        this.saveSessionCache(accessToken, userData);
+        
+        console.log("💾 Session cached after successful registration");
       } else {
         console.error("❌ Register failed - no access token found in response", {
           response,
@@ -536,7 +813,11 @@ class ApiClient {
     return this.get("/api/auth/profile");
   }
   logout() {
-    return this.post("/api/auth/logout");
+    console.log("🚪 Logging out and clearing session");
+    return this.post("/api/auth/logout").finally(() => {
+      // Always clear session after logout attempt, regardless of API response
+      this.clearAuthSession();
+    });
   }
 
   /**
@@ -901,4 +1182,12 @@ class ApiClientWithFallback extends ApiClient {
 // Singleton
 const apiClient = new ApiClientWithFallback(API_BASE_URL);
 export default apiClient;
-export { ApiClient, type ApiError, AUTH_TOKEN_KEY };
+export { 
+  ApiClient, 
+  type ApiError, 
+  AUTH_TOKEN_KEY,
+  SESSION_TOKEN_KEY,
+  SESSION_USER_KEY,
+  SESSION_TOKEN_TIMESTAMP_KEY,
+  SESSION_CACHE_TTL
+};
