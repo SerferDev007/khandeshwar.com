@@ -83,6 +83,24 @@ router.get('/', authenticate, authorize(['Admin', 'Treasurer', 'Viewer']), async
   }
 });
 
+// GET /api/donations/next-receipt-number - Get next receipt number for preview
+router.get('/next-receipt-number', authenticate, authorize(['Admin', 'Treasurer']), async (req, res) => {
+  try {
+    const nextReceiptNumber = await getNextReceiptNumber('Donation');
+    
+    return res.json({
+      success: true,
+      data: { receiptNumber: nextReceiptNumber }
+    });
+  } catch (error) {
+    logger.error('Get next receipt number error:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Failed to get next receipt number'
+    });
+  }
+});
+
 // GET /api/donations/:id - Get donation by ID
 router.get('/:id', authenticate, authorize(['Admin', 'Treasurer', 'Viewer']), validate(schemas.idParam), async (req, res) => {
   try {
@@ -109,24 +127,6 @@ router.get('/:id', authenticate, authorize(['Admin', 'Treasurer', 'Viewer']), va
     return res.status(500).json({
       success: false,
       error: 'Failed to fetch donation'
-    });
-  }
-});
-
-// GET /api/donations/next-receipt-number - Get next receipt number for preview
-router.get('/next-receipt-number', authenticate, authorize(['Admin', 'Treasurer']), async (req, res) => {
-  try {
-    const nextReceiptNumber = await getNextReceiptNumber('Donation');
-    
-    return res.json({
-      success: true,
-      data: { receiptNumber: nextReceiptNumber }
-    });
-  } catch (error) {
-    logger.error('Get next receipt number error:', error);
-    return res.status(500).json({
-      success: false,
-      error: 'Failed to get next receipt number'
     });
   }
 });

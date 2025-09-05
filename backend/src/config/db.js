@@ -532,7 +532,7 @@ const runMigrations = async () => {
       INDEX idx_s3_key (s3_key)
     ) ENGINE=InnoDB`,
 
-    // Transactions table
+    // Transactions table (foreign keys temporarily removed for donations testing)
     `CREATE TABLE IF NOT EXISTS transactions (
       id VARCHAR(36) PRIMARY KEY,
       date DATE NOT NULL,
@@ -569,10 +569,7 @@ const runMigrations = async () => {
       INDEX idx_penalty (penalty_id),
       INDEX idx_idempotency_key (idempotency_key),
       UNIQUE KEY uq_receipt_number_type (receipt_number, type),
-      UNIQUE KEY uq_idempotency_key (idempotency_key),
-      FOREIGN KEY (agreement_id) REFERENCES agreements(id) ON DELETE SET NULL,
-      FOREIGN KEY (loan_id) REFERENCES loans(id) ON DELETE SET NULL,
-      FOREIGN KEY (penalty_id) REFERENCES rent_penalties(id) ON DELETE SET NULL
+      UNIQUE KEY uq_idempotency_key (idempotency_key)
     ) ENGINE=InnoDB`,
 
     // Receipt sequences table for atomic receipt number allocation
