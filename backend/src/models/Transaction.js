@@ -1,5 +1,14 @@
 export class Transaction {
   constructor(data = {}) {
+    const timestamp = new Date().toISOString();
+    console.log(`[${timestamp}] [TRANSACTION-MODEL] [constructor] 💰 Creating new Transaction instance:`, { 
+      hasData: !!data,
+      dataKeys: Object.keys(data || {}),
+      id: data?.id,
+      type: data?.type,
+      amount: data?.amount
+    });
+
     this.id = data.id;
     this.date = data.date;
     this.type = data.type; // 'Donation' | 'Expense' | 'Utilities' | 'Salary' | 'RentIncome'
@@ -25,10 +34,21 @@ export class Transaction {
     this.penaltyId = data.penaltyId;
     this.penaltyAmount = data.penaltyAmount;
     this.createdAt = data.createdAt;
+
+    console.log(`[${timestamp}] [TRANSACTION-MODEL] [constructor] ✅ Transaction instance created:`, { 
+      id: this.id,
+      type: this.type,
+      category: this.category,
+      amount: this.amount,
+      hasRequiredFields: !!(this.id && this.date && this.type && this.category && this.description && this.amount)
+    });
   }
 
   static getTableSchema() {
-    return `
+    const timestamp = new Date().toISOString();
+    console.log(`[${timestamp}] [TRANSACTION-MODEL] [getTableSchema] 📋 Generating table schema`);
+    
+    const schema = `
       CREATE TABLE IF NOT EXISTS transactions (
         id VARCHAR(36) PRIMARY KEY,
         date DATE NOT NULL,
@@ -67,10 +87,29 @@ export class Transaction {
         FOREIGN KEY (penalty_id) REFERENCES rent_penalties(id) ON DELETE SET NULL
       ) ENGINE=InnoDB;
     `;
+
+    console.log(`[${timestamp}] [TRANSACTION-MODEL] [getTableSchema] ✅ Table schema generated:`, { 
+      schemaLength: schema.length,
+      tableName: 'transactions',
+      hasIndexes: true,
+      hasForeignKeys: true,
+      supportedTypes: ['Donation', 'Expense', 'Utilities', 'Salary', 'RentIncome']
+    });
+
+    return schema;
   }
 
   static fromDbRow(row) {
-    return new Transaction({
+    const timestamp = new Date().toISOString();
+    console.log(`[${timestamp}] [TRANSACTION-MODEL] [fromDbRow] 🔄 Converting database row to Transaction instance:`, { 
+      hasRow: !!row,
+      rowKeys: row ? Object.keys(row) : [],
+      transactionId: row?.id,
+      type: row?.type,
+      amount: row?.amount
+    });
+
+    const transaction = new Transaction({
       id: row.id,
       date: row.date,
       type: row.type,
@@ -97,9 +136,32 @@ export class Transaction {
       penaltyAmount: row.penalty_amount ? parseFloat(row.penalty_amount) : null,
       createdAt: row.created_at
     });
+
+    console.log(`[${timestamp}] [TRANSACTION-MODEL] [fromDbRow] ✅ Database row converted:`, { 
+      transactionId: transaction.id,
+      type: transaction.type,
+      category: transaction.category,
+      amount: transaction.amount,
+      numericFieldsParsed: {
+        amount: transaction.amount,
+        amountPerPerson: transaction.amountPerPerson,
+        emiAmount: transaction.emiAmount,
+        penaltyAmount: transaction.penaltyAmount
+      }
+    });
+
+    return transaction;
   }
 
   toDbObject() {
+    const timestamp = new Date().toISOString();
+    console.log(`[${timestamp}] [TRANSACTION-MODEL] [toDbObject] 🔄 Converting Transaction instance to database object:`, { 
+      transactionId: this.id,
+      type: this.type,
+      category: this.category,
+      amount: this.amount
+    });
+
     const obj = {};
     
     // Always include required fields
@@ -110,28 +172,67 @@ export class Transaction {
     if (this.description !== undefined) obj.description = this.description;
     if (this.amount !== undefined) obj.amount = this.amount;
     
+    console.log(`[${timestamp}] [TRANSACTION-MODEL] [toDbObject] 📋 Required fields processed:`, { 
+      hasRequiredFields: {
+        id: !!obj.id,
+        date: !!obj.date,
+        type: !!obj.type,
+        category: !!obj.category,
+        description: !!obj.description,
+        amount: !!obj.amount
+      }
+    });
+    
     // Optional fields - only include if they have values
-    if (this.subCategory !== undefined && this.subCategory !== null) obj.sub_category = this.subCategory;
-    if (this.receiptNumber !== undefined && this.receiptNumber !== null) obj.receipt_number = this.receiptNumber;
-    if (this.donorName !== undefined && this.donorName !== null) obj.donor_name = this.donorName;
-    if (this.donorContact !== undefined && this.donorContact !== null && this.donorContact !== '') obj.donor_contact = this.donorContact;
-    if (this.familyMembers !== undefined && this.familyMembers !== null) obj.family_members = this.familyMembers;
-    if (this.amountPerPerson !== undefined && this.amountPerPerson !== null) obj.amount_per_person = this.amountPerPerson;
-    if (this.vendor !== undefined && this.vendor !== null) obj.vendor = this.vendor;
-    if (this.receipt !== undefined && this.receipt !== null) obj.receipt = this.receipt;
-    if (this.tenantName !== undefined && this.tenantName !== null) obj.tenant_name = this.tenantName;
-    if (this.tenantContact !== undefined && this.tenantContact !== null) obj.tenant_contact = this.tenantContact;
-    if (this.agreementId !== undefined && this.agreementId !== null) obj.agreement_id = this.agreementId;
-    if (this.shopNumber !== undefined && this.shopNumber !== null) obj.shop_number = this.shopNumber;
-    if (this.payeeName !== undefined && this.payeeName !== null) obj.payee_name = this.payeeName;
-    if (this.payeeContact !== undefined && this.payeeContact !== null) obj.payee_contact = this.payeeContact;
-    if (this.loanId !== undefined && this.loanId !== null) obj.loan_id = this.loanId;
-    if (this.emiAmount !== undefined && this.emiAmount !== null) obj.emi_amount = this.emiAmount;
-    if (this.penaltyId !== undefined && this.penaltyId !== null) obj.penalty_id = this.penaltyId;
-    if (this.penaltyAmount !== undefined && this.penaltyAmount !== null) obj.penalty_amount = this.penaltyAmount;
+    const optionalFieldMappings = [
+      { prop: 'subCategory', db: 'sub_category' },
+      { prop: 'receiptNumber', db: 'receipt_number' },
+      { prop: 'donorName', db: 'donor_name' },
+      { prop: 'donorContact', db: 'donor_contact' },
+      { prop: 'familyMembers', db: 'family_members' },
+      { prop: 'amountPerPerson', db: 'amount_per_person' },
+      { prop: 'vendor', db: 'vendor' },
+      { prop: 'receipt', db: 'receipt' },
+      { prop: 'tenantName', db: 'tenant_name' },
+      { prop: 'tenantContact', db: 'tenant_contact' },
+      { prop: 'agreementId', db: 'agreement_id' },
+      { prop: 'shopNumber', db: 'shop_number' },
+      { prop: 'payeeName', db: 'payee_name' },
+      { prop: 'payeeContact', db: 'payee_contact' },
+      { prop: 'loanId', db: 'loan_id' },
+      { prop: 'emiAmount', db: 'emi_amount' },
+      { prop: 'penaltyId', db: 'penalty_id' },
+      { prop: 'penaltyAmount', db: 'penalty_amount' }
+    ];
+
+    const includedOptionalFields = [];
+    const skippedOptionalFields = [];
+
+    optionalFieldMappings.forEach(({ prop, db }) => {
+      const value = this[prop];
+      if (value !== undefined && value !== null && value !== '') {
+        obj[db] = value;
+        includedOptionalFields.push({ prop, db, hasValue: true });
+      } else {
+        skippedOptionalFields.push({ prop, db, value });
+      }
+    });
+
+    console.log(`[${timestamp}] [TRANSACTION-MODEL] [toDbObject] 📊 Optional fields processed:`, { 
+      includedCount: includedOptionalFields.length,
+      skippedCount: skippedOptionalFields.length,
+      includedFields: includedOptionalFields.map(f => f.prop),
+      totalFields: Object.keys(obj).length
+    });
     
     // Don't include created_at - let database handle it with DEFAULT CURRENT_TIMESTAMP
     
+    console.log(`[${timestamp}] [TRANSACTION-MODEL] [toDbObject] ✅ Database object created:`, { 
+      objectKeys: Object.keys(obj),
+      totalFields: Object.keys(obj).length,
+      hasAllRequired: !!(obj.id && obj.date && obj.type && obj.category && obj.description && obj.amount)
+    });
+
     return obj;
   }
 }
