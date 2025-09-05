@@ -706,6 +706,11 @@ class ApiClient {
     return this.get(`/api/donations/${id}`);
   }
   createDonation(d: any) {
+    console.log('🎯 createDonation called', {
+      hasToken: !!this.getAuthToken(),
+      tokenStart: this.getAuthToken()?.slice(0, 10) + '...' || 'null',
+      donationData: { category: d.category, amount: d.amount }
+    });
     return this.post("/api/donations", d);
   }
   updateDonation(id: string, d: any) {

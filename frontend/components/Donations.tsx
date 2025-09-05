@@ -332,6 +332,17 @@ export default function Donations({
         return;
       }
 
+      // Check if user has required permissions (Admin or Treasurer)
+      const allowedRoles = ['Admin', 'Treasurer'];
+      if (!allowedRoles.includes(currentUser.role)) {
+        console.error('[Donations] User does not have required permissions:', { 
+          userRole: currentUser.role, 
+          requiredRoles: allowedRoles 
+        });
+        toast.error('You do not have permission to submit donations. Only Admin and Treasurer roles are allowed.');
+        return;
+      }
+
       console.log('[Donations] Submitting donation for user:', { 
         userId: currentUser.id, 
         userRole: currentUser.role 
