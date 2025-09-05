@@ -332,6 +332,16 @@ export default function Donations({
         return;
       }
 
+      // Check if user role is defined
+      if (!currentUser.role) {
+        console.error('[Donations] User role is undefined - cannot determine permissions:', { 
+          userRole: currentUser.role,
+          userId: currentUser.id 
+        });
+        toast.error('Unable to verify permissions. Please try logging in again.');
+        return;
+      }
+
       // Check if user has required permissions (Admin or Treasurer)
       const allowedRoles = ['Admin', 'Treasurer'];
       if (!allowedRoles.includes(currentUser.role)) {
