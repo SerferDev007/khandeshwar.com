@@ -1423,7 +1423,8 @@ export function LanguageProvider({ children }: LanguageProviderProps) {
     ] || key;
     
     // Only log missing translations to avoid spam
-    if (translation === key && !key.startsWith('common.')) {
+    // Skip warnings for system keys (common, auth) that are expected to exist
+    if (translation === key && !key.startsWith('common.') && !key.startsWith('auth.')) {
       console.warn('[LanguageProvider] Missing translation for key:', key, 'in language:', language);
     }
     
