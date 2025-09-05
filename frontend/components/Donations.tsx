@@ -325,6 +325,29 @@ export default function Donations({
     }
 
     try {
+      // Check if user is authenticated before making API calls
+      if (!currentUser) {
+        console.error('[Donations] No authenticated user - cannot submit donation');
+        toast.error('Please login to submit donations');
+        return;
+      }
+
+      // Check if user has required permissions (Admin or Treasurer)
+      const allowedRoles = ['Admin', 'Treasurer'];
+      if (!allowedRoles.includes(currentUser.role)) {
+        console.error('[Donations] User does not have required permissions:', { 
+          userRole: currentUser.role, 
+          requiredRoles: allowedRoles 
+        });
+        toast.error('You do not have permission to submit donations. Only Admin and Treasurer roles are allowed.');
+        return;
+      }
+
+      console.log('[Donations] Submitting donation for user:', { 
+        userId: currentUser.id, 
+        userRole: currentUser.role 
+      });
+
       // Prepare data according to backend schema
       const donationData = {
         date: formData.date!.toISOString().split("T")[0],
