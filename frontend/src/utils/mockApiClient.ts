@@ -264,6 +264,21 @@ class MockApiClient {
   async getDonations() { return []; }
   async getExpenses() { return []; }
   async getUsers() { return [mockUser]; }
+
+  // Donations preview receipt number
+  async getNextDonationReceiptNumber() {
+    await this.delay();
+    // Generate a mock receipt number (incrementing for realism)
+    const baseNumber = 1000 + Math.floor(Math.random() * 9000); // Random 4-digit number
+    const receiptNumber = baseNumber.toString().padStart(4, '0');
+    
+    return {
+      success: true,
+      data: {
+        receiptNumber: receiptNumber
+      }
+    };
+  }
 }
 
 export default MockApiClient;

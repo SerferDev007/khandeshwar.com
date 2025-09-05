@@ -1161,6 +1161,9 @@ class ApiClientWithFallback extends ApiClient {
       // Default responses for other endpoints
       if (endpoint === '/api/transactions') return [] as T;
       if (endpoint === '/api/donations') return [] as T;
+      if (endpoint === '/api/donations/next-receipt-number' && method === 'GET') {
+        return await mockClient.getNextDonationReceiptNumber() as T;
+      }
       if (endpoint === '/api/expenses') return [] as T;
       if (endpoint === '/api/users') return await mockClient.getUsers() as T;
       

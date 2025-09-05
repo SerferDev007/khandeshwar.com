@@ -105,11 +105,6 @@ export default function Donations({
       latestTransaction: transactions?.[0]?.id || 'none'
     });
   }, [transactions]);
-
-  // Log when receipt counter changes
-  useEffect(() => {
-    console.log('[Donations] Receipt counter updated:', receiptCounter);
-  }, [receiptCounter]);
   const [formData, setFormData] = useState({
     date: null as Date | null,
     category: "",
@@ -121,7 +116,7 @@ export default function Donations({
     familyMembers: "",
     amountPerPerson: "",
     purpose: "",
-    receiptNumber: receiptCounter.toString().padStart(4, "0"),
+    receiptNumber: "", // Will be set by API preview
   });
 
   const [errors, setErrors] = useState<ValidationErrors>({});
@@ -148,9 +143,26 @@ export default function Donations({
           ...prev,
           receiptNumber: response.data.receiptNumber
         }));
+      } else {
+        console.error('Failed to fetch preview receipt number:', response.error);
+        // Fallback to a temporary placeholder
+        const fallbackNumber = "TEMP";
+        setPreviewReceiptNumber(fallbackNumber);
+        setFormData(prev => ({
+          ...prev,
+          receiptNumber: fallbackNumber
+        }));
       }
     } catch (error) {
       console.error('Failed to fetch preview receipt number:', error);
+      // Fallback to a temporary placeholder
+      const fallbackNumber = "TEMP";
+      setPreviewReceiptNumber(fallbackNumber);
+      setFormData(prev => ({
+        ...prev,
+        receiptNumber: fallbackNumber
+      }));
+      // Note: We don't show toast here to avoid spamming user on component mount
     }
   };
 
@@ -168,14 +180,6 @@ export default function Donations({
       initializeForNewDonation();
     }
   }, [isEditMode]);
-
-  // Update receipt number when receiptCounter changes
-  useEffect(() => {
-    setFormData((prev) => ({
-      ...prev,
-      receiptNumber: receiptCounter.toString().padStart(4, "0"),
-    }));
-  }, [receiptCounter]);
 
   // Calculate total amount for Vargani category
   useEffect(() => {
@@ -246,7 +250,7 @@ export default function Donations({
       familyMembers: "",
       amountPerPerson: "",
       purpose: "",
-      receiptNumber: previewReceiptNumber || receiptCounter.toString().padStart(4, "0"),
+      receiptNumber: "", // Will be set by fetchPreviewReceiptNumber in useEffect
     });
     setErrors({});
     setSubmissionState('idle');
