@@ -1392,24 +1392,39 @@ export function LanguageProvider({ children }: LanguageProviderProps) {
   const [language, setLanguageState] = useState<Language>("en");
 
   useEffect(() => {
+    console.log('[LanguageProvider] Component mounting, checking for saved language...');
     const savedLanguage = localStorage.getItem("language") as Language;
+    console.log('[LanguageProvider] Saved language from localStorage:', savedLanguage);
+    
     if (savedLanguage && (savedLanguage === "en" || savedLanguage === "mr")) {
+      console.log('[LanguageProvider] Setting language to saved value:', savedLanguage);
       setLanguageState(savedLanguage);
+    } else {
+      console.log('[LanguageProvider] No valid saved language, using default: en');
     }
   }, []);
 
   const setLanguage = (lang: Language) => {
+    console.log('[LanguageProvider] Language change requested:', { from: language, to: lang });
     setLanguageState(lang);
     localStorage.setItem("language", lang);
+    console.log('[LanguageProvider] Language saved to localStorage:', lang);
   };
 
   const t = (key: string): string => {
-    return (
-      translations[language][
-        key as keyof (typeof translations)[typeof language]
-      ] || key
-    );
+    const translation = translations[language][
+      key as keyof (typeof translations)[typeof language]
+    ] || key;
+    
+    // Only log missing translations to avoid spam
+    if (translation === key && !key.startsWith('common.')) {
+      console.warn('[LanguageProvider] Missing translation for key:', key, 'in language:', language);
+    }
+    
+    return translation;
   };
+
+  console.log('[LanguageProvider] Rendering with language:', language);
 
   return (
     <LanguageContext.Provider value={{ language, setLanguage, t }}>
@@ -1421,6 +1436,7 @@ export function LanguageProvider({ children }: LanguageProviderProps) {
 export function useLanguage() {
   const context = useContext(LanguageContext);
   if (context === undefined) {
+    console.error('[useLanguage] Hook used outside of LanguageProvider');
     throw new Error("useLanguage must be used within a LanguageProvider");
   }
   return context;

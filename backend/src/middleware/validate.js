@@ -6,6 +6,14 @@ const logger = pino({ name: 'validation' });
 // Generic validation middleware factory
 export const validate = (schema) => {
   return (req, res, next) => {
+    console.log('[ValidationMiddleware] Validation request:', {
+      method: req.method,
+      url: req.url,
+      hasBody: !!Object.keys(req.body || {}).length,
+      hasQuery: !!Object.keys(req.query || {}).length,
+      hasParams: !!Object.keys(req.params || {}).length
+    });
+
     try {
       logger.info('Validation attempt', {
         method: req.method,
@@ -23,7 +31,16 @@ export const validate = (schema) => {
         ...req.body,
       };
 
+      console.log('[ValidationMiddleware] Validation data prepared:', {
+        fieldCount: Object.keys(validationData).length,
+        fields: Object.keys(validationData)
+      });
+
       const validatedData = schema.parse(validationData);
+      
+      console.log('[ValidationMiddleware] Validation successful:', {
+        validatedFields: Object.keys(validatedData).length
+      });
       
       // Replace request data with validated data
       req.validatedData = validatedData;
@@ -36,6 +53,12 @@ export const validate = (schema) => {
       
       return next();
     } catch (error) {
+      console.error('[ValidationMiddleware] Validation failed:', {
+        error: error.message,
+        method: req.method,
+        url: req.url
+      });
+
       logger.error('Validation failed:', {
         error: error.message,
         method: req.method,

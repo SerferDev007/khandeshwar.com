@@ -2,6 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { TrendingUp, TrendingDown, DollarSign, Building } from "lucide-react";
 import TransactionTable from "./TransactionTable";
 import { useLanguage } from "./LanguageContext";
+import { useEffect } from "react";
 
 interface DashboardProps {
   totalDonations: number;
@@ -20,10 +21,38 @@ export default function Dashboard({
 }: DashboardProps) {
   const { t } = useLanguage();
   
+  // Log component mount and props
+  useEffect(() => {
+    console.log('[Dashboard] Component mounted with props:', {
+      totalDonations,
+      totalExpenses,
+      netBalance,
+      transactionCount: transactions?.length || 0,
+      totalRentIncome
+    });
+  }, []);
+
+  // Log prop changes
+  useEffect(() => {
+    console.log('[Dashboard] Props updated:', {
+      totalDonations,
+      totalExpenses,
+      netBalance,
+      transactionCount: transactions?.length || 0,
+      totalRentIncome
+    });
+  }, [totalDonations, totalExpenses, netBalance, transactions, totalRentIncome]);
+  
   const recentTransactions = (transactions ?? []).slice(-5).reverse();
+  console.log('[Dashboard] Recent transactions calculated:', {
+    totalTransactions: transactions?.length || 0,
+    recentTransactionsCount: recentTransactions.length
+  });
 
   const formatCurrency = (amount: number) => {
-    return `${t('common.currency')}${amount.toLocaleString()}`;
+    const formatted = `${t('common.currency')}${amount.toLocaleString()}`;
+    console.log('[Dashboard] Currency formatted:', { amount, formatted });
+    return formatted;
   };
 
   return (

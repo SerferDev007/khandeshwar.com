@@ -10,16 +10,28 @@ const logger = pino({ name: 'FileController' });
 // Get pre-signed URL for file upload
 export const getUploadUrl = asyncHandler(async (req, res) => {
   const { filename, contentType, size } = req.validatedData;
+  
+  console.log('[FileController] Upload URL request:', {
+    userId: req.user.id,
+    filename,
+    contentType,
+    size
+  });
 
   // Generate unique key for S3
   const fileExtension = filename.split('.').pop();
   const uniqueFilename = `${uuidv4()}.${fileExtension}`;
   const s3Key = `uploads/${req.user.id}/${uniqueFilename}`;
+  
+  console.log('[FileController] Generated S3 key:', s3Key);
 
   // Generate pre-signed upload URL
+  console.log('[FileController] Generating pre-signed upload URL...');
   const { uploadUrl } = await generateUploadUrl(s3Key, contentType);
+  console.log('[FileController] Pre-signed URL generated successfully');
 
   // Create file record with 'uploading' status
+  console.log('[FileController] Creating file record in database...');
   const file = await File.create({
     userId: req.user.id,
     filename: uniqueFilename,
@@ -30,6 +42,8 @@ export const getUploadUrl = asyncHandler(async (req, res) => {
     s3Bucket: env.AWS_S3_BUCKET,
     status: 'uploading',
   });
+
+  console.log('[FileController] File record created:', { fileId: file.id, status: file.status });
 
   logger.info('Upload URL generated:', {
     fileId: file.id,

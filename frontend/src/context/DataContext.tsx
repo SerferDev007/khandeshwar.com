@@ -103,6 +103,8 @@ interface DataProviderProps {
 export function DataProvider({ children }: DataProviderProps) {
   const { isAuthenticated } = useAuth();
   
+  console.log('[DataProvider] Component rendering, isAuthenticated:', isAuthenticated);
+  
   // Data state
   const [users, setUsers] = useState<User[]>([]);
   const [shops, setShops] = useState<Shop[]>([]);
@@ -115,6 +117,19 @@ export function DataProvider({ children }: DataProviderProps) {
     donations: 1001,
     rentIncome: 5001
   });
+
+  // Log state changes
+  useEffect(() => {
+    console.log('[DataProvider] Data state updated:', {
+      usersCount: users.length,
+      shopsCount: shops.length,
+      tenantsCount: tenants.length,
+      agreementsCount: agreements.length,
+      loansCount: loans.length,
+      penaltiesCount: penalties.length,
+      transactionsCount: transactions.length
+    });
+  }, [users, shops, tenants, agreements, loans, penalties, transactions]);
 
   // Pagination state for users
   const [usersPagination, setUsersPagination] = useState<UsersPagination | null>(null);

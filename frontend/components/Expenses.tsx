@@ -64,6 +64,13 @@ export default function Expenses({
   currentUser,
 }: ExpensesProps) {
   const { t } = useLanguage();
+  
+  console.log('[Expenses] Component rendered with props:', {
+    transactionCount: transactions?.length || 0,
+    currentUserRole: currentUser?.role,
+    hasAddTransactionCallback: !!onAddTransaction
+  });
+
   const [formData, setFormData] = useState({
     date: null as Date | null,
     category: "",
@@ -74,6 +81,14 @@ export default function Expenses({
     details: "",
     receiptImages: [] as UploadedFile[],
   });
+
+  // Log when transactions prop changes
+  useEffect(() => {
+    console.log('[Expenses] Transactions updated:', {
+      count: transactions?.length || 0,
+      latestTransaction: transactions?.[0]?.id || 'none'
+    });
+  }, [transactions]);
 
   const [errors, setErrors] = useState<ValidationErrors>({});
   const [showSuccessDialog, setShowSuccessDialog] = useState(false);

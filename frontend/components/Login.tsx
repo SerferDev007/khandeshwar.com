@@ -8,6 +8,7 @@ import { Eye, EyeOff, User, Lock } from "lucide-react";
 import LanguageSwitcher from "./LanguageSwitcher";
 import { useLanguage } from "./LanguageContext";
 import { useAuth } from "../src/context/AuthContext";
+import { useEffect } from "react";
 
 export default function Login() {
   const { t, language } = useLanguage();
@@ -16,17 +17,60 @@ export default function Login() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
 
+  // Log component mount and language change
+  useEffect(() => {
+    console.log('[Login] Component mounted with language:', language);
+  }, []);
+
+  useEffect(() => {
+    console.log('[Login] Language changed to:', language);
+  }, [language]);
+
+  // Log authentication state changes
+  useEffect(() => {
+    console.log('[Login] Auth state changed:', { isLoading, hasError: !!error });
+    if (error) {
+      console.error('[Login] Authentication error:', error);
+    }
+  }, [isLoading, error]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log('[Login] Form submission started:', { 
+      email: email.replace(/(.{3}).*@/, '$1***@'), // Partially hide email for privacy
+      hasPassword: !!password 
+    });
+    
     if (!email || !password) {
+      console.warn('[Login] Form submission blocked - missing credentials');
       return;
     }
 
     try {
+      console.log('[Login] Attempting login...');
       await login({ email, password });
+      console.log('[Login] Login attempt completed');
     } catch (error) {
+      console.error('[Login] Login error caught:', error);
       // Error is handled by the auth context and displayed via toast
     }
+  };
+
+  const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newEmail = e.target.value;
+    setEmail(newEmail);
+    console.log('[Login] Email field updated:', newEmail.length > 0 ? 'has value' : 'empty');
+  };
+
+  const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newPassword = e.target.value;
+    setPassword(newPassword);
+    console.log('[Login] Password field updated:', newPassword.length > 0 ? 'has value' : 'empty');
+  };
+
+  const togglePasswordVisibility = () => {
+    setShowPassword(!showPassword);
+    console.log('[Login] Password visibility toggled:', !showPassword ? 'visible' : 'hidden');
   };
 
   return (
@@ -73,7 +117,7 @@ export default function Login() {
                   type="email"
                   placeholder={t("Enter Email")}
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  onChange={handleEmailChange}
                   className="pl-10"
                   required
                 />
@@ -91,13 +135,13 @@ export default function Login() {
                   type={showPassword ? "text" : "password"}
                   placeholder={t("login.enterPassword")}
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  onChange={handlePasswordChange}
                   className="pl-10 pr-10"
                   required
                 />
                 <button
                   type="button"
-                  onClick={() => setShowPassword(!showPassword)}
+                  onClick={togglePasswordVisibility}
                   className="absolute right-3 top-3 text-gray-400 hover:text-gray-600"
                 >
                   {showPassword ? (

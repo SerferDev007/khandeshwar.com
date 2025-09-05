@@ -7,9 +7,24 @@ import {
   DropdownMenuTrigger 
 } from './ui/dropdown-menu';
 import { Languages } from 'lucide-react';
+import { useEffect } from 'react';
 
 export default function LanguageSwitcher() {
   const { language, setLanguage, t } = useLanguage();
+
+  // Log when component mounts and language changes
+  useEffect(() => {
+    console.log('[LanguageSwitcher] Component mounted with language:', language);
+  }, []);
+
+  useEffect(() => {
+    console.log('[LanguageSwitcher] Language changed to:', language);
+  }, [language]);
+
+  const handleLanguageChange = (newLanguage: 'en' | 'mr') => {
+    console.log('[LanguageSwitcher] Language change requested:', { from: language, to: newLanguage });
+    setLanguage(newLanguage);
+  };
 
   return (
     <DropdownMenu>
@@ -21,13 +36,13 @@ export default function LanguageSwitcher() {
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
         <DropdownMenuItem 
-          onClick={() => setLanguage('en')}
+          onClick={() => handleLanguageChange('en')}
           className={language === 'en' ? 'bg-accent' : ''}
         >
           {t('language.english')}
         </DropdownMenuItem>
         <DropdownMenuItem 
-          onClick={() => setLanguage('mr')}
+          onClick={() => handleLanguageChange('mr')}
           className={language === 'mr' ? 'bg-accent' : ''}
         >
           {t('language.marathi')}

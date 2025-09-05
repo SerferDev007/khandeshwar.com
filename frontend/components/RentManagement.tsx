@@ -215,7 +215,36 @@ export default function RentManagement({
 }: RentManagementProps) {
   const { t } = useLanguage();
 
+  console.log('[RentManagement] Component rendered with props:', {
+    nextReceiptNumber,
+    shopsCount: shops?.length || 0,
+    tenantsCount: tenants?.length || 0,
+    agreementsCount: agreements?.length || 0,
+    loansCount: loans?.length || 0,
+    penaltiesCount: penalties?.length || 0,
+    hasCallbacks: {
+      onAddRentIncome: !!onAddRentIncome,
+      onAddShop: !!onAddShop,
+      onAddTenant: !!onAddTenant,
+      onCreateAgreement: !!onCreateAgreement
+    }
+  });
+
   const [selectedTab, setSelectedTab] = useState("shops");
+
+  // Log tab changes
+  useEffect(() => {
+    console.log('[RentManagement] Tab changed to:', selectedTab);
+  }, [selectedTab]);
+
+  // Log data changes
+  useEffect(() => {
+    console.log('[RentManagement] Data updated:', {
+      shops: shops?.length || 0,
+      tenants: tenants?.length || 0,
+      agreements: agreements?.length || 0
+    });
+  }, [shops, tenants, agreements]);
 
   // Shop Form State
   const [shopFormData, setShopFormData] = useState({
