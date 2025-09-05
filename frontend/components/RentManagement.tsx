@@ -1960,8 +1960,8 @@ export default function RentManagement({
                 <div>
                   <Label>{t("agreement.agreementDocument")}</Label>
                   <FileUpload
-                    files={agreementFormData.agreementDocument}
-                    onFilesChange={(files) =>
+                    value={agreementFormData.agreementDocument}
+                    onChange={(files) =>
                       setAgreementFormData({
                         ...agreementFormData,
                         agreementDocument: files,
@@ -2620,8 +2620,8 @@ export default function RentManagement({
                 <div>
                   <Label>{t("loans.loanAgreement")}</Label>
                   <FileUpload
-                    files={loanFormData.loanDocuments}
-                    onFilesChange={(files) =>
+                    value={loanFormData.loanDocuments}
+                    onChange={(files) =>
                       setLoanFormData({ ...loanFormData, loanDocuments: files })
                     }
                     accept="image/*,.pdf"

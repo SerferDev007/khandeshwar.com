@@ -246,6 +246,9 @@ router.put('/tenants/:id', authenticate, authorize(['Admin']), validate(schemas.
       }
     }
     
+
+  
+
     // Build update query
     const updateFields = [];
     const updateValues = [];
@@ -299,6 +302,113 @@ router.put('/tenants/:id', authenticate, authorize(['Admin']), validate(schemas.
     });
   }
 });
+
+  // implement /api/rent/tenants/:id - Update tenant
+  router.put('/tenants/:id', authenticate, authorize(['Admin']), validate(schemas.idParam), async (req, res) => {
+    try {
+      const { id } = req.params;
+
+      // Check if tenant exists
+      const existingRows = await query('SELECT * FROM tenants WHERE id = ?', [id]);
+      if (existingRows.length === 0) {
+        return res.status(404).json({
+          success: false,
+          error: 'Tenant not found'
+        });
+      }
+
+      // Validate input
+      const validatedData = tenantUpdateSchema.parse(req.body);
+
+      // Check for conflicts if phone or email is being updated
+      if (validatedData.phone || validatedData.email) {
+        const conflictQuery = [];
+        const conflictValues = [];
+
+        if (validatedData.phone) {
+          conflictQuery.push('phone = ?');
+          conflictValues.push(validatedData.phone);
+        }
+
+        if (validatedData.email) {
+          conflictQuery.push('email = ?');
+          conflictValues.push(validatedData.email);
+        }
+
+        conflictValues.push(id); // Exclude current tenant from conflict check
+
+        const existingTenant = await query(
+          `SELECT id, phone, email FROM tenants WHERE (${conflictQuery.join(' OR ')}) AND id != ?`,
+          conflictValues
+        );
+
+        if (existingTenant.length > 0) {
+          const existing = existingTenant[0];
+          let conflictField = 'phone';
+          if (validatedData.email && existing.email === validatedData.email) {
+            conflictField = 'email';
+          }
+          return res.status(409).json({
+            success: false,
+            error: `Another tenant with this ${conflictField} already exists`
+          });
+        }
+      }
+
+      // Build update query
+      const updateFields = [];
+      const updateValues = [];
+
+      Object.entries(validatedData).forEach(([key, value]) => {
+        if (value !== undefined) {
+          // Convert camelCase to snake_case for database
+          const dbField = key === 'businessType' ? 'business_type' :
+                         key === 'idProof' ? 'id_proof' : key;
+          updateFields.push(`${dbField} = ?`);
+          updateValues.push(value);
+        }
+      });
+
+      if (updateFields.length === 0) {
+        return res.status(400).json({
+          success: false,
+          error: 'No valid fields to update'
+        });
+      }
+
+      updateValues.push(id);
+
+      await query(
+        `UPDATE tenants SET ${updateFields.join(', ')} WHERE id = ?`,
+        updateValues
+      );
+
+      // Fetch updated tenant
+      const updatedRows = await query('SELECT * FROM tenants WHERE id = ?', [id]);
+      const updatedTenant = Tenant.fromDbRow(updatedRows[0]);
+
+      logger.info('Tenant updated successfully:', { id, updatedFields: Object.keys(validatedData) });
+      return res.json({
+        success: true,
+        data: updatedTenant
+      });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(422).json({
+          success: false,
+          error: 'Validation failed',
+          details: error.errors
+        });
+      }
+
+      logger.error('Update tenant error:', error);
+      return res.status(500).json({
+        success: false,
+        error: 'Failed to update tenant'
+      });
+    }
+  });
+
 
 // DELETE /api/rent/tenants/:id - Delete tenant
 router.delete('/tenants/:id', authenticate, authorize(['Admin']), validate(schemas.idParam), async (req, res) => {

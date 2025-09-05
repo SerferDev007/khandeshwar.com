@@ -446,29 +446,26 @@ export default function Reports({
 
   // Check if any filters are applied
   const hasActiveFilters = useMemo(() => {
-    return (
-      filters.transactionType !== "all" ||
-      filters.category !== "all" ||
-      filters.subCategory !== "all" ||
-      filters.dateFilterType !== "all" ||
-      (filters.dateFilterType === "month" && (filters.month || filters.year)) ||
-      (filters.dateFilterType === "range" &&
-        (filters.fromDate || filters.toDate))
-    );
+    if (filters.transactionType !== "all") return true;
+    if (filters.category !== "all") return true;
+    if (filters.subCategory !== "all") return true;
+    // Check specific date modes first, then generic non-"all" case to avoid TS2367 narrowing issue
+    if (filters.dateFilterType === "month" && (filters.month || filters.year)) return true;
+    if (filters.dateFilterType === "range" && (filters.fromDate || filters.toDate)) return true;
+    if (filters.dateFilterType !== "all") return true;
+    return false;
   }, [filters]);
 
   // Check if any export filters are applied
   const hasActiveExportFilters = useMemo(() => {
-    return (
-      exportFilters.transactionType !== "all" ||
-      exportFilters.category !== "all" ||
-      exportFilters.subCategory !== "all" ||
-      exportFilters.dateFilterType !== "all" ||
-      (exportFilters.dateFilterType === "month" &&
-        (exportFilters.month || exportFilters.year)) ||
-      (exportFilters.dateFilterType === "range" &&
-        (exportFilters.fromDate || exportFilters.toDate))
-    );
+    if (exportFilters.transactionType !== "all") return true;
+    if (exportFilters.category !== "all") return true;
+    if (exportFilters.subCategory !== "all") return true;
+    // Check specific date modes first, then generic non-"all" case to avoid TS2367 narrowing issue
+    if (exportFilters.dateFilterType === "month" && (exportFilters.month || exportFilters.year)) return true;
+    if (exportFilters.dateFilterType === "range" && (exportFilters.fromDate || exportFilters.toDate)) return true;
+    if (exportFilters.dateFilterType !== "all") return true;
+    return false;
   }, [exportFilters]);
 
   // Get translation for specific language
@@ -1636,15 +1633,13 @@ export default function Reports({
                     <div>
                       <Label>{t("reports.filterByCategory")}</Label>
                       <Select
-                        className="hover:font-bold hover:bg-gray-100"
                         value={exportFilters.category}
                         onValueChange={(value) =>
                           handleExportFilterChange("category", value)
                         }
                       >
-                        <SelectTrigger>
+                        <SelectTrigger className="hover:font-bold hover:bg-gray-100">
                           <SelectValue
-                            className="hover:font-bold hover:bg-gray-100"
                             placeholder={t("reports.allCategories")}
                           />
                         </SelectTrigger>
@@ -1741,7 +1736,6 @@ export default function Reports({
                       <div>
                         <Label>{t("reports.selectMonth")}</Label>
                         <Select
-                          modal={false}
                           value={exportFilters.month}
                           onValueChange={(value) =>
                             handleExportFilterChange("month", value)
@@ -1775,16 +1769,13 @@ export default function Reports({
                       <div>
                         <Label>{t("reports.selectYear")}</Label>
                         <Select
-                          modal={false}
                           value={String(exportFilters.year ?? "")}
                           onValueChange={(value) =>
-                            handleExportFilterChange("year", value)
+                            handleExportFilterChange("year", value === "all" ? "" : value)
                           }
                         >
                           <SelectTrigger>
-                            <SelectValue
-                              placeholder={t("reports.selectYear")}
-                            />
+                            <SelectValue placeholder={t("reports.selectYear")} />
                           </SelectTrigger>
                           <SelectContent
                             position="popper"
@@ -2413,10 +2404,7 @@ export default function Reports({
               <div className="flex items-center justify-between">
                 <div className="text-sm text-gray-600">
                   {hasActiveFilters
-                    ? t("reports.showingResults", {
-                        count: filteredTransactions.length,
-                        total: (transactions ?? []).length,
-                      })
+                    ? t("reports.showingResults")
                         .replace(
                           "{count}",
                           filteredTransactions.length.toString()

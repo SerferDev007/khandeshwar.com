@@ -43,7 +43,7 @@ interface User {
 
 interface UserManagementProps {
   users: User[];
-  onAddUser: (user: Omit<User, "id" | "createdAt">) => void;
+  onAddUser: (user: { username: string; email: string; password: string; role: User["role"] }) => void;
   onEditUser: (id: string, user: Partial<User>) => void;
   onDeleteUser: (id: string) => void;
   onToggleUserStatus: (id: string) => void;
@@ -85,12 +85,18 @@ export default function UserManagement({
 
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<{
+    username: string;
+    email: string;
+    password: string;
+    role: User["role"];
+    status: User["status"];
+  }>({
     username: "",
     email: "",
     password: "",
-    role: "Viewer" as const,
-    status: "Active" as const,
+    role: "Viewer",
+    status: "Active",
   });
   const [validationErrors, setValidationErrors] = useState<{
     [key: string]: string;
@@ -128,20 +134,25 @@ export default function UserManagement({
 
   const validateForm = (): boolean => {
     const errors: { [key: string]: string } = {};
+
     const usernameError = validateUsername(formData.username);
     if (usernameError) errors.username = usernameError;
+
     const emailError = validateEmail(formData.email);
     if (emailError) errors.email = emailError;
+
+    // Password required only when adding a new user (not when editing unless provided)
     const passwordError = validatePassword(formData.password, !editingUser);
     if (passwordError) errors.password = passwordError;
+
     setValidationErrors(errors);
     return Object.keys(errors).length === 0;
   };
 
-  const handleInputChange = (field: string, value: string) => {
-    setFormData({ ...formData, [field]: value });
-    if (validationErrors[field]) {
-      setValidationErrors({ ...validationErrors, [field]: "" });
+  const handleInputChange = (field: keyof typeof formData, value: string) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+    if (validationErrors[field as string]) {
+      setValidationErrors(prevErrs => ({ ...prevErrs, [field as string]: "" }));
     }
   };
 
@@ -311,15 +322,12 @@ export default function UserManagement({
                         {validationErrors.password}
                       </p>
                     )}
-                    <p className="text-gray-500 text-xs mt-1">
-                      Min 8 characters with uppercase, lowercase, and number
-                    </p>
                   </div>
                   <div>
                     <Label htmlFor="role">{t("users.role")}</Label>
                     <Select
                       value={formData.role}
-                      onValueChange={(value: any) =>
+                      onValueChange={(value: User["role"]) =>
                         setFormData({ ...formData, role: value })
                       }
                     >
@@ -534,7 +542,7 @@ export default function UserManagement({
               <Label htmlFor="edit-role">{t("users.role")}</Label>
               <Select
                 value={formData.role}
-                onValueChange={(value: any) =>
+                onValueChange={(value: User["role"]) =>
                   setFormData({ ...formData, role: value })
                 }
               >
@@ -567,7 +575,7 @@ export default function UserManagement({
               <Label htmlFor="edit-status">{t("users.status")}</Label>
               <Select
                 value={formData.status}
-                onValueChange={(value: any) =>
+                onValueChange={(value: User["status"]) =>
                   setFormData({ ...formData, status: value })
                 }
               >
@@ -590,9 +598,6 @@ export default function UserManagement({
                 </SelectContent>
               </Select>
             </div>
-            <Button type="submit" className="w-full">
-              {t("users.updateUser")}
-            </Button>
           </form>
         </DialogContent>
       </Dialog>
