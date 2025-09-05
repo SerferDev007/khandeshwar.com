@@ -191,17 +191,17 @@ export function DataProvider({ children }: DataProviderProps) {
       const response = await apiClient.getUsers();
 
       // Log the raw response structure for development diagnostics
-      if (process.env.NODE_ENV === 'development') {
-        console.debug('🔬 fetchUsers: Raw API response structure:', {
-          hasUsers: !!response?.users,
-          hasData: !!response?.data,
-          hasDataUsers: !!response?.data?.users,
-          hasPagination: !!response?.pagination,
-          hasDataPagination: !!response?.data?.pagination,
-          responseKeys: Object.keys(response || {}),
-          dataKeys: response?.data ? Object.keys(response.data) : null
-        });
-      }
+            if ((import.meta as any).env?.VITE_ENV) {
+              console.debug('🔬 fetchUsers: Raw API response structure:', {
+                hasUsers: !!response?.users,
+                hasData: !!response?.data,
+                hasDataUsers: !!response?.data?.users,
+                hasPagination: !!response?.pagination,
+                hasDataPagination: !!response?.data?.pagination,
+                responseKeys: Object.keys(response || {}),
+                dataKeys: response?.data ? Object.keys(response.data) : null
+              });
+            }
 
       /**
        * Safely parse users from response, handling both:
@@ -241,7 +241,7 @@ export function DataProvider({ children }: DataProviderProps) {
 
       // Enhanced error message with server details in development
       let errorMessage = 'Failed to fetch users';
-      if (process.env.NODE_ENV === 'development') {
+      if ((import.meta as any).env?.DEV) {
         if (error.statusCode === 500) {
           errorMessage += ` (Server Error ${error.statusCode}): ${error.message}`;
         } else if (error.statusCode) {
