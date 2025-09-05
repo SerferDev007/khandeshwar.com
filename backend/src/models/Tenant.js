@@ -25,7 +25,7 @@ export class Tenant {
         id_proof VARCHAR(200) NULL,
         INDEX idx_name (name),
         INDEX idx_phone (phone),
-        INDEX idx_email (email),
+        UNIQUE KEY uq_tenants_email (email),
         INDEX idx_status (status),
         INDEX idx_business_type (business_type)
       ) ENGINE=InnoDB;

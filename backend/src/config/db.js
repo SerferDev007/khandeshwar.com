@@ -317,6 +317,87 @@ const ensureUsersTableSchema = async () => {
   }
 };
 
+// Function to ensure tenant email has unique index and clean up non-unique indexes
+const ensureTenantEmailUnique = async () => {
+  try {
+    logger.info(">> Checking tenants table email index...");
+    
+    // Check if tenants table exists first
+    const tables = await query(`
+      SELECT TABLE_NAME 
+      FROM INFORMATION_SCHEMA.TABLES 
+      WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'tenants'
+    `);
+    
+    if (tables.length === 0) {
+      logger.info(">> Tenants table does not exist yet, skipping email index check");
+      return;
+    }
+
+    // Check existing indexes on email column
+    const indexes = await query(`
+      SHOW INDEX FROM tenants WHERE Column_name='email'
+    `);
+    
+    logger.info(`>> Found ${indexes.length} index(es) on tenants.email column`);
+    
+    let hasUniqueIndex = false;
+    const nonUniqueIndexes = [];
+    
+    for (const index of indexes) {
+      logger.info(`>> Index found: ${index.Key_name}, Non_unique: ${index.Non_unique}`);
+      
+      if (index.Non_unique === 0) {
+        hasUniqueIndex = true;
+        logger.info(`>> Unique index already exists: ${index.Key_name}`);
+      } else {
+        nonUniqueIndexes.push(index.Key_name);
+        logger.info(`>> Non-unique index found: ${index.Key_name}`);
+      }
+    }
+    
+    // Drop non-unique indexes on email column
+    for (const indexName of nonUniqueIndexes) {
+      try {
+        logger.info(`>> Dropping non-unique index: ${indexName}`);
+        await query(`ALTER TABLE tenants DROP INDEX ${indexName}`);
+        logger.info(`>> Successfully dropped non-unique index: ${indexName}`);
+      } catch (error) {
+        if (error.code === 'ER_CANT_DROP_FIELD_OR_KEY') {
+          logger.warn(`>> Index ${indexName} doesn't exist, skipping drop`);
+        } else {
+          logger.warn(`>> Failed to drop index ${indexName}:`, error.message);
+        }
+      }
+    }
+    
+    // Add unique index if it doesn't exist
+    if (!hasUniqueIndex) {
+      try {
+        logger.info(">> Adding unique index uq_tenants_email to email column");
+        await query(`ALTER TABLE tenants ADD UNIQUE INDEX uq_tenants_email (email)`);
+        logger.info(">> Successfully added unique index uq_tenants_email");
+      } catch (error) {
+        if (error.code === 'ER_TOO_MANY_KEYS') {
+          logger.warn(">> Too many keys error (ER_TOO_MANY_KEYS): Cannot add more indexes to tenants table");
+          logger.warn(">> Consider dropping unused indexes or increasing MySQL key_buffer_size");
+        } else if (error.code === 'ER_DUP_KEYNAME') {
+          logger.warn(">> Unique index uq_tenants_email already exists");
+        } else if (error.code === 'ER_DUP_ENTRY') {
+          logger.warn(">> Duplicate email entries exist, cannot create unique index");
+          logger.warn(">> Please clean up duplicate email addresses in tenants table first");
+        } else {
+          logger.warn(">> Failed to add unique index uq_tenants_email:", error.message);
+        }
+      }
+    }
+    
+    logger.info(">> Tenants email index validation completed");
+  } catch (error) {
+    logger.warn(">> Tenants email index check failed:", error.message);
+  }
+};
+
 // Database migrations
 const runMigrations = async () => {
   logger.info("Running database migrations...");
@@ -353,7 +434,7 @@ const runMigrations = async () => {
       id_proof VARCHAR(200) NULL,
       INDEX idx_name (name),
       INDEX idx_phone (phone),
-      INDEX idx_email (email),
+      UNIQUE KEY uq_tenants_email (email),
       INDEX idx_status (status),
       INDEX idx_business_type (business_type)
     ) ENGINE=InnoDB`,
@@ -425,6 +506,9 @@ const runMigrations = async () => {
 
   // Post-migration: Ensure users table has all required columns
   await ensureUsersTableSchema();
+
+  // Post-migration: Ensure tenants email has unique index
+  await ensureTenantEmailUnique();
 
   logger.info(">> Database migrations completed");
 };
