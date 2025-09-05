@@ -13,7 +13,7 @@ const API_BASE = 'http://localhost:8081';
 // Test data
 const testAdmin = {
   email: 'admin@test.com',
-  password: 'admin123'
+  password: 'Admin123'
 };
 
 /**
@@ -60,9 +60,13 @@ async function testDonationsPreview() {
       return false;
     }
     
-    const token = loginResponse.data.accessToken || loginResponse.data.data?.accessToken;
+    const token = loginResponse.data.accessToken || 
+                  loginResponse.data.data?.accessToken || 
+                  loginResponse.data.tokens?.accessToken ||
+                  loginResponse.data.data?.tokens?.accessToken;
     if (!token) {
       console.log(chalk.red('❌ No access token received'));
+      console.log(chalk.yellow('Login response structure:'), JSON.stringify(loginResponse.data, null, 2));
       return false;
     }
     
@@ -157,9 +161,13 @@ async function testAllocationVsPreview() {
       body: JSON.stringify(testAdmin)
     });
     
-    const token = loginResponse.data.accessToken || loginResponse.data.data?.accessToken;
+    const token = loginResponse.data.accessToken || 
+                  loginResponse.data.data?.accessToken || 
+                  loginResponse.data.tokens?.accessToken ||
+                  loginResponse.data.data?.tokens?.accessToken;
     if (!token) {
       console.log(chalk.red('❌ Authentication failed'));
+      console.log(chalk.yellow('Login response structure:'), JSON.stringify(loginResponse.data, null, 2));
       return false;
     }
     
