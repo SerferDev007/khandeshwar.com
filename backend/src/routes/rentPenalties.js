@@ -132,7 +132,7 @@ router.put('/:id', authenticate, authorize(['Admin', 'Treasurer']), validate(sch
 });
 
 // DELETE /api/rent-penalties/:id - Delete rent penalty
-router.delete('/:id', authenticate, authorize(['Admin', 'Treasurer']), validate(schemas.idParam), async (req, res) => {
+router.delete('/:id', authenticate, authorize(['Admin']), validate(schemas.idParam), async (req, res) => {
   try {
     const { id } = req.params;
 
