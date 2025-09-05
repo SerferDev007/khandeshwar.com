@@ -49,6 +49,9 @@ const translations = {
     "login.invalidCredentials":
       "Invalid username or password, or account is inactive",
 
+    // Authentication
+    "auth.loading": "Loading...",
+
     // Dashboard
     "dashboard.title": "Dashboard",
     "dashboard.totalDonations": "Total Donations",
@@ -732,6 +735,9 @@ const translations = {
     "login.demoCredentials": "डेमो क्रेडेंशियल्स:",
     "login.invalidCredentials":
       "चुकीचे वापरकर्ता नाव किंवा संकेतशब्द, किंवा खाते निष्क्रिय",
+
+    // Authentication
+    "auth.loading": "लोड होत आहे...",
 
     // Dashboard
     "dashboard.title": "डॅशबोर्ड",
