@@ -126,7 +126,7 @@ function pickAccessToken(obj: any): string | null {
 class ApiClient {
   private baseURL: string;
   private token: string | null = null;
-  private onUnauthorized?: () => void;
+  private onUnauthorized?: () => void | Promise<void>;
   private ls: Storage | null = null;
 
   constructor(baseURL: string) {
@@ -174,7 +174,7 @@ class ApiClient {
     }
   }
 
-  setUnauthorizedHandler(handler: () => void) {
+  setUnauthorizedHandler(handler: () => void | Promise<void>) {
     this.onUnauthorized = handler;
   }
 
@@ -307,8 +307,24 @@ class ApiClient {
           hadToken: !!currentToken,
         });
 
-        this.setAuthToken(null); // clear stored token
-        this.onUnauthorized?.();
+        // Try unauthorized handler first (which may attempt token refresh)
+        if (this.onUnauthorized) {
+          try {
+            console.log("🔄 Calling unauthorized handler for potential token refresh...");
+            await this.onUnauthorized();
+            
+            // If refresh succeeded, retry the original request once
+            console.log("✅ Unauthorized handler completed, retrying request...");
+            return this.request<T>(endpoint, options, retryCount + 1);
+          } catch (refreshError) {
+            console.error("❌ Unauthorized handler failed:", refreshError);
+            // Fall through to clear token and throw error
+          }
+        }
+
+        // Clear token only if no handler exists or handler failed
+        console.log("🗑️ Clearing token after failed 401 handling");
+        this.setAuthToken(null);
 
         const err = new Error("Unauthorized: Please login again") as ApiError;
         err.statusCode = 401;
@@ -521,6 +537,34 @@ class ApiClient {
   }
   logout() {
     return this.post("/api/auth/logout");
+  }
+
+  /**
+   * Attempts to refresh the authentication state by re-initializing from storage
+   * and verifying the current token is still valid
+   */
+  async refresh() {
+    console.log('🔄 Refreshing authentication state...');
+    
+    // Re-initialize from storage to pick up any cross-tab updates
+    this.initFromStorage({ listenCrossTab: false });
+    
+    const currentToken = this.getAuthToken();
+    if (!currentToken) {
+      console.log('🔄 No token found during refresh');
+      throw new Error('No auth token available for refresh');
+    }
+    
+    try {
+      // Verify token is still valid by fetching profile
+      const profile = await this.getProfile();
+      console.log('✅ Token refresh successful - token is valid');
+      return profile;
+    } catch (error: any) {
+      console.error('❌ Token refresh failed - token is invalid:', error.message);
+      // Don't clear token here - let the 401 handler in request() handle it
+      throw error;
+    }
   }
 
   // ----- Domain endpoints (unchanged) -----

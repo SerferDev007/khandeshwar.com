@@ -325,6 +325,18 @@ export default function Donations({
     }
 
     try {
+      // Check if user is authenticated before making API calls
+      if (!currentUser) {
+        console.error('[Donations] No authenticated user - cannot submit donation');
+        toast.error('Please login to submit donations');
+        return;
+      }
+
+      console.log('[Donations] Submitting donation for user:', { 
+        userId: currentUser.id, 
+        userRole: currentUser.role 
+      });
+
       // Prepare data according to backend schema
       const donationData = {
         date: formData.date!.toISOString().split("T")[0],
