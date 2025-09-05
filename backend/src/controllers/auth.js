@@ -42,18 +42,28 @@ const generateAccessToken = (user) => {
 // Register new user
 export const register = asyncHandler(async (req, res) => {
   const { username, email, password, role } = req.validatedData;
+  
+  console.log('[AuthController] Registration attempt:', { 
+    username, 
+    email: email.replace(/(.{3}).*@/, '$1***@'), // Partially hide email for privacy
+    role: role || 'Viewer'
+  });
 
   // Check if user already exists
+  console.log('[AuthController] Checking for existing user by email...');
   const existingUserByEmail = await User.findByEmail(email);
   if (existingUserByEmail) {
+    console.warn('[AuthController] Registration failed - email already exists:', email);
     return res.status(409).json({
       success: false,
       error: 'Email already registered',
     });
   }
 
+  console.log('[AuthController] Checking for existing user by username...');
   const existingUserByUsername = await User.findByUsername(username);
   if (existingUserByUsername) {
+    console.warn('[AuthController] Registration failed - username already taken:', username);
     return res.status(409).json({
       success: false,
       error: 'Username already taken',
@@ -61,12 +71,15 @@ export const register = asyncHandler(async (req, res) => {
   }
 
   // Create new user
+  console.log('[AuthController] Creating new user...');
   const user = await User.create({
     username,
     email,
     password,
     role: role || 'Viewer',
   });
+
+  console.log('[AuthController] User created successfully:', { id: user.id, username: user.username });
 
   // Generate tokens
   const accessToken = generateAccessToken(user);

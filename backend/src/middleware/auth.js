@@ -24,11 +24,19 @@ function rowsOf(result) {
  * - Never throws; returns 401/503 JSON on failure
  */
 export const authenticate = async (req, res, next) => {
+  console.log('[AuthMiddleware] Authentication request:', {
+    method: req.method,
+    path: req.path,
+    hasAuthHeader: !!req.headers.authorization,
+    userAgent: req.headers['user-agent']?.substring(0, 50) + '...'
+  });
+
   try {
     const authHeader = req.headers.authorization || "";
     const [scheme, token] = authHeader.split(" ");
 
     if (scheme !== "Bearer" || !token) {
+      console.warn('[AuthMiddleware] Authentication failed - missing or invalid authorization header');
       logger.warn("No/invalid Authorization header", {
         path: req.path,
         method: req.method,
@@ -39,11 +47,17 @@ export const authenticate = async (req, res, next) => {
       });
     }
 
+    console.log('[AuthMiddleware] Verifying JWT token...');
     // Verify token
     let decoded;
     try {
       decoded = jwt.verify(token, env.JWT_SECRET);
+      console.log('[AuthMiddleware] JWT verification successful:', {
+        userId: decoded.userId || decoded.id,
+        role: decoded.role
+      });
     } catch (e) {
+      console.warn('[AuthMiddleware] JWT verification failed:', e.message);
       logger.warn("JWT verify failed", { name: e?.name, message: e?.message });
       return res.status(401).json({
         success: false,

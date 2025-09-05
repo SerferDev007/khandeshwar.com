@@ -90,6 +90,26 @@ export default function Donations({
   currentUser,
 }: DonationsProps) {
   const { t } = useLanguage();
+
+  console.log('[Donations] Component rendered with props:', {
+    transactionCount: transactions?.length || 0,
+    receiptCounter,
+    currentUserRole: currentUser?.role,
+    hasAddTransactionCallback: !!onAddTransaction
+  });
+
+  // Log when transactions prop changes
+  useEffect(() => {
+    console.log('[Donations] Transactions updated:', {
+      count: transactions?.length || 0,
+      latestTransaction: transactions?.[0]?.id || 'none'
+    });
+  }, [transactions]);
+
+  // Log when receipt counter changes
+  useEffect(() => {
+    console.log('[Donations] Receipt counter updated:', receiptCounter);
+  }, [receiptCounter]);
   const [formData, setFormData] = useState({
     date: null as Date | null,
     category: "",
