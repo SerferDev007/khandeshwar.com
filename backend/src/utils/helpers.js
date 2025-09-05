@@ -154,3 +154,90 @@ export const camelCaseToDbRow = (obj) => {
   
   return snakeCased;
 };
+
+/**
+ * Normalize shop data to ensure consistent response structure across all endpoints.
+ * This function handles various possible input shapes from database rows, partial updates,
+ * or incomplete data, and returns a fully normalized shop object.
+ * 
+ * @param {Object} shopData - Raw shop data from database, API request, or partial object
+ * @returns {Object} Normalized shop object with consistent structure and data types
+ */
+export const normalizeShop = (shopData) => {
+  if (!shopData || typeof shopData !== 'object') {
+    throw new Error('Invalid shop data: Expected object but received ' + typeof shopData);
+  }
+
+  // Handle both camelCase (from Shop model) and snake_case (from database) inputs
+  const data = {
+    // Primary fields - required
+    id: shopData.id || null,
+    shopNumber: shopData.shopNumber || shopData.shop_number || null,
+    size: shopData.size || null,
+    monthlyRent: shopData.monthlyRent || shopData.monthly_rent || null,
+    deposit: shopData.deposit || null,
+    status: shopData.status || 'Vacant',
+    
+    // Optional fields - can be null
+    tenantId: shopData.tenantId || shopData.tenant_id || null,
+    agreementId: shopData.agreementId || shopData.agreement_id || null,
+    description: shopData.description || null,
+    
+    // Timestamp field
+    createdAt: shopData.createdAt || shopData.created_at || null
+  };
+
+  // Validate and normalize required fields
+  if (!data.id) {
+    throw new Error('Shop normalization failed: Missing required field "id"');
+  }
+  
+  if (!data.shopNumber) {
+    throw new Error('Shop normalization failed: Missing required field "shopNumber"');
+  }
+
+  // Normalize numeric fields - ensure they are numbers and positive
+  const numericFields = ['size', 'monthlyRent', 'deposit'];
+  numericFields.forEach(field => {
+    if (data[field] !== null) {
+      const numValue = parseFloat(data[field]);
+      if (isNaN(numValue) || numValue < 0) {
+        throw new Error(`Shop normalization failed: Invalid ${field} value - must be a positive number`);
+      }
+      data[field] = numValue;
+    } else {
+      throw new Error(`Shop normalization failed: Missing required field "${field}"`);
+    }
+  });
+
+  // Normalize status field - ensure it's a valid enum value
+  const validStatuses = ['Vacant', 'Occupied', 'Maintenance'];
+  if (!validStatuses.includes(data.status)) {
+    data.status = 'Vacant'; // Default fallback
+  }
+
+  // Normalize date field if present
+  if (data.createdAt) {
+    if (data.createdAt instanceof Date) {
+      data.createdAt = data.createdAt.toISOString();
+    } else if (typeof data.createdAt === 'string') {
+      // Validate the date string
+      const parsedDate = new Date(data.createdAt);
+      if (isNaN(parsedDate.getTime())) {
+        data.createdAt = null;
+      } else {
+        data.createdAt = parsedDate.toISOString();
+      }
+    } else {
+      data.createdAt = null;
+    }
+  }
+
+  // Ensure string fields are properly formatted
+  data.shopNumber = String(data.shopNumber).trim();
+  if (data.description && typeof data.description === 'string') {
+    data.description = data.description.trim() || null;
+  }
+
+  return data;
+};
