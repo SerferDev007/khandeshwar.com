@@ -145,8 +145,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
         // Verify by fetching profile. Only clear auth on explicit 401.
         console.log('[AuthProvider] Fetching user profile...');
-        const userData = await apiClient.getProfile();
-        console.log('[AuthProvider] Profile fetched successfully:', userData.email);
+        const response = await apiClient.getProfile();
+        
+        // Extract user from response (handles wrapped responses like { user: {...} })
+        const userData = response.user || response.data?.user || response;
+        console.log('[AuthProvider] Profile fetched successfully:', userData?.email);
         setUser(userData);
       } catch (err: any) {
         const status =
