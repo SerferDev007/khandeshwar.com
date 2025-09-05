@@ -24,6 +24,8 @@ import expensesRoutes from "./src/routes/expenses.js";
 import transactionsRoutes from "./src/routes/transactions.js";
 import rentRoutes from "./src/routes/rent.js";
 import shopRoutes from "./src/routes/shop.js";
+import loansRoutes from "./src/routes/loans.js";
+import rentPenaltiesRoutes from "./src/routes/rentPenalties.js";
 
 // Import Sequelize routes
 import sequelizeRoutes from "./src/routes/sequelize/index.js";
@@ -326,6 +328,8 @@ app.use("/api/expenses", expensesRoutes);
 app.use("/api/transactions", transactionsRoutes);
 app.use("/api/rent", rentRoutes);
 app.use("/api/shops", shopRoutes);
+app.use("/api/loans", loansRoutes);
+app.use("/api/rent-penalties", rentPenaltiesRoutes);
 
 
 // Sequelize-based API routes (new implementation)
