@@ -4,7 +4,7 @@ import { authenticate, authorize } from '../middleware/auth.js';
 import { z } from 'zod';
 import { query } from '../config/db.js';
 import { Shop } from '../models/Shop.js';
-import { generateId } from '../utils/helpers.js';
+import { generateId, normalizeShop } from '../utils/helpers.js';
 import pino from 'pino';
 import { dbg, dbgMySQLError, dbgTimer, generateCorrelationId } from '../utils/debugLogger.js';
 import { filterUndefined, buildInsertStatement, assertNoUndefinedParams } from '../utils/sqlHelpers.js';
@@ -108,7 +108,26 @@ router.get('/', authenticate, authorize(['Admin', 'Treasurer', 'Viewer']), async
     fetchTimer({ itemCount: rows.length });
 
     // === PHASE 6: TRANSFORM RESULTS ===
-    const shops = rows.map(row => Shop.fromDbRow(row));
+    // First convert database rows to Shop objects, then normalize for consistent response structure
+    const rawShops = rows.map(row => Shop.fromDbRow(row));
+    
+    // === PHASE 6.1: NORMALIZE SHOP DATA ===
+    // Apply normalization to ensure consistent response structure and handle any data inconsistencies
+    const shops = rawShops.map(shop => {
+      try {
+        return normalizeShop(shop);
+      } catch (normalizationError) {
+        // Log normalization errors but don't fail the entire request
+        dbg('shop-list', 'normalization-warning', {
+          shopId: shop.id || 'unknown',
+          error: normalizationError.message,
+          rawShopData: shop
+        }, requestId);
+        
+        // Return the raw shop data if normalization fails, rather than breaking the response
+        return shop;
+      }
+    });
 
     // === PHASE 7: BUILD RESPONSE ===
     const hasMore = page * limit < total;
@@ -169,10 +188,14 @@ router.get('/:id', authenticate, authorize(['Admin', 'Treasurer', 'Viewer']), va
       });
     }
 
-    const shop = Shop.fromDbRow(rows[0]);
+    const rawShop = Shop.fromDbRow(rows[0]);
+    
+    // Normalize shop data for consistent response structure
+    const normalizedShop = normalizeShop(rawShop);
+    
     return res.json({
       success: true,
-      data: shop
+      data: normalizedShop
     });
   } catch (error) {
     logger.error('Get shop error:', error);
@@ -397,11 +420,14 @@ router.post('/', authenticate, authorize(['Admin', 'Treasurer']), async (req, re
 
     logger.info('Shop created successfully:', { id: shop.id, shopNumber: shop.shopNumber, requestId });
     
+    // === PHASE 10.1: NORMALIZE RESPONSE DATA ===
+    // Normalize the created shop data to ensure consistent response structure
     // Note: We don't include createdAt in response since it wasn't retrieved from DB
-    // Future enhancement could SELECT the row after INSERT to get the actual timestamp
+    const normalizedShop = normalizeShop(shop);
+    
     return res.status(201).json({
       success: true,
-      data: shop
+      data: normalizedShop
     });
   } catch (error) {
     // === DIAGNOSTIC PHASE 11: ERROR HANDLING ===
@@ -618,9 +644,13 @@ router.put('/:id', authenticate, authorize(['Admin', 'Treasurer']), validate(sch
     );
 
     logger.info('Shop updated successfully:', { id });
+    
+    // Normalize the updated shop data for consistent response structure
+    const normalizedShop = normalizeShop(updatedShop);
+    
     return res.json({
       success: true,
-      data: updatedShop
+      data: normalizedShop
     });
   } catch (error) {
     logger.error('Update shop error:', error);
