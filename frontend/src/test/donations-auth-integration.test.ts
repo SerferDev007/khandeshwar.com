@@ -28,27 +28,38 @@ describe('Donations authentication integration', () => {
     vi.clearAllMocks();
   });
 
-  it('should handle 401 errors properly with refresh retry', async () => {
+  it('should handle 401 errors properly with session refresh', async () => {
     // Set up a valid token initially
     const mockToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c';
     apiClient.setAuthToken(mockToken);
 
-    // Mock unauthorized handler that simulates successful refresh
+    // Mock unauthorized handler (should not be called due to successful session refresh)
     const mockUnauthorizedHandler = vi.fn().mockResolvedValue(undefined);
     apiClient.setUnauthorizedHandler(mockUnauthorizedHandler);
 
-    // Mock fetch to return 401 first, then success on retry
+    // Mock fetch responses:
+    // 1. First call (donation) returns 401
+    // 2. Second call (profile for refresh) returns 200
+    // 3. Third call (retry donation) returns 200
     let callCount = 0;
-    global.fetch = vi.fn().mockImplementation(() => {
+    global.fetch = vi.fn().mockImplementation((url) => {
       callCount++;
       if (callCount === 1) {
-        // First call returns 401
+        // First call (donation) returns 401
         return Promise.resolve({
           status: 401,
+          ok: false,
           text: () => Promise.resolve('{"error": "Unauthorized"}')
         });
+      } else if (callCount === 2) {
+        // Second call (profile for session refresh) returns 200
+        return Promise.resolve({
+          status: 200,
+          ok: true,
+          text: () => Promise.resolve('{"success": true, "data": {"id": 1, "email": "user@example.com"}}')
+        });
       } else {
-        // Second call (after refresh) returns success
+        // Third call (retry donation) returns success
         return Promise.resolve({
           status: 200,
           ok: true,
@@ -61,11 +72,11 @@ describe('Donations authentication integration', () => {
     const donationData = { amount: 100, category: 'General' };
     const result = await apiClient.createDonation(donationData);
 
-    // Verify that unauthorized handler was called
-    expect(mockUnauthorizedHandler).toHaveBeenCalledTimes(1);
+    // Verify that session refresh worked and unauthorized handler was NOT called
+    expect(mockUnauthorizedHandler).toHaveBeenCalledTimes(0);
     
-    // Verify that fetch was called twice (original + retry)
-    expect(fetch).toHaveBeenCalledTimes(2);
+    // Verify that fetch was called 3 times (original + profile for refresh + retry)
+    expect(fetch).toHaveBeenCalledTimes(3);
     
     // Verify successful result (API client extracts data from response)
     expect(result).toEqual({ id: "123" });
