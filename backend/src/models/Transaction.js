@@ -33,6 +33,7 @@ export class Transaction {
     this.emiAmount = data.emiAmount;
     this.penaltyId = data.penaltyId;
     this.penaltyAmount = data.penaltyAmount;
+    this.idempotencyKey = data.idempotencyKey;
     this.createdAt = data.createdAt;
 
     console.log(`[${timestamp}] [TRANSACTION-MODEL] [constructor] ✅ Transaction instance created:`, { 
@@ -134,6 +135,7 @@ export class Transaction {
       emiAmount: row.emi_amount ? parseFloat(row.emi_amount) : null,
       penaltyId: row.penalty_id,
       penaltyAmount: row.penalty_amount ? parseFloat(row.penalty_amount) : null,
+      idempotencyKey: row.idempotency_key,
       createdAt: row.created_at
     });
 
@@ -202,7 +204,8 @@ export class Transaction {
       { prop: 'loanId', db: 'loan_id' },
       { prop: 'emiAmount', db: 'emi_amount' },
       { prop: 'penaltyId', db: 'penalty_id' },
-      { prop: 'penaltyAmount', db: 'penalty_amount' }
+      { prop: 'penaltyAmount', db: 'penalty_amount' },
+      { prop: 'idempotencyKey', db: 'idempotency_key' }
     ];
 
     const includedOptionalFields = [];

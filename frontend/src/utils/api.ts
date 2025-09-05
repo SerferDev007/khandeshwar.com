@@ -986,6 +986,9 @@ class ApiClient {
   getDonation(id: string) {
     return this.get(`/api/donations/${id}`);
   }
+  getNextDonationReceiptNumber() {
+    return this.get("/api/donations/next-receipt-number");
+  }
   createDonation(d: any) {
     console.log('🎯 createDonation called', {
       hasToken: !!this.getAuthToken(),

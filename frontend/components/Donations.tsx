@@ -129,6 +129,45 @@ export default function Donations({
   const [lastAddedDonation, setLastAddedDonation] = useState<any>(null);
   const [editingDonation, setEditingDonation] = useState<any>(null);
   const [isEditMode, setIsEditMode] = useState(false);
+  const [submissionState, setSubmissionState] = useState<'idle' | 'submitting' | 'submitted' | 'error'>('idle');
+  const [previewReceiptNumber, setPreviewReceiptNumber] = useState<string>('');
+  const [idempotencyKey, setIdempotencyKey] = useState<string>('');
+
+  // Generate a new idempotency key
+  const generateIdempotencyKey = () => {
+    return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+  };
+
+  // Fetch preview receipt number
+  const fetchPreviewReceiptNumber = async () => {
+    try {
+      const response = await apiClient.getNextDonationReceiptNumber();
+      if (response.success) {
+        setPreviewReceiptNumber(response.data.receiptNumber);
+        setFormData(prev => ({
+          ...prev,
+          receiptNumber: response.data.receiptNumber
+        }));
+      }
+    } catch (error) {
+      console.error('Failed to fetch preview receipt number:', error);
+    }
+  };
+
+  // Initialize form for new donation
+  const initializeForNewDonation = () => {
+    const newIdempotencyKey = generateIdempotencyKey();
+    setIdempotencyKey(newIdempotencyKey);
+    fetchPreviewReceiptNumber();
+    setSubmissionState('idle');
+  };
+
+  // Initialize on component mount and when switching from edit mode
+  useEffect(() => {
+    if (!isEditMode) {
+      initializeForNewDonation();
+    }
+  }, [isEditMode]);
 
   // Update receipt number when receiptCounter changes
   useEffect(() => {
@@ -207,9 +246,11 @@ export default function Donations({
       familyMembers: "",
       amountPerPerson: "",
       purpose: "",
-      receiptNumber: receiptCounter.toString().padStart(4, "0"),
+      receiptNumber: previewReceiptNumber || receiptCounter.toString().padStart(4, "0"),
     });
     setErrors({});
+    setSubmissionState('idle');
+    // The useEffect will trigger initializeForNewDonation when isEditMode changes to false
   };
 
   // Validation function
@@ -319,16 +360,24 @@ export default function Donations({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    // Prevent duplicate submissions
+    if (submissionState === 'submitting' || submissionState === 'submitted') {
+      return;
+    }
+
     if (!validateForm()) {
       toast.error(t("donations.validationError"));
       return;
     }
 
     try {
+      setSubmissionState('submitting');
+
       // Check if user is authenticated before making API calls
       if (!currentUser) {
         console.error('[Donations] No authenticated user - cannot submit donation');
         toast.error('Please login to submit donations');
+        setSubmissionState('error');
         return;
       }
 
@@ -339,6 +388,7 @@ export default function Donations({
           userId: currentUser.id 
         });
         toast.error('Unable to verify permissions. Please try logging in again.');
+        setSubmissionState('error');
         return;
       }
 
@@ -350,6 +400,7 @@ export default function Donations({
           requiredRoles: allowedRoles 
         });
         toast.error('You do not have permission to submit donations. Only Admin and Treasurer roles are allowed.');
+        setSubmissionState('error');
         return;
       }
 
@@ -372,6 +423,8 @@ export default function Donations({
           familyMembers: parseInt(formData.familyMembers),
           amountPerPerson: parseFloat(formData.amountPerPerson),
         }),
+        // Add idempotency key for new donations
+        ...((!isEditMode) && { idempotencyKey }),
       };
 
       let response;
@@ -399,7 +452,7 @@ export default function Donations({
           subCategory: donationData.subCategory,
           description: donationData.description,
           amount: donationData.amount,
-          receiptNumber: donationData.receiptNumber,
+          receiptNumber: response.data?.receiptNumber || donationData.receiptNumber,
           donorName: donationData.donorName,
           donorContact: donationData.donorContact,
           ...(formData.category === "Vargani" && {
@@ -408,23 +461,41 @@ export default function Donations({
           }),
         };
         
-        // Update receipt counter and call parent callback for UI updates
-        onUpdateReceiptCounter(receiptCounter + 1);
+        // Don't increment receipt counter - backend now handles it atomically
         onAddTransaction(processedDonation);
-        toast.success(t("donations.successMessage"));
+        
+        // Handle duplicate submission response
+        if (response.message === 'Donation already exists') {
+          toast.success(t("donations.duplicateDetected"));
+        } else {
+          toast.success(t("donations.successMessage"));
+        }
       }
       
       setLastAddedDonation(processedDonation);
       setShowSuccessDialog(true);
+      setSubmissionState('submitted');
 
       // Reset form
       resetForm();
       
     } catch (error: any) {
       console.error('Donation submission error:', error);
+      setSubmissionState('error');
       
-      // Handle validation errors from backend
-      if (error.status === 422 && error.response?.details) {
+      // Handle specific error cases
+      if (error.status === 409) {
+        if (error.response?.error === 'Duplicate submission detected') {
+          toast.error(t("donations.duplicateSubmission"));
+        } else if (error.response?.error === 'Receipt number already exists') {
+          toast.error(t("donations.receiptNumberConflict"));
+          // Refresh receipt number preview
+          fetchPreviewReceiptNumber();
+        } else {
+          toast.error(t("donations.conflictError"));
+        }
+      } else if (error.status === 422 && error.response?.details) {
+        // Handle validation errors from backend
         const backendErrors: any = {};
         error.response.details.forEach((detail: any) => {
           const field = detail.path?.[0];
@@ -530,12 +601,18 @@ export default function Donations({
               <div>
                 <Label htmlFor="receiptNumber">
                   {t("donations.receiptNumber")} *
+                  {!isEditMode && previewReceiptNumber && (
+                    <span className="text-xs text-green-600 ml-2">
+                      {t("donations.nextReceiptNumber")}
+                    </span>
+                  )}
                 </Label>
                 <Input
                   id="receiptNumber"
                   value={formData.receiptNumber}
                   disabled
                   className="bg-gray-50"
+                  placeholder={!isEditMode ? t("donations.autoGenerated") : ""}
                 />
               </div>
 
@@ -793,8 +870,15 @@ export default function Donations({
             </div>
 
             <div className="flex gap-2">
-              <Button type="submit" className="flex-1">
-                {isEditMode ? t("common.update") : t("donations.submit")}
+              <Button 
+                type="submit" 
+                className="flex-1"
+                disabled={submissionState === 'submitting' || submissionState === 'submitted'}
+              >
+                {submissionState === 'submitting' ? 
+                  t("donations.submitting") : 
+                  (isEditMode ? t("common.update") : t("donations.submit"))
+                }
               </Button>
               {isEditMode && (
                 <Button type="button" variant="outline" onClick={resetForm}>
