@@ -398,6 +398,47 @@ const ensureTenantEmailUnique = async () => {
   }
 };
 
+// Function to initialize receipt sequences
+const initializeReceiptSequences = async () => {
+  try {
+    logger.info(">> Initializing receipt sequences...");
+    
+    const transactionTypes = ['Donation', 'Expense', 'Utilities', 'Salary', 'RentIncome'];
+    
+    for (const type of transactionTypes) {
+      // Check if this type already exists
+      const existing = await query(
+        'SELECT transaction_type FROM receipt_sequences WHERE transaction_type = ?',
+        [type]
+      );
+      
+      if (existing.length === 0) {
+        // Get the highest existing receipt number for this type
+        const maxReceipt = await query(
+          'SELECT MAX(CAST(receipt_number AS UNSIGNED)) as max_number FROM transactions WHERE type = ? AND receipt_number REGEXP "^[0-9]+$"',
+          [type]
+        );
+        
+        const nextNumber = (maxReceipt[0]?.max_number || 0) + 1;
+        
+        await query(
+          'INSERT INTO receipt_sequences (transaction_type, next_number) VALUES (?, ?)',
+          [type, nextNumber]
+        );
+        
+        logger.info(`>> Initialized receipt sequence for ${type} starting at ${nextNumber}`);
+      } else {
+        logger.info(`>> Receipt sequence for ${type} already exists`);
+      }
+    }
+    
+    logger.info(">> Receipt sequences initialization completed");
+  } catch (error) {
+    logger.error("Receipt sequences initialization failed:", error);
+    throw error;
+  }
+};
+
 // Database migrations
 const runMigrations = async () => {
   logger.info("Running database migrations...");
@@ -490,9 +531,60 @@ const runMigrations = async () => {
       INDEX idx_status (status),
       INDEX idx_s3_key (s3_key)
     ) ENGINE=InnoDB`,
+
+    // Transactions table
+    `CREATE TABLE IF NOT EXISTS transactions (
+      id VARCHAR(36) PRIMARY KEY,
+      date DATE NOT NULL,
+      type ENUM('Donation', 'Expense', 'Utilities', 'Salary', 'RentIncome') NOT NULL,
+      category VARCHAR(100) NOT NULL,
+      sub_category VARCHAR(100) NULL,
+      description TEXT NOT NULL,
+      amount DECIMAL(12,2) NOT NULL,
+      receipt_number VARCHAR(50) NOT NULL,
+      donor_name VARCHAR(100) NULL,
+      donor_contact VARCHAR(20) NULL,
+      family_members INT NULL,
+      amount_per_person DECIMAL(10,2) NULL,
+      vendor VARCHAR(100) NULL,
+      receipt VARCHAR(255) NULL,
+      tenant_name VARCHAR(100) NULL,
+      tenant_contact VARCHAR(20) NULL,
+      agreement_id VARCHAR(36) NULL,
+      shop_number VARCHAR(20) NULL,
+      payee_name VARCHAR(100) NULL,
+      payee_contact VARCHAR(20) NULL,
+      loan_id VARCHAR(36) NULL,
+      emi_amount DECIMAL(10,2) NULL,
+      penalty_id VARCHAR(36) NULL,
+      penalty_amount DECIMAL(10,2) NULL,
+      idempotency_key VARCHAR(100) NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      INDEX idx_date (date),
+      INDEX idx_type (type),
+      INDEX idx_category (category),
+      INDEX idx_receipt_number (receipt_number),
+      INDEX idx_agreement (agreement_id),
+      INDEX idx_loan (loan_id),
+      INDEX idx_penalty (penalty_id),
+      INDEX idx_idempotency_key (idempotency_key),
+      UNIQUE KEY uq_receipt_number_type (receipt_number, type),
+      UNIQUE KEY uq_idempotency_key (idempotency_key),
+      FOREIGN KEY (agreement_id) REFERENCES agreements(id) ON DELETE SET NULL,
+      FOREIGN KEY (loan_id) REFERENCES loans(id) ON DELETE SET NULL,
+      FOREIGN KEY (penalty_id) REFERENCES rent_penalties(id) ON DELETE SET NULL
+    ) ENGINE=InnoDB`,
+
+    // Receipt sequences table for atomic receipt number allocation
+    `CREATE TABLE IF NOT EXISTS receipt_sequences (
+      transaction_type ENUM('Donation', 'Expense', 'Utilities', 'Salary', 'RentIncome') PRIMARY KEY,
+      next_number INT NOT NULL DEFAULT 1,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    ) ENGINE=InnoDB`,
   ];
 
-  const migrationNames = ["users", "tenants", "shops", "refresh_tokens", "files"];
+  const migrationNames = ["users", "tenants", "shops", "refresh_tokens", "files", "transactions", "receipt_sequences"];
 
   for (let i = 0; i < migrations.length; i++) {
     try {
@@ -510,6 +602,9 @@ const runMigrations = async () => {
   // Post-migration: Ensure tenants email has unique index
   await ensureTenantEmailUnique();
 
+  // Post-migration: Initialize receipt sequences
+  await initializeReceiptSequences();
+
   logger.info(">> Database migrations completed");
 };
 
@@ -519,6 +614,46 @@ export const closeDatabaseConnection = async () => {
     await pool.end();
     logger.info("Database connection pool closed");
   }
+};
+
+// Function to atomically allocate the next receipt number
+export const allocateReceiptNumber = async (transactionType) => {
+  return await transaction(async (connection) => {
+    // Get and increment the next receipt number atomically
+    const [result] = await connection.execute(
+      'UPDATE receipt_sequences SET next_number = next_number + 1 WHERE transaction_type = ?',
+      [transactionType]
+    );
+    
+    if (result.affectedRows === 0) {
+      throw new Error(`Receipt sequence not found for transaction type: ${transactionType}`);
+    }
+    
+    // Get the allocated number
+    const [rows] = await connection.execute(
+      'SELECT next_number - 1 as allocated_number FROM receipt_sequences WHERE transaction_type = ?',
+      [transactionType]
+    );
+    
+    const receiptNumber = rows[0].allocated_number.toString().padStart(4, '0');
+    logger.info(`Allocated receipt number ${receiptNumber} for ${transactionType}`);
+    
+    return receiptNumber;
+  });
+};
+
+// Function to get the next receipt number without allocating it (for preview)
+export const getNextReceiptNumber = async (transactionType) => {
+  const rows = await query(
+    'SELECT next_number FROM receipt_sequences WHERE transaction_type = ?',
+    [transactionType]
+  );
+  
+  if (rows.length === 0) {
+    throw new Error(`Receipt sequence not found for transaction type: ${transactionType}`);
+  }
+  
+  return rows[0].next_number.toString().padStart(4, '0');
 };
 
 export default pool;

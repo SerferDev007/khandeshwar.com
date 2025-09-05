@@ -2,7 +2,7 @@ import express from 'express';
 import { validate, schemas } from '../middleware/validate.js';
 import { authenticate, authorize } from '../middleware/auth.js';
 import { z } from 'zod';
-import { query } from '../config/db.js';
+import { query, allocateReceiptNumber, getNextReceiptNumber } from '../config/db.js';
 import { Transaction } from '../models/Transaction.js';
 import pino from 'pino';
 
@@ -16,11 +16,12 @@ const donationCreateSchema = z.object({
   subCategory: z.string().optional(),
   description: z.string().min(1, 'Description is required'),
   amount: z.number().positive('Amount must be positive'),
-  receiptNumber: z.string().optional(),
+  receiptNumber: z.string().min(1, 'Receipt number is required'),
   donorName: z.string().min(1, 'Donor name is required'),
   donorContact: z.string().regex(/^\d{10}$/, 'Contact must be 10 digits').optional().or(z.literal('')),
   familyMembers: z.number().int().positive().optional(),
   amountPerPerson: z.number().positive().optional(),
+  idempotencyKey: z.string().min(1, 'Idempotency key is required'),
 });
 
 const donationUpdateSchema = donationCreateSchema.partial();
@@ -112,16 +113,57 @@ router.get('/:id', authenticate, authorize(['Admin', 'Treasurer', 'Viewer']), va
   }
 });
 
+// GET /api/donations/next-receipt-number - Get next receipt number for preview
+router.get('/next-receipt-number', authenticate, authorize(['Admin', 'Treasurer']), async (req, res) => {
+  try {
+    const nextReceiptNumber = await getNextReceiptNumber('Donation');
+    
+    return res.json({
+      success: true,
+      data: { receiptNumber: nextReceiptNumber }
+    });
+  } catch (error) {
+    logger.error('Get next receipt number error:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Failed to get next receipt number'
+    });
+  }
+});
+
 // POST /api/donations - Create new donation
 router.post('/', authenticate, authorize(['Admin', 'Treasurer']), validateDonationCreate, async (req, res) => {
   try {
-    const donationData = {
-      ...req.body,
+    const { idempotencyKey, ...donationData } = req.body;
+    
+    // Check for existing donation with the same idempotency key
+    const existingDonation = await query(
+      'SELECT * FROM transactions WHERE idempotency_key = ? AND type = ?',
+      [idempotencyKey, 'Donation']
+    );
+    
+    if (existingDonation.length > 0) {
+      logger.info('Duplicate donation request detected:', { idempotencyKey });
+      const donation = Transaction.fromDbRow(existingDonation[0]);
+      return res.status(200).json({
+        success: true,
+        data: donation,
+        message: 'Donation already exists'
+      });
+    }
+    
+    // Allocate receipt number atomically
+    const allocatedReceiptNumber = await allocateReceiptNumber('Donation');
+    
+    const fullDonationData = {
+      ...donationData,
+      receiptNumber: allocatedReceiptNumber,
+      idempotencyKey,
       id: generateId(),
       type: 'Donation',
     };
     
-    const donation = new Transaction(donationData);
+    const donation = new Transaction(fullDonationData);
     const dbObject = donation.toDbObject();
 
     const fields = Object.keys(dbObject).join(', ');
@@ -135,13 +177,36 @@ router.post('/', authenticate, authorize(['Admin', 'Treasurer']), validateDonati
       values
     );
 
-    logger.info('Donation created successfully:', { id: donation.id, amount: donation.amount });
+    logger.info('Donation created successfully:', { 
+      id: donation.id, 
+      amount: donation.amount, 
+      receiptNumber: allocatedReceiptNumber,
+      idempotencyKey 
+    });
+    
     return res.status(201).json({
       success: true,
       data: donation
     });
   } catch (error) {
     logger.error('Create donation error:', error);
+    
+    // Handle specific duplicate key errors
+    if (error.code === 'ER_DUP_ENTRY') {
+      if (error.message.includes('uq_idempotency_key')) {
+        return res.status(409).json({
+          success: false,
+          error: 'Duplicate submission detected'
+        });
+      }
+      if (error.message.includes('uq_receipt_number_type')) {
+        return res.status(409).json({
+          success: false,
+          error: 'Receipt number already exists'
+        });
+      }
+    }
+    
     return res.status(500).json({
       success: false,
       error: 'Failed to create donation'
