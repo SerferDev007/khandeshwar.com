@@ -7,12 +7,26 @@ const logger = pino({ name: 'TenantController' });
 export class TenantController {
   // GET /api/rent/tenants - Get all tenants
   static async getAll(req, res) {
+    console.log('[TenantController] Get all tenants request:', {
+      query: req.query,
+      userId: req.user?.id,
+      userRole: req.user?.role
+    });
+
     try {
       const { page = 1, limit = 10, include_relations } = req.query;
       const offset = (page - 1) * limit;
 
+      console.log('[TenantController] Processing request with params:', {
+        page: parseInt(page),
+        limit: parseInt(limit),
+        offset,
+        includeRelations: include_relations === 'true'
+      });
+
       const includeOptions = [];
       if (include_relations === 'true') {
+        console.log('[TenantController] Including tenant relations');
         includeOptions.push(
           { model: Agreement, as: 'agreements' },
           { model: Loan, as: 'loans' },
@@ -21,11 +35,18 @@ export class TenantController {
         );
       }
 
+      console.log('[TenantController] Executing database query...');
       const { count, rows } = await Tenant.findAndCountAll({
         include: includeOptions,
         limit: parseInt(limit),
         offset: parseInt(offset),
         order: [['created_at', 'DESC']]
+      });
+
+      console.log('[TenantController] Database query successful:', {
+        totalCount: count,
+        returnedRows: rows.length,
+        page: parseInt(page)
       });
 
       logger.info(`Retrieved ${rows.length} tenants`, { 
