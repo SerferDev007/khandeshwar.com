@@ -124,6 +124,16 @@ export function AuthProvider({ children }: AuthProviderProps) {
         console.log('[AuthProvider] Loading stored token from apiClient...');
         apiClient.initFromStorage();
 
+        // Check if we have a token before proceeding
+        const currentToken = apiClient.getAuthToken();
+        if (!currentToken) {
+          console.log('[AuthProvider] No stored token found - skipping profile fetch');
+          setUser(null);
+          return;
+        }
+
+        console.log('[AuthProvider] Token found - proceeding with authentication verification');
+
         // Try to silently refresh access token (handles expired access)
         try {
           console.log('[AuthProvider] Attempting silent token refresh...');
