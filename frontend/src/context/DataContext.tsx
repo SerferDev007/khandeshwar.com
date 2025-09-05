@@ -171,7 +171,7 @@ export function DataProvider({ children }: DataProviderProps) {
     setErrors(prev => ({ ...prev, [entity]: error }));
   };
 
-  // Generic fetch function
+  // Enhanced generic fetch function with response normalization and improved error handling
   const fetchData = async (
     entity: string,
     fetchFn: () => Promise<any>,
@@ -180,10 +180,81 @@ export function DataProvider({ children }: DataProviderProps) {
     try {
       setLoadingState(entity, true);
       setErrorState(entity, null);
-      const data = await fetchFn();
+      
+      console.debug(`🔍 fetchData(${entity}): Starting API call`);
+      const response = await fetchFn();
+      
+      // Log the raw response structure for development diagnostics
+      if ((import.meta as any).env?.VITE_ENV) {
+        console.debug(`🔬 fetchData(${entity}): Raw API response structure:`, {
+          isArray: Array.isArray(response),
+          hasData: !!response?.data,
+          hasEntityProperty: !!response?.[entity],
+          responseKeys: response && typeof response === 'object' ? Object.keys(response) : null,
+          dataKeys: response?.data && typeof response.data === 'object' ? Object.keys(response.data) : null
+        });
+      }
+
+      /**
+       * Safely parse data from response, handling multiple response shapes:
+       * 1. Direct array response: [...]
+       * 2. Direct object response: { [entity]: [...] }
+       * 3. Wrapped response: { data: { [entity]: [...] } }
+       * 4. Wrapped array response: { data: [...] }
+       * 5. Single item responses (for individual entity fetches)
+       */
+      let data;
+      if (Array.isArray(response)) {
+        // Direct array response
+        data = response;
+      } else if (response?.data?.[entity] && Array.isArray(response.data[entity])) {
+        // Wrapped response with data.[entity]
+        data = response.data[entity];
+      } else if (response?.data && Array.isArray(response.data)) {
+        // Wrapped response with data as array
+        data = response.data;
+      } else if (response?.[entity] && Array.isArray(response[entity])) {
+        // Direct response with [entity] property
+        data = response[entity];
+      } else if (response?.data && typeof response.data === 'object') {
+        // Wrapped single item or object response
+        data = response.data;
+      } else if (response && typeof response === 'object') {
+        // Direct single item or object response
+        data = response;
+      } else {
+        data = [];
+      }
+
+      console.debug(`✅ fetchData(${entity}): Successfully parsed response`, {
+        dataType: Array.isArray(data) ? 'array' : typeof data,
+        count: Array.isArray(data) ? data.length : 1
+      });
+
       setter(data);
     } catch (error: any) {
-      setErrorState(entity, error.message || `Failed to fetch ${entity}`);
+      console.error(`❌ fetchData(${entity}) failed:`, {
+        message: error.message,
+        status: error.statusCode,
+        details: error.details,
+        stack: error.stack?.split('\n').slice(0, 3).join('\n')
+      });
+
+      // Enhanced error message with server details in development
+      let errorMessage = `Failed to fetch ${entity}`;
+      if ((import.meta as any).env?.DEV) {
+        if (error.statusCode === 500) {
+          errorMessage += ` (Server Error ${error.statusCode}): ${error.message}`;
+        } else if (error.statusCode) {
+          errorMessage += ` (HTTP ${error.statusCode}): ${error.message}`;
+        } else {
+          errorMessage += `: ${error.message}`;
+        }
+      } else {
+        errorMessage += '. Please try again.';
+      }
+
+      setErrorState(entity, errorMessage);
     } finally {
       setLoadingState(entity, false);
     }
