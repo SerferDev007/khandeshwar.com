@@ -4,6 +4,7 @@ import { authenticate, authorize } from '../middleware/auth.js';
 import { z } from 'zod';
 import { query, allocateReceiptNumber, getNextReceiptNumber } from '../config/db.js';
 import { Transaction } from '../models/Transaction.js';
+import { generateId } from '../utils/helpers.js';
 import pino from 'pino';
 
 const logger = pino({ name: 'donations-router' });
@@ -54,11 +55,6 @@ const validateDonationUpdate = (req, res, next) => {
       details: error.errors
     });
   }
-};
-
-// Generate unique ID
-const generateId = () => {
-  return Date.now().toString() + Math.random().toString(36).substr(2, 9);
 };
 
 // GET /api/donations - Get all donations
