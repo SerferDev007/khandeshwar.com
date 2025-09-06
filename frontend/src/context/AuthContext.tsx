@@ -3,6 +3,7 @@ import React, {
   useContext,
   useState,
   useEffect,
+  useRef,
   ReactNode,
 } from "react";
 import apiClient from "../utils/api";
@@ -34,6 +35,10 @@ interface AuthProviderProps {
 }
 
 export function AuthProvider({ children }: AuthProviderProps) {
+  // Guard to prevent double initialization in React StrictMode
+  const initRef = useRef(false);
+  const unauthorizedHandlerRef = useRef(false);
+  
   // 1) Pre-hydrate user from localStorage so UI can render immediately
   const [user, setUser] = useState<User | null>(() => {
     try {
@@ -85,6 +90,17 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const tryRefresh = async () => {
     console.log('[AuthProvider] Attempting to refresh authentication...');
     const anyClient = apiClient as any;
+    
+    // Check if token is fresh (less than 60 seconds old) and we're already authenticated
+    const currentToken = apiClient.getAuthToken();
+    if (currentToken && isAuthenticated) {
+      const tokenAge = apiClient.getTokenAge();
+      if (tokenAge < 60000) { // Less than 60 seconds
+        console.log('[AuthProvider] Token is fresh, skipping refresh', { tokenAge });
+        return;
+      }
+    }
+    
     if (anyClient && typeof anyClient.refresh === "function") {
       await anyClient.refresh(); // if you don't have this, it will just skip
       console.log('[AuthProvider] Token refresh successful');
@@ -110,15 +126,22 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   // Register global 401 handler once
   useEffect(() => {
+    if (unauthorizedHandlerRef.current) return; // Guard against duplicate registration
+    
     console.log('[AuthProvider] Registering global 401 handler');
+    unauthorizedHandlerRef.current = true;
     apiClient.setUnauthorizedHandler(handleUnauthorized);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // 3) Bootstrap on mount: init from storage → try refresh → fetch profile
   useEffect(() => {
+    if (initRef.current) return; // Guard against duplicate initialization
+    
     const initializeAuth = async () => {
       console.log('[AuthProvider] Initializing authentication...');
+      initRef.current = true;
+      
       try {
         // Load any stored token (if your apiClient stores it)
         console.log('[AuthProvider] Loading stored token from apiClient...');
@@ -133,6 +156,16 @@ export function AuthProvider({ children }: AuthProviderProps) {
         }
 
         console.log('[AuthProvider] Token found - proceeding with authentication verification');
+
+        // Check backend health first
+        try {
+          console.log('[AuthProvider] Checking backend health...');
+          await apiClient.checkHealth();
+          console.log('[AuthProvider] Backend health check passed');
+        } catch (healthError) {
+          console.warn('[AuthProvider] Backend health check failed, continuing anyway:', healthError);
+          // Continue with auth flow even if health check fails
+        }
 
         // Try to silently refresh access token (handles expired access)
         try {

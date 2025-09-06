@@ -15,64 +15,48 @@ export class ApiError extends Error {
 }
 
 // Error handler middleware
-export const errorHandler = (error, req, res, next) => {
-  let { statusCode = 500, message } = error;
-
-  // Log error
-  logger.error("Error occurred:", {
-    error: error.message,
-    stack: error.stack,
-    url: req.url,
+export function errorHandler(err, req, res, next) {
+  const status = err.statusCode || 500;
+  const code = err.code || 'INTERNAL_ERROR';
+  
+  // Log error with context
+  console.error('[API ERROR]', {
+    path: req.path,
     method: req.method,
-    ip: req.ip,
-    userAgent: req.get("User-Agent"),
+    status,
+    code,
+    message: err.message,
     userId: req.user?.id,
+    userAgent: req.get('User-Agent'),
+    ip: req.ip,
+    stack: err.stack
   });
-
-  // Handle specific error types
-  if (error.name === "ValidationError") {
-    statusCode = 400;
-    message = "Validation failed";
-  } else if (error.name === "UnauthorizedError") {
-    statusCode = 401;
-    message = "Unauthorized";
-  } else if (error.name === "JsonWebTokenError") {
-    statusCode = 401;
-    message = "Invalid token";
-  } else if (error.name === "TokenExpiredError") {
-    statusCode = 401;
-    message = "Token expired";
-  } else if (error.code === "ER_DUP_ENTRY") {
-    statusCode = 409;
-    if (error.message.includes("username")) {
-      message = "Username already exists";
-    } else if (error.message.includes("email")) {
-      message = "Email already exists";
-    } else {
-      message = "Duplicate entry";
-    }
-  } else if (error.code === "ER_NO_REFERENCED_ROW_2") {
-    statusCode = 400;
-    message = "Referenced record does not exist";
-  } else if (error.code === "ECONNREFUSED") {
-    statusCode = 503;
-    message = "Service temporarily unavailable";
+  
+  // Format error response
+  let message = err.message || 'Internal Server Error';
+  
+  // Handle specific database errors
+  if (err.code === 'ER_NO_SUCH_TABLE') {
+    message = 'Database table does not exist';
+  } else if (err.code === 'ER_BAD_FIELD_ERROR') {
+    message = 'Invalid database field';
+  } else if (err.code === 'ECONNREFUSED') {
+    message = 'Database connection failed';
   }
-
-  // Don't expose sensitive error details in production
-  if (process.env.NODE_ENV === "production" && !error.isOperational) {
-    message = "Something went wrong";
+  
+  // Don't expose internal errors in production
+  if (status === 500 && process.env.NODE_ENV === 'production') {
+    message = 'Internal Server Error';
   }
-
-  // Send error response
-  res.status(statusCode).json({
-    success: false,
-    error: message,
-    ...(process.env.NODE_ENV === "development" && {
-      stack: error.stack,
-    }),
+  
+  res.status(status).json({ 
+    success: false, 
+    error: { 
+      code, 
+      message
+    } 
   });
-};
+}
 
 // Handle unhandled promise rejections
 // Handle unhandled promise rejections

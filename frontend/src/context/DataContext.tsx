@@ -101,9 +101,13 @@ interface DataProviderProps {
 }
 
 export function DataProvider({ children }: DataProviderProps) {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, isLoading: authLoading } = useAuth();
   
-  console.log('[DataProvider] Component rendering, isAuthenticated:', isAuthenticated);
+  // Guard to prevent double mounting and race conditions
+  const mountedRef = useRef(false);
+  const dataFetchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  
+  console.log('[DataProvider] Component rendering, isAuthenticated:', isAuthenticated, 'authLoading:', authLoading);
   
   // Data state
   const [users, setUsers] = useState<User[]>([]);
@@ -242,10 +246,24 @@ export function DataProvider({ children }: DataProviderProps) {
 
       // Enhanced error message with server details in development
       let errorMessage = `Failed to fetch ${entity}`;
-      if ((import.meta as any).env?.DEV) {
-        if (error?.statusCode === 500) {
-          errorMessage += ` (Server Error ${error.statusCode}): ${error.message}`;
-        } else if (error?.statusCode) {
+      if (error?.statusCode === 500) {
+        errorMessage = `${entity.charAt(0).toUpperCase() + entity.slice(1)} unavailable (500). Check server logs.`;
+        // Set safe defaults for 500 errors to prevent UI crashes
+        if (typeof setter === 'function') {
+          setter([]);
+        }
+      } else if (error?.statusCode === 503) {
+        errorMessage = `Backend server is offline. Please try again later.`;
+        if (typeof setter === 'function') {
+          setter([]);
+        }
+      } else if (error?.message?.includes('Backend server is offline')) {
+        errorMessage = error.message;
+        if (typeof setter === 'function') {
+          setter([]);
+        }
+      } else if ((import.meta as any).env?.DEV) {
+        if (error?.statusCode) {
           errorMessage += ` (HTTP ${error.statusCode}): ${error.message}`;
         } else {
           errorMessage += `: ${error?.message || 'Unknown error'}`;
@@ -255,6 +273,11 @@ export function DataProvider({ children }: DataProviderProps) {
       }
 
       setErrorState(entity, errorMessage);
+      
+      // Show toast notification for critical errors
+      if (typeof window !== 'undefined' && (window as any).toast) {
+        (window as any).toast.error(errorMessage);
+      }
     } finally {
       setLoadingState(entity, false);
     }
@@ -851,23 +874,45 @@ export function DataProvider({ children }: DataProviderProps) {
     });
   };
 
-  // Load initial data when authenticated
+  // Load initial data when authenticated - with debouncing and proper guards
   useEffect(() => {
-    if (isAuthenticated) {
-      // Load all data in parallel
-      Promise.allSettled([
-        fetchUsers(),
-        fetchShops(),
-        fetchTenants(),
-        fetchAgreements(),
-        fetchLoans(),
-        fetchPenalties(),
-        fetchTransactions(),
-        fetchDonations(), // Load donations from specific endpoint
-        fetchExpenses(),  // Load expenses from specific endpoint
-      ]);
+    // Clear any existing timeout
+    if (dataFetchTimeoutRef.current) {
+      clearTimeout(dataFetchTimeoutRef.current);
+    }
+
+    if (isAuthenticated && !authLoading) {
+      console.log('[DataProvider] Auth complete, scheduling data fetch...');
+      
+      // Debounce data fetching to prevent rapid calls
+      dataFetchTimeoutRef.current = setTimeout(() => {
+        if (mountedRef.current || !isAuthenticated) return; // Guard against race conditions
+        
+        mountedRef.current = true;
+        console.log('[DataProvider] Starting initial data fetch...');
+        
+        // Load all data in parallel with error isolation
+        Promise.allSettled([
+          fetchUsers(),
+          fetchShops(),
+          fetchTenants(),
+          fetchAgreements(),
+          fetchLoans(),
+          fetchPenalties(),
+          fetchTransactions(),
+          fetchDonations(), // Load donations from specific endpoint
+          fetchExpenses(),  // Load expenses from specific endpoint
+        ]).then((results) => {
+          console.log('[DataProvider] Initial data fetch completed:', {
+            successful: results.filter(r => r.status === 'fulfilled').length,
+            failed: results.filter(r => r.status === 'rejected').length,
+          });
+        });
+      }, 200); // 200ms debounce
     } else {
       // Clear data when not authenticated
+      console.log('[DataProvider] Not authenticated, clearing data...');
+      mountedRef.current = false;
       setUsers([]);
       setShops([]);
       setTenants([]);
@@ -877,7 +922,14 @@ export function DataProvider({ children }: DataProviderProps) {
       setTransactions([]);
       clearAllErrors();
     }
-  }, [isAuthenticated]);
+
+    // Cleanup timeout on unmount or dependency change
+    return () => {
+      if (dataFetchTimeoutRef.current) {
+        clearTimeout(dataFetchTimeoutRef.current);
+      }
+    };
+  }, [isAuthenticated, authLoading]);
 
   const value: DataContextType = {
     // Data

@@ -24,9 +24,10 @@ interface ImportMeta {
   env: ImportMetaEnv;
 }
 
-const API_BASE_URL = "http://localhost:8081";
+const API_BASE_URL = (import.meta.env?.VITE_BACKEND_URL as string) || "http://localhost:8081";
 
 const AUTH_TOKEN_KEY = "auth_token";
+const AUTH_TOKEN_TIMESTAMP_KEY = "auth_token_timestamp";
 const SESSION_TOKEN_KEY = "session_auth_token";
 const SESSION_USER_KEY = "session_current_user";
 const SESSION_TOKEN_TIMESTAMP_KEY = "session_token_timestamp";
@@ -145,6 +146,7 @@ function pickAccessToken(obj: any): string | null {
 class ApiClient {
   private baseURL: string;
   private token: string | null = null;
+  private tokenTimestamp: number = 0; // When token was stored
   private onUnauthorized?: () => void | Promise<void>;
   private ls: Storage | null = null;
   private ss: Storage | null = null; // sessionStorage reference
@@ -171,10 +173,15 @@ class ApiClient {
     
     if (this.ls) {
       const stored = this.ls.getItem(AUTH_TOKEN_KEY);
+      const storedTimestamp = this.ls.getItem(AUTH_TOKEN_TIMESTAMP_KEY);
+      
       this.token = stored && stored.trim() ? stored : null;
+      this.tokenTimestamp = storedTimestamp ? parseInt(storedTimestamp, 10) : 0;
+      
       console.log("🔄 Token init from storage", {
         present: !!this.token,
         start: this.token ? this.token.slice(0, 10) + "..." : "null",
+        tokenAge: this.token ? Date.now() - this.tokenTimestamp : 0,
         ts: new Date().toISOString(),
       });
 
@@ -210,6 +217,8 @@ class ApiClient {
 
   setAuthToken(token: string | null) {
     const ts = new Date().toISOString();
+    const now = Date.now();
+    
     console.log("🔐 setAuthToken()", {
       incoming: !!token,
       start: token ? token.slice(0, 10) + "..." : "null",
@@ -218,6 +227,7 @@ class ApiClient {
     });
 
     this.token = token && token.trim() ? token : null;
+    this.tokenTimestamp = this.token ? now : 0;
 
     // Persist if possible
     const ls = this.ls ?? safeLocalStorage();
@@ -229,12 +239,14 @@ class ApiClient {
     try {
       if (this.token) {
         ls.setItem(AUTH_TOKEN_KEY, this.token);
+        ls.setItem(AUTH_TOKEN_TIMESTAMP_KEY, this.tokenTimestamp.toString());
         const verify = ls.getItem(AUTH_TOKEN_KEY);
         const ok = verify === this.token;
-        console.log("💾 Token stored", { verified: ok, ts });
+        console.log("💾 Token stored", { verified: ok, timestamp: this.tokenTimestamp, ts });
         if (!ok) console.warn("⚠️ Token verification mismatch after write.");
       } else {
         ls.removeItem(AUTH_TOKEN_KEY);
+        ls.removeItem(AUTH_TOKEN_TIMESTAMP_KEY);
         console.log("🗑️ Token cleared", { ts });
         // Clear session cache when token is cleared
         this.clearSessionCache();
@@ -420,6 +432,45 @@ class ApiClient {
       console.error("❌ Session refresh failed - token is invalid:", error.message);
       // Don't clear token here - let the 401 handler in request() handle it
       throw error;
+    }
+  }
+
+  /**
+   * Get the age of the current token in milliseconds.
+   * Returns 0 if no token or no timestamp.
+   */
+  getTokenAge(): number {
+    if (!this.token || !this.tokenTimestamp) return 0;
+    return Date.now() - this.tokenTimestamp;
+  }
+
+  /**
+   * Check backend health with retry and fallback.
+   */
+  async checkHealth(): Promise<boolean> {
+    try {
+      console.log("🏥 Checking backend health...");
+      const response = await fetch(`${this.baseURL}/health`, {
+        method: "GET",
+        headers: { "Content-Type": "application/json" },
+        // No auth header for health check
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        console.log("✅ Backend health check passed", data);
+        return true;
+      } else {
+        console.warn("⚠️ Backend health check failed", { status: response.status });
+        return false;
+      }
+    } catch (error: any) {
+      if (error.message?.includes('ERR_CONNECTION_REFUSED')) {
+        console.warn("🔌 Backend offline (connection refused)");
+      } else {
+        console.warn("⚠️ Backend health check error:", error.message);
+      }
+      return false;
     }
   }
 
@@ -687,16 +738,42 @@ class ApiClient {
 
       return responseData as T;
     } catch (e: any) {
-      // Network error retry (TypeError thrown by fetch)
-      if (e instanceof TypeError && retryCount < maxRetries) {
-        const delay = Math.pow(2, retryCount) * 1000;
-        console.error("🌐 Network error; retrying", {
-          attempt: retryCount + 1,
-          delay,
-          msg: e.message,
-        });
-        await this.sleep(delay);
-        return this.request<T>(endpoint, options, retryCount + 1);
+      // Handle specific network errors
+      if (e instanceof TypeError) {
+        if (e.message?.includes('ERR_CONNECTION_REFUSED') || e.message?.includes('Failed to fetch')) {
+          console.error("🔌 Connection refused - backend may be offline", {
+            endpoint: normalizedEndpoint,
+            method,
+            retryCount,
+            maxRetries: Math.min(maxRetries, 2), // Limit connection refused retries
+          });
+          
+          // Only retry connection refused errors up to 2 times
+          if (retryCount < Math.min(maxRetries, 2)) {
+            const delay = Math.pow(2, retryCount) * 500; // Shorter delay for connection issues
+            console.log("⏳ Retrying connection refused", {
+              attempt: retryCount + 1,
+              delay,
+            });
+            await this.sleep(delay);
+            return this.request<T>(endpoint, options, retryCount + 1);
+          } else {
+            // After retries, throw a user-friendly error
+            const friendlyError = new Error("Backend server is offline. Please try again later.") as ApiError;
+            friendlyError.statusCode = 503;
+            throw friendlyError;
+          }
+        } else if (retryCount < maxRetries) {
+          // Other network errors
+          const delay = Math.pow(2, retryCount) * 1000;
+          console.error("🌐 Network error; retrying", {
+            attempt: retryCount + 1,
+            delay,
+            msg: e.message,
+          });
+          await this.sleep(delay);
+          return this.request<T>(endpoint, options, retryCount + 1);
+        }
       }
 
       console.error("💥 Request failed", {
