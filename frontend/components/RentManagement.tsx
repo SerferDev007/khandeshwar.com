@@ -367,6 +367,10 @@ export default function RentManagement({
   }, [nextReceiptNumber]);
 
   const formatCurrency = (amount: number) => {
+    // Handle undefined, null, NaN, and invalid numbers safely
+    if (amount == null || !Number.isFinite(amount)) {
+      return `${t("common.currency")}0`;
+    }
     return `${t("common.currency")}${amount.toLocaleString()}`;
   };
 
