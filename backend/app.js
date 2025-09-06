@@ -145,7 +145,7 @@ const createAdditionalTables = async () => {
 const initializeSequelizeModels = async () => {
   try {
     logger.info("Initializing Sequelize models...");
-    await initializeSequelize();
+    //await initializeSequelize();
     logger.info("✅ Sequelize models initialized successfully");
   } catch (error) {
     logger.error("❌ Failed to initialize Sequelize models:", error);

@@ -137,32 +137,15 @@ export default function Donations({
   const fetchPreviewReceiptNumber = async () => {
     try {
       const response = await apiClient.getNextDonationReceiptNumber();
-      if (response.success) {
-        setPreviewReceiptNumber(response.data.receiptNumber);
-        setFormData(prev => ({
-          ...prev,
-          receiptNumber: response.data.receiptNumber
-        }));
-      } else {
-        console.error('Failed to fetch preview receipt number:', response.error);
-        // Fallback to a temporary placeholder
-        const fallbackNumber = "TEMP";
-        setPreviewReceiptNumber(fallbackNumber);
-        setFormData(prev => ({
-          ...prev,
-          receiptNumber: fallbackNumber
-        }));
-      }
+      console.log('[Donations] Fetched preview receipt number:', response);
+      setPreviewReceiptNumber(response.receiptNumber);
+      setFormData((prev) => ({
+        ...prev,
+        receiptNumber: response.receiptNumber,
+      }));
     } catch (error) {
       console.error('Failed to fetch preview receipt number:', error);
-      // Fallback to a temporary placeholder
-      const fallbackNumber = "TEMP";
-      setPreviewReceiptNumber(fallbackNumber);
-      setFormData(prev => ({
-        ...prev,
-        receiptNumber: fallbackNumber
-      }));
-      // Note: We don't show toast here to avoid spamming user on component mount
+      toast.error('Failed to fetch receipt number. Please try again.');
     }
   };
 
