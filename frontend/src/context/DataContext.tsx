@@ -171,7 +171,7 @@ export function DataProvider({ children }: DataProviderProps) {
     setErrors(prev => ({ ...prev, [entity]: error }));
   };
 
-  // Generic fetch function
+  // Enhanced generic fetch function with response normalization and improved error handling
   const fetchData = async (
     entity: string,
     fetchFn: () => Promise<any>,
@@ -180,10 +180,81 @@ export function DataProvider({ children }: DataProviderProps) {
     try {
       setLoadingState(entity, true);
       setErrorState(entity, null);
-      const data = await fetchFn();
+      
+      console.debug(`🔍 fetchData(${entity}): Starting API call`);
+      const response = await fetchFn();
+      
+      // Log the raw response structure for development diagnostics
+      if ((import.meta as any).env?.VITE_ENV) {
+        console.debug(`🔬 fetchData(${entity}): Raw API response structure:`, {
+          isArray: Array.isArray(response),
+          hasData: !!response?.data,
+          hasEntityProperty: !!response?.[entity],
+          responseKeys: response && typeof response === 'object' ? Object.keys(response) : null,
+          dataKeys: response?.data && typeof response.data === 'object' ? Object.keys(response.data) : null
+        });
+      }
+
+      /**
+       * Safely parse data from response, handling multiple response shapes:
+       * 1. Direct array response: [...]
+       * 2. Direct object response: { [entity]: [...] }
+       * 3. Wrapped response: { data: { [entity]: [...] } }
+       * 4. Wrapped array response: { data: [...] }
+       * 5. Single item responses (for individual entity fetches)
+       */
+      let data;
+      if (Array.isArray(response)) {
+        // Direct array response
+        data = response;
+      } else if (response?.data?.[entity] && Array.isArray(response.data[entity])) {
+        // Wrapped response with data.[entity]
+        data = response.data[entity];
+      } else if (response?.data && Array.isArray(response.data)) {
+        // Wrapped response with data as array
+        data = response.data;
+      } else if (response?.[entity] && Array.isArray(response[entity])) {
+        // Direct response with [entity] property
+        data = response[entity];
+      } else if (response?.data && typeof response.data === 'object') {
+        // Wrapped single item or object response
+        data = response.data;
+      } else if (response && typeof response === 'object') {
+        // Direct single item or object response
+        data = response;
+      } else {
+        data = [];
+      }
+
+      console.debug(`✅ fetchData(${entity}): Successfully parsed response`, {
+        dataType: Array.isArray(data) ? 'array' : typeof data,
+        count: Array.isArray(data) ? data.length : 1
+      });
+
       setter(data);
     } catch (error: any) {
-      setErrorState(entity, error.message || `Failed to fetch ${entity}`);
+      console.error(`❌ fetchData(${entity}) failed:`, {
+        message: error.message,
+        status: error.statusCode,
+        details: error.details,
+        stack: error.stack?.split('\n').slice(0, 3).join('\n')
+      });
+
+      // Enhanced error message with server details in development
+      let errorMessage = `Failed to fetch ${entity}`;
+      if ((import.meta as any).env?.DEV) {
+        if (error.statusCode === 500) {
+          errorMessage += ` (Server Error ${error.statusCode}): ${error.message}`;
+        } else if (error.statusCode) {
+          errorMessage += ` (HTTP ${error.statusCode}): ${error.message}`;
+        } else {
+          errorMessage += `: ${error.message}`;
+        }
+      } else {
+        errorMessage += '. Please try again.';
+      }
+
+      setErrorState(entity, errorMessage);
     } finally {
       setLoadingState(entity, false);
     }
@@ -377,69 +448,355 @@ export function DataProvider({ children }: DataProviderProps) {
   // CRUD operations for donations (specific endpoints)
   const fetchDonations = async (): Promise<void> => {
     setLoadingState('transactions', true);
+    setErrorState('transactions', null);
+    
     try {
-      const donations = await apiClient.getDonations();
+      console.debug('🔍 fetchDonations: Starting API call to /api/donations');
+      const response = await apiClient.getDonations();
+
+      // Log the raw response structure for development diagnostics
+      if ((import.meta as any).env?.VITE_ENV) {
+        console.debug('🔬 fetchDonations: Raw API response structure:', {
+          hasDonations: !!response?.donations,
+          hasData: !!response?.data,
+          hasDataDonations: !!response?.data?.donations,
+          responseKeys: Object.keys(response || {}),
+          dataKeys: response?.data ? Object.keys(response.data) : null
+        });
+      }
+
+      /**
+       * Safely parse donations from response, handling both:
+       * 1. Direct response shape: { donations: [...] } or [...]
+       * 2. Wrapped response shape: { data: { donations: [...] } } or { data: [...] }
+       */
+      let donations;
+      if (Array.isArray(response)) {
+        // Direct array response
+        donations = response;
+      } else if (response?.data?.donations && Array.isArray(response.data.donations)) {
+        // Wrapped response with data.donations
+        donations = response.data.donations;
+      } else if (response?.data && Array.isArray(response.data)) {
+        // Wrapped response with data as array
+        donations = response.data;
+      } else if (response?.donations && Array.isArray(response.donations)) {
+        // Direct response with donations property
+        donations = response.donations;
+      } else {
+        donations = [];
+      }
+
+      if (!Array.isArray(donations)) {
+        throw new Error('Invalid response: donations is not an array');
+      }
+
+      console.debug('✅ fetchDonations: Successfully parsed response', {
+        donationsCount: donations.length
+      });
+
       // Update transactions state with donations
       setTransactions(prev => {
         const nonDonations = prev.filter(t => t.type !== 'Donation');
         return [...nonDonations, ...donations];
       });
     } catch (error: any) {
-      setErrorState('transactions', error.message);
+      console.error('❌ fetchDonations failed:', {
+        message: error.message,
+        status: error.statusCode,
+        details: error.details,
+        stack: error.stack?.split('\n').slice(0, 3).join('\n')
+      });
+
+      // Enhanced error message with server details in development
+      let errorMessage = 'Failed to fetch donations';
+      if ((import.meta as any).env?.DEV) {
+        if (error.statusCode === 500) {
+          errorMessage += ` (Server Error ${error.statusCode}): ${error.message}`;
+        } else if (error.statusCode) {
+          errorMessage += ` (HTTP ${error.statusCode}): ${error.message}`;
+        } else {
+          errorMessage += `: ${error.message}`;
+        }
+      } else {
+        errorMessage += '. Please try again.';
+      }
+
+      setErrorState('transactions', errorMessage);
     } finally {
       setLoadingState('transactions', false);
     }
   };
 
   const createDonation = async (donationData: any): Promise<Transaction> => {
-    const newDonation = await apiClient.createDonation(donationData);
-    setTransactions(prev => [...prev, newDonation]);
-    return newDonation;
+    try {
+      console.debug('🔍 createDonation: Starting API call', {
+        donationData: { 
+          category: donationData.category, 
+          amount: donationData.amount,
+          donorName: donationData.donorName 
+        }
+      });
+      
+      const response = await apiClient.createDonation(donationData);
+      
+      // Handle both normalized and legacy response formats
+      const newDonation = response?.data || response;
+      
+      if (!newDonation || !newDonation.id) {
+        throw new Error('Invalid response: missing donation data or ID');
+      }
+      
+      console.debug('✅ createDonation: Successfully created donation', {
+        donationId: newDonation.id,
+        amount: newDonation.amount
+      });
+      
+      setTransactions(prev => [...prev, newDonation]);
+      return newDonation;
+    } catch (error: any) {
+      console.error('❌ createDonation failed:', {
+        message: error.message,
+        statusCode: error.statusCode,
+        details: error.details
+      });
+      throw error;
+    }
   };
 
   const updateDonation = async (id: string, donationData: any): Promise<Transaction> => {
-    const updatedDonation = await apiClient.updateDonation(id, donationData);
-    setTransactions(prev => prev.map(transaction => transaction.id === id ? updatedDonation : transaction));
-    return updatedDonation;
+    try {
+      console.debug('🔍 updateDonation: Starting API call', {
+        donationId: id,
+        updateData: { 
+          category: donationData.category, 
+          amount: donationData.amount,
+          donorName: donationData.donorName 
+        }
+      });
+      
+      const response = await apiClient.updateDonation(id, donationData);
+      
+      // Handle both normalized and legacy response formats
+      const updatedDonation = response?.data || response;
+      
+      if (!updatedDonation || !updatedDonation.id) {
+        throw new Error('Invalid response: missing donation data or ID');
+      }
+      
+      console.debug('✅ updateDonation: Successfully updated donation', {
+        donationId: updatedDonation.id,
+        amount: updatedDonation.amount
+      });
+      
+      setTransactions(prev => prev.map(transaction => transaction.id === id ? updatedDonation : transaction));
+      return updatedDonation;
+    } catch (error: any) {
+      console.error('❌ updateDonation failed:', {
+        message: error.message,
+        statusCode: error.statusCode,
+        details: error.details,
+        donationId: id
+      });
+      throw error;
+    }
   };
 
   const deleteDonation = async (id: string): Promise<void> => {
-    await apiClient.deleteDonation(id);
-    setTransactions(prev => prev.filter(transaction => transaction.id !== id));
+    try {
+      console.debug('🔍 deleteDonation: Starting API call', { donationId: id });
+      
+      await apiClient.deleteDonation(id);
+      
+      console.debug('✅ deleteDonation: Successfully deleted donation', { donationId: id });
+      
+      setTransactions(prev => prev.filter(transaction => transaction.id !== id));
+    } catch (error: any) {
+      console.error('❌ deleteDonation failed:', {
+        message: error.message,
+        statusCode: error.statusCode,
+        details: error.details,
+        donationId: id
+      });
+      throw error;
+    }
   };
 
   // CRUD operations for expenses (specific endpoints)
   const fetchExpenses = async (): Promise<void> => {
     setLoadingState('transactions', true);
+    setErrorState('transactions', null);
+    
     try {
-      const expenses = await apiClient.getExpenses();
+      console.debug('🔍 fetchExpenses: Starting API call to /api/expenses');
+      const response = await apiClient.getExpenses();
+
+      // Log the raw response structure for development diagnostics
+      if ((import.meta as any).env?.VITE_ENV) {
+        console.debug('🔬 fetchExpenses: Raw API response structure:', {
+          hasExpenses: !!response?.expenses,
+          hasData: !!response?.data,
+          hasDataExpenses: !!response?.data?.expenses,
+          responseKeys: Object.keys(response || {}),
+          dataKeys: response?.data ? Object.keys(response.data) : null
+        });
+      }
+
+      /**
+       * Safely parse expenses from response, handling both:
+       * 1. Direct response shape: { expenses: [...] } or [...]
+       * 2. Wrapped response shape: { data: { expenses: [...] } } or { data: [...] }
+       */
+      let expenses;
+      if (Array.isArray(response)) {
+        // Direct array response
+        expenses = response;
+      } else if (response?.data?.expenses && Array.isArray(response.data.expenses)) {
+        // Wrapped response with data.expenses
+        expenses = response.data.expenses;
+      } else if (response?.data && Array.isArray(response.data)) {
+        // Wrapped response with data as array
+        expenses = response.data;
+      } else if (response?.expenses && Array.isArray(response.expenses)) {
+        // Direct response with expenses property
+        expenses = response.expenses;
+      } else {
+        expenses = [];
+      }
+
+      if (!Array.isArray(expenses)) {
+        throw new Error('Invalid response: expenses is not an array');
+      }
+
+      console.debug('✅ fetchExpenses: Successfully parsed response', {
+        expensesCount: expenses.length
+      });
+
       // Update transactions state with expenses
       setTransactions(prev => {
         const nonExpenses = prev.filter(t => t.type !== 'Expense');
         return [...nonExpenses, ...expenses];
       });
     } catch (error: any) {
-      setErrorState('transactions', error.message);
+      console.error('❌ fetchExpenses failed:', {
+        message: error.message,
+        status: error.statusCode,
+        details: error.details,
+        stack: error.stack?.split('\n').slice(0, 3).join('\n')
+      });
+
+      // Enhanced error message with server details in development
+      let errorMessage = 'Failed to fetch expenses';
+      if ((import.meta as any).env?.DEV) {
+        if (error.statusCode === 500) {
+          errorMessage += ` (Server Error ${error.statusCode}): ${error.message}`;
+        } else if (error.statusCode) {
+          errorMessage += ` (HTTP ${error.statusCode}): ${error.message}`;
+        } else {
+          errorMessage += `: ${error.message}`;
+        }
+      } else {
+        errorMessage += '. Please try again.';
+      }
+
+      setErrorState('transactions', errorMessage);
     } finally {
       setLoadingState('transactions', false);
     }
   };
 
   const createExpense = async (expenseData: any): Promise<Transaction> => {
-    const newExpense = await apiClient.createExpense(expenseData);
-    setTransactions(prev => [...prev, newExpense]);
-    return newExpense;
+    try {
+      console.debug('🔍 createExpense: Starting API call', {
+        expenseData: { 
+          category: expenseData.category, 
+          amount: expenseData.amount,
+          payeeName: expenseData.payeeName 
+        }
+      });
+      
+      const response = await apiClient.createExpense(expenseData);
+      
+      // Handle both normalized and legacy response formats
+      const newExpense = response?.data || response;
+      
+      if (!newExpense || !newExpense.id) {
+        throw new Error('Invalid response: missing expense data or ID');
+      }
+      
+      console.debug('✅ createExpense: Successfully created expense', {
+        expenseId: newExpense.id,
+        amount: newExpense.amount
+      });
+      
+      setTransactions(prev => [...prev, newExpense]);
+      return newExpense;
+    } catch (error: any) {
+      console.error('❌ createExpense failed:', {
+        message: error.message,
+        statusCode: error.statusCode,
+        details: error.details
+      });
+      throw error;
+    }
   };
 
   const updateExpense = async (id: string, expenseData: any): Promise<Transaction> => {
-    const updatedExpense = await apiClient.updateExpense(id, expenseData);
-    setTransactions(prev => prev.map(transaction => transaction.id === id ? updatedExpense : transaction));
-    return updatedExpense;
+    try {
+      console.debug('🔍 updateExpense: Starting API call', {
+        expenseId: id,
+        updateData: { 
+          category: expenseData.category, 
+          amount: expenseData.amount,
+          payeeName: expenseData.payeeName 
+        }
+      });
+      
+      const response = await apiClient.updateExpense(id, expenseData);
+      
+      // Handle both normalized and legacy response formats
+      const updatedExpense = response?.data || response;
+      
+      if (!updatedExpense || !updatedExpense.id) {
+        throw new Error('Invalid response: missing expense data or ID');
+      }
+      
+      console.debug('✅ updateExpense: Successfully updated expense', {
+        expenseId: updatedExpense.id,
+        amount: updatedExpense.amount
+      });
+      
+      setTransactions(prev => prev.map(transaction => transaction.id === id ? updatedExpense : transaction));
+      return updatedExpense;
+    } catch (error: any) {
+      console.error('❌ updateExpense failed:', {
+        message: error.message,
+        statusCode: error.statusCode,
+        details: error.details,
+        expenseId: id
+      });
+      throw error;
+    }
   };
 
   const deleteExpense = async (id: string): Promise<void> => {
-    await apiClient.deleteExpense(id);
-    setTransactions(prev => prev.filter(transaction => transaction.id !== id));
+    try {
+      console.debug('🔍 deleteExpense: Starting API call', { expenseId: id });
+      
+      await apiClient.deleteExpense(id);
+      
+      console.debug('✅ deleteExpense: Successfully deleted expense', { expenseId: id });
+      
+      setTransactions(prev => prev.filter(transaction => transaction.id !== id));
+    } catch (error: any) {
+      console.error('❌ deleteExpense failed:', {
+        message: error.message,
+        statusCode: error.statusCode,
+        details: error.details,
+        expenseId: id
+      });
+      throw error;
+    }
   };
 
   // CRUD operations for users

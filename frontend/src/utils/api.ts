@@ -701,8 +701,13 @@ class ApiClient {
 
       console.error("💥 Request failed", {
         endpoint: normalizedEndpoint,
+        method,
         name: e?.name,
         message: e?.message,
+        statusCode: e?.statusCode,
+        details: e?.details,
+        retryCount,
+        timestamp: new Date().toISOString()
       });
       throw e;
     }
