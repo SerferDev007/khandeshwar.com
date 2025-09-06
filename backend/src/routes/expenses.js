@@ -123,7 +123,7 @@ router.post('/', authenticate, authorize(['Admin', 'Treasurer']), validateExpens
     const expense = new Transaction(expenseData);
     const dbObject = expense.toDbObject();
 
-    const fields = Object.keys(dbObject).join(', ');
+    const fields = Object.keys(dbObject).map(k => `\`${k}\``).join(', ');
     const placeholders = Object.keys(dbObject)
       .map(() => '?')
       .join(', ');
@@ -172,7 +172,7 @@ router.put('/:id', authenticate, authorize(['Admin', 'Treasurer']), validate(sch
 
     const setClause = Object.keys(dbObject)
       .filter(key => key !== 'id' && key !== 'created_at')
-      .map(key => `${key} = ?`)
+      .map(key => `\`${key}\` = ?`)
       .join(', ');
 
     const values = Object.keys(dbObject)
