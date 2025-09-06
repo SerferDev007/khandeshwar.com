@@ -9,6 +9,10 @@ import { query } from '../config/db.js';
  */
 export async function listShops({ limit = 50, offset = 0, status = null } = {}) {
   try {
+    // Validate and ensure limit and offset are safe integers for inlining
+    const validLimit = Math.min(Math.max(1, parseInt(limit) || 50), 200);
+    const validOffset = Math.max(0, parseInt(offset) || 0);
+    
     let whereClause = '';
     const params = [];
     
@@ -17,16 +21,16 @@ export async function listShops({ limit = 50, offset = 0, status = null } = {}) 
       params.push(status);
     }
     
+    // Inline validated numeric LIMIT/OFFSET to avoid MySQL parameter binding issues
+    // Keep status as bound parameter for security
     const queryStr = `
       SELECT id, shop_number, size, monthly_rent, deposit, status, 
              tenant_id, agreement_id, description, created_at 
       FROM shops 
       ${whereClause}
       ORDER BY created_at DESC 
-      LIMIT ? OFFSET ?
+      LIMIT ${validLimit} OFFSET ${validOffset}
     `;
-    
-    params.push(limit, offset);
     
     const rows = await query(queryStr, params);
     return rows;
