@@ -16,12 +16,12 @@ const transactionCreateSchema = z.object({
   category: z.string().min(1, 'Category is required'),
   subCategory: z.string().optional(),
   description: z.string().min(1, 'Description is required'),
-  amount: z.number().positive('Amount must be positive'),
+  amount: z.coerce.number().positive('Amount must be positive'),
   receiptNumber: z.string().optional(),
   donorName: z.string().optional(),
   donorContact: z.string().regex(/^\d{10}$/, 'Contact must be 10 digits').optional().or(z.literal('')),
-  familyMembers: z.number().int().positive().optional(),
-  amountPerPerson: z.number().positive().optional(),
+  familyMembers: z.coerce.number().int().positive().optional(),
+  amountPerPerson: z.coerce.number().positive().optional(),
   vendor: z.string().optional(),
   receipt: z.string().optional(),
   tenantName: z.string().optional(),
@@ -31,9 +31,9 @@ const transactionCreateSchema = z.object({
   payeeName: z.string().optional(),
   payeeContact: z.string().regex(/^\d{10}$/, 'Contact must be 10 digits').optional().or(z.literal('')),
   loanId: z.string().optional(),
-  emiAmount: z.number().positive().optional(),
+  emiAmount: z.coerce.number().positive().optional(),
   penaltyId: z.string().optional(),
-  penaltyAmount: z.number().positive().optional(),
+  penaltyAmount: z.coerce.number().positive().optional(),
 });
 
 const transactionUpdateSchema = transactionCreateSchema.partial();
