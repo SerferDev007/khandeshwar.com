@@ -255,11 +255,11 @@ export default function RentManagement({
   // Log data changes
   useEffect(() => {
     console.log('[RentManagement] Data updated:', {
-      shops: shops?.length || 0,
-      tenants: tenants?.length || 0,
-      agreements: agreements?.length || 0
+      shops: normalizedShops.length,
+      tenants: normalizedTenants.length,
+      agreements: normalizedAgreements.length
     });
-  }, [shops, tenants, agreements]);
+  }, [normalizedShops, normalizedTenants, normalizedAgreements]);
 
   // Shop Form State
   const [shopFormData, setShopFormData] = useState({

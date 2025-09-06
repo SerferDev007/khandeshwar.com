@@ -105,7 +105,7 @@ export function DataProvider({ children }: DataProviderProps) {
   
   // Guard to prevent double mounting and race conditions
   const mountedRef = useRef(false);
-  const dataFetchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const dataFetchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   
   console.log('[DataProvider] Component rendering, isAuthenticated:', isAuthenticated, 'authLoading:', authLoading);
   
