@@ -27,6 +27,10 @@ import shopRoutes from "./src/routes/shop.js";
 import loansRoutes from "./src/routes/loans.js";
 import rentPenaltiesRoutes from "./src/routes/rentPenalties.js";
 
+// Import new repository-based routes
+import shopsNewRoutes from "./src/routes/shopsNew.js";
+import rentAgreementsNewRoutes from "./src/routes/rentAgreementsNew.js";
+
 // Import Sequelize routes
 import sequelizeRoutes from "./src/routes/sequelize/index.js";
 
@@ -110,8 +114,8 @@ app.use((req, res, next) => {
   next();
 });
 
-// Database configuration
-import { query } from "./src/config/db.js";
+// Import database health check
+import { query, checkDatabaseHealth } from "./src/config/db.js";
 
 let connection;
 
@@ -303,17 +307,29 @@ const uploadedFileController = new CrudController(
 
 // Routes
 
-// Health check endpoint
-app.get("/health", (req, res) => {
-  res.json({
-    success: true,
-    data: {
+// Health check endpoint with database connectivity test
+app.get("/health", async (req, res) => {
+  try {
+    // Test database connection
+    const dbHealth = await checkDatabaseHealth();
+    
+    res.json({
+      ok: true,
       status: "OK",
       timestamp: new Date().toISOString(),
       version: process.env.npm_package_version || "1.0.0",
       environment: env.NODE_ENV,
-    },
-  });
+      database: dbHealth
+    });
+  } catch (error) {
+    console.error('Health check failed:', error);
+    res.status(500).json({
+      ok: false,
+      status: "ERROR",
+      timestamp: new Date().toISOString(),
+      error: error.message
+    });
+  }
 });
 
 // API routes
@@ -327,9 +343,12 @@ app.use("/api/donations", donationsRoutes);
 app.use("/api/expenses", expensesRoutes);
 app.use("/api/transactions", transactionsRoutes);
 app.use("/api/rent", rentRoutes);
-app.use("/api/shops", shopRoutes);
 app.use("/api/loans", loansRoutes);
 app.use("/api/rent-penalties", rentPenaltiesRoutes);
+
+// Repository-based routes with enhanced error handling
+app.use("/api/shops", shopsNewRoutes);
+app.use("/api/rent/agreements", rentAgreementsNewRoutes);
 
 
 // Sequelize-based API routes (new implementation)

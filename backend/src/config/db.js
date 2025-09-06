@@ -532,6 +532,26 @@ const runMigrations = async () => {
       INDEX idx_s3_key (s3_key)
     ) ENGINE=InnoDB`,
 
+    // Agreements table for rent agreements
+    `CREATE TABLE IF NOT EXISTS agreements (
+      id VARCHAR(36) PRIMARY KEY,
+      tenant_id VARCHAR(36) NOT NULL,
+      shop_id VARCHAR(36) NOT NULL,
+      start_date DATE NOT NULL,
+      end_date DATE,
+      monthly_rent DECIMAL(10,2) NOT NULL,
+      status ENUM('Active','Expired','Terminated') DEFAULT 'Active',
+      agreement_date DATE NOT NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (tenant_id) REFERENCES tenants(id),
+      FOREIGN KEY (shop_id) REFERENCES shops(id),
+      INDEX idx_tenant_id (tenant_id),
+      INDEX idx_shop_id (shop_id),
+      INDEX idx_status (status),
+      INDEX idx_start_date (start_date),
+      INDEX idx_end_date (end_date)
+    ) ENGINE=InnoDB`,
+
     // Transactions table (foreign keys temporarily removed for donations testing)
     `CREATE TABLE IF NOT EXISTS transactions (
       id VARCHAR(36) PRIMARY KEY,
@@ -581,7 +601,7 @@ const runMigrations = async () => {
     ) ENGINE=InnoDB`,
   ];
 
-  const migrationNames = ["users", "tenants", "shops", "refresh_tokens", "files", "transactions", "receipt_sequences"];
+  const migrationNames = ["users", "tenants", "shops", "refresh_tokens", "files", "agreements", "transactions", "receipt_sequences"];
 
   for (let i = 0; i < migrations.length; i++) {
     try {
