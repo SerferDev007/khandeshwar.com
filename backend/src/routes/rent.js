@@ -463,7 +463,7 @@ router.delete('/tenants/:id', authenticate, authorize(['Admin']), validate(schem
 router.get('/leases', authenticate, authorize(['Admin']), async (req, res) => {
   try {
     const rows = await query(`
-      SELECT a.*, s.shop_number, t.tenant_name 
+      SELECT a.*, s.shop_number, t.name AS tenant_name 
       FROM agreements a
       LEFT JOIN shops s ON a.shop_id = s.id
       LEFT JOIN tenants t ON a.tenant_id = t.id
@@ -596,7 +596,7 @@ router.post('/payments', authenticate, authorize(['Admin']), validateRentPayment
     
     // Verify agreement exists
     const agreementRows = await query(
-      'SELECT a.*, s.shop_number, t.tenant_name FROM agreements a LEFT JOIN shops s ON a.shop_id = s.id LEFT JOIN tenants t ON a.tenant_id = t.id WHERE a.id = ?',
+      'SELECT a.*, s.shop_number, t.name AS tenant_name FROM agreements a LEFT JOIN shops s ON a.shop_id = s.id LEFT JOIN tenants t ON a.tenant_id = t.id WHERE a.id = ?',
       [agreementId]
     );
     
