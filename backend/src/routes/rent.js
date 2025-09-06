@@ -526,7 +526,7 @@ router.get('/agreements/:id', authenticate, authorize(['Admin']), validate(schem
   try {
     const { id } = req.params;
     const rows = await query(`
-      SELECT a.*, s.shop_number, t.tenant_name
+      SELECT a.*, s.shop_number, t.name AS tenant_name
       FROM agreements a
       LEFT JOIN shops s ON a.shop_id = s.id
       LEFT JOIN tenants t ON a.tenant_id = t.id
@@ -563,7 +563,7 @@ router.get('/agreements/:id', authenticate, authorize(['Admin']), validate(schem
 router.get('/agreements', authenticate, authorize(['Admin']), async (req, res) => {
   try {
     const rows = await query(`
-      SELECT a.*, s.shop_number, t.tenant_name
+      SELECT a.*, s.shop_number, t.name AS tenant_name
       FROM agreements a
       LEFT JOIN shops s ON a.shop_id = s.id
       LEFT JOIN tenants t ON a.tenant_id = t.id
