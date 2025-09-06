@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
@@ -156,14 +156,15 @@ interface RentPenalty {
   createdAt: string;
 }
 
-interface RentManagementProps {
+// If these types exist elsewhere, import them instead of using any
+type RentManagementProps = {
   onAddRentIncome: (payment: any) => void;
   nextReceiptNumber: string;
-  shops?: Shop[];
-  tenants?: Tenant[];
-  agreements?: Agreement[];
-  loans?: Loan[];
-  penalties?: RentPenalty[];
+  shops?: unknown;
+  tenants?: unknown;
+  agreements?: unknown;
+  loans?: unknown;
+  penalties?: unknown;
   onAddShop: (shopData: Omit<Shop, "id" | "createdAt">) => void;
   onUpdateShop: (shopId: string, updates: Partial<Shop>) => void;
   onDeleteShop: (shopId: string) => void;
@@ -189,7 +190,7 @@ interface RentManagementProps {
     tenantContact?: string;
     shopNumber?: string;
   }) => void;
-}
+};
 
 export default function RentManagement({
   onAddRentIncome,
@@ -213,15 +214,29 @@ export default function RentManagement({
   onUpdatePenalty,
   onRentCollection,
 }: RentManagementProps) {
+  // Minimal, defensive helper to ensure arrays
+  const toArray = <T,>(val: unknown): T[] => {
+    if (Array.isArray(val)) return val as T[];
+    if (val != null && typeof val === 'object') return [val as T];
+    return [];
+  };
+
+  // Guard props with toArray and use the normalized lists throughout
+  const normalizedShops = useMemo(() => toArray<Shop>(shops), [shops]);
+  const normalizedTenants = useMemo(() => toArray<Tenant>(tenants), [tenants]);
+  const normalizedAgreements = useMemo(() => toArray<Agreement>(agreements), [agreements]);
+  const normalizedLoans = useMemo(() => toArray<Loan>(loans), [loans]);
+  const normalizedPenalties = useMemo(() => toArray<RentPenalty>(penalties), [penalties]);
+
   const { t } = useLanguage();
 
   console.log('[RentManagement] Component rendered with props:', {
     nextReceiptNumber,
-    shopsCount: shops?.length || 0,
-    tenantsCount: tenants?.length || 0,
-    agreementsCount: agreements?.length || 0,
-    loansCount: loans?.length || 0,
-    penaltiesCount: penalties?.length || 0,
+    shopsCount: normalizedShops.length,
+    tenantsCount: normalizedTenants.length,
+    agreementsCount: normalizedAgreements.length,
+    loansCount: normalizedLoans.length,
+    penaltiesCount: normalizedPenalties.length,
     hasCallbacks: {
       onAddRentIncome: !!onAddRentIncome,
       onAddShop: !!onAddShop,
@@ -364,11 +379,11 @@ export default function RentManagement({
     });
   };
 
-  const getShopById = (id: string) => (shops ?? []).find((s) => s.id === id);
+  const getShopById = (id: string) => normalizedShops.find((s) => s.id === id);
   const getTenantById = (id: string) =>
-    (tenants ?? []).find((t) => t.id === id);
+    normalizedTenants.find((t) => t.id === id);
   const getAgreementById = (id: string) =>
-    (agreements ?? []).find((a) => a.id === id);
+    normalizedAgreements.find((a) => a.id === id);
 
   // Calculate EMI using formula: EMI = [P × R × (1+R)^N] / [(1+R)^N-1]
   const calculateEMI = (
@@ -737,14 +752,14 @@ export default function RentManagement({
 
   // Get active loans for a specific agreement
   const getActiveLoansForAgreement = (agreementId: string) => {
-    return (loans ?? []).filter(
+    return normalizedLoans.filter(
       (loan) => loan.agreementId === agreementId && loan.status === "Active"
     );
   };
 
   // Get pending penalties for a specific agreement
   const getPendingPenaltiesForAgreement = (agreementId: string) => {
-    return (penalties ?? []).filter(
+    return normalizedPenalties.filter(
       (penalty) =>
         penalty.agreementId === agreementId && penalty.status === "Pending"
     );
@@ -1337,7 +1352,7 @@ export default function RentManagement({
               </CardTitle>
             </CardHeader>
             <CardContent>
-              {(shops ?? []).length === 0 ? (
+              {normalizedShops.length === 0 ? (
                 <Alert>
                   <AlertCircle className="h-4 w-4" />
                   <AlertDescription>
@@ -1358,7 +1373,7 @@ export default function RentManagement({
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {(shops ?? []).map((shop) => (
+                      {normalizedShops.map((shop) => (
                         <TableRow key={shop.id}>
                           <TableCell className="font-medium">
                             {shop.shopNumber}
@@ -1615,7 +1630,7 @@ export default function RentManagement({
               </CardTitle>
             </CardHeader>
             <CardContent>
-              {(tenants ?? []).length === 0 ? (
+              {normalizedTenants.length === 0 ? (
                 <Alert>
                   <AlertCircle className="h-4 w-4" />
                   <AlertDescription>
@@ -1636,7 +1651,7 @@ export default function RentManagement({
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {(tenants ?? []).map((tenant) => (
+                      {normalizedTenants.map((tenant) => (
                         <TableRow key={tenant.id}>
                           <TableCell className="font-medium">
                             {tenant.name}
@@ -1720,7 +1735,7 @@ export default function RentManagement({
                         <SelectValue placeholder={t("agreement.selectShop")} />
                       </SelectTrigger>
                       <SelectContent className="bg-white text-black border border-gray-200 shadow-lg">
-                        {(shops ?? [])
+                        {normalizedShops
                           .filter((shop) => shop.status === "Vacant")
                           .map((shop) => (
                             <SelectItem key={shop.id} value={shop.id}>
@@ -1769,7 +1784,7 @@ export default function RentManagement({
                         />
                       </SelectTrigger>
                       <SelectContent className="bg-white text-black border border-gray-200 shadow-lg">
-                        {(tenants ?? [])
+                        {normalizedTenants
                           .filter((tenant) => tenant.status === "Active")
                           .map((tenant) => (
                             <SelectItem key={tenant.id} value={tenant.id}>
@@ -2019,7 +2034,7 @@ export default function RentManagement({
               </CardTitle>
             </CardHeader>
             <CardContent>
-              {(agreements ?? []).length === 0 ? (
+              {normalizedAgreements.length === 0 ? (
                 <Alert>
                   <AlertCircle className="h-4 w-4" />
                   <AlertDescription>
@@ -2041,7 +2056,7 @@ export default function RentManagement({
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {(agreements ?? []).map((agreement) => {
+                      {normalizedAgreements.map((agreement) => {
                         const shop = getShopById(agreement.shopId);
                         const tenant = getTenantById(agreement.tenantId);
                         return (
@@ -2238,7 +2253,7 @@ export default function RentManagement({
                           />
                         </SelectTrigger>
                         <SelectContent className="bg-white text-black border border-gray-200 shadow-lg">
-                          {(agreements ?? [])
+                          {normalizedAgreements
                             .filter((a) => a.status === "Active")
                             .map((agreement) => {
                               const shop = getShopById(agreement.shopId);
@@ -2411,7 +2426,7 @@ export default function RentManagement({
                         <SelectValue placeholder={t("loans.selectTenant")} />
                       </SelectTrigger>
                       <SelectContent className="bg-white text-black border border-gray-200 shadow-lg">
-                        {(tenants ?? []).map((tenant) => (
+                        {normalizedTenants.map((tenant) => (
                           <SelectItem key={tenant.id} value={tenant.id}>
                             {tenant.name} - {tenant.phone}
                           </SelectItem>
@@ -2454,7 +2469,7 @@ export default function RentManagement({
                         <SelectValue placeholder={t("loans.selectAgreement")} />
                       </SelectTrigger>
                       <SelectContent className="bg-white text-black border border-gray-200 shadow-lg">
-                        {(agreements ?? [])
+                        {normalizedAgreements
                           .filter(
                             (a) =>
                               a.status === "Active" &&
@@ -2676,7 +2691,7 @@ export default function RentManagement({
               </CardTitle>
             </CardHeader>
             <CardContent>
-              {(loans ?? []).length === 0 ? (
+              {normalizedLoans.length === 0 ? (
                 <Alert>
                   <AlertCircle className="h-4 w-4" />
                   <AlertDescription>{t("rent.noActiveLoans")}</AlertDescription>
@@ -2696,7 +2711,7 @@ export default function RentManagement({
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {(loans ?? []).map((loan) => (
+                      {normalizedLoans.map((loan) => (
                         <TableRow key={loan.id}>
                           <TableCell>{loan.tenantName}</TableCell>
                           <TableCell>
@@ -2792,7 +2807,7 @@ export default function RentManagement({
                       <SelectValue placeholder={t("rent.selectAgreement")} />
                     </SelectTrigger>
                     <SelectContent className="bg-white text-black border border-gray-200 shadow-lg">
-                      {(agreements ?? [])
+                      {normalizedAgreements
                         .filter((a) => a.status === "Active")
                         .map((agreement) => {
                           const shop = getShopById(agreement.shopId);
@@ -3000,7 +3015,7 @@ export default function RentManagement({
               </CardTitle>
             </CardHeader>
             <CardContent>
-              {(penalties ?? []).length === 0 ? (
+              {normalizedPenalties.length === 0 ? (
                 <Alert>
                   <CheckCircle className="h-4 w-4" />
                   <AlertDescription>
@@ -3021,7 +3036,7 @@ export default function RentManagement({
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {(penalties ?? []).map((penalty) => (
+                      {normalizedPenalties.map((penalty) => (
                         <TableRow key={penalty.id}>
                           <TableCell>{penalty.tenantName}</TableCell>
                           <TableCell>
@@ -3082,8 +3097,8 @@ export default function RentManagement({
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
-                  {(shops ?? []).filter((s) => s.status === "Occupied").length}{" "}
-                  / {(shops ?? []).length}
+                  {normalizedShops.filter((s) => s.status === "Occupied").length}{" "}
+                  / {normalizedShops.length}
                 </div>
                 <p className="text-sm text-gray-500">
                   {t("dashboard.activeShops")}
@@ -3100,7 +3115,7 @@ export default function RentManagement({
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
-                  {(tenants ?? []).filter((t) => t.status === "Active").length}
+                  {normalizedTenants.filter((t) => t.status === "Active").length}
                 </div>
                 <p className="text-sm text-gray-500">Active Tenants</p>
               </CardContent>
@@ -3116,7 +3131,7 @@ export default function RentManagement({
               <CardContent>
                 <div className="text-2xl font-bold">
                   {
-                    (agreements ?? []).filter((a) => a.status === "Active")
+                    normalizedAgreements.filter((a) => a.status === "Active")
                       .length
                   }
                 </div>
@@ -3136,7 +3151,7 @@ export default function RentManagement({
               <CardContent>
                 <div className="text-2xl font-bold">
                   {formatCurrency(
-                    (agreements ?? []).reduce(
+                    normalizedAgreements.reduce(
                       (sum, agreement) =>
                         agreement.status === "Active"
                           ? sum + agreement.monthlyRent
@@ -3161,12 +3176,12 @@ export default function RentManagement({
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
-                  {(loans ?? []).filter((l) => l.status === "Active").length}
+                  {normalizedLoans.filter((l) => l.status === "Active").length}
                 </div>
                 <p className="text-sm text-gray-500">
                   Outstanding:{" "}
                   {formatCurrency(
-                    (loans ?? []).reduce(
+                    normalizedLoans.reduce(
                       (sum, loan) => sum + loan.outstandingBalance,
                       0
                     )
@@ -3185,14 +3200,14 @@ export default function RentManagement({
               <CardContent>
                 <div className="text-2xl font-bold">
                   {
-                    (penalties ?? []).filter((p) => p.status === "Pending")
+                    normalizedPenalties.filter((p) => p.status === "Pending")
                       .length
                   }
                 </div>
                 <p className="text-sm text-gray-500">
                   Total:{" "}
                   {formatCurrency(
-                    (penalties ?? []).reduce(
+                    normalizedPenalties.reduce(
                       (sum, penalty) =>
                         penalty.status === "Pending"
                           ? sum + penalty.penaltyAmount

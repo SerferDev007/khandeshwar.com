@@ -1,9 +1,16 @@
-import React from 'react';
-import RentManagement from '../../components/RentManagement';
+import React from "react";
+import RentManagement from "../../components/RentManagement";
 import { useData } from '../context/DataContext';
 import { useAuth } from '../context/AuthContext';
 import { toast } from 'sonner';
 import type { UploadedFile } from '../types';
+
+// Minimal, defensive helper to ensure arrays
+const toArray = <T,>(val: unknown): T[] => {
+  if (Array.isArray(val)) return val as T[];
+  if (val != null && typeof val === 'object') return [val as T];
+  return [];
+};
 
 export function RentManagementRoute() {
   const { user } = useAuth();
@@ -186,11 +193,11 @@ export function RentManagementRoute() {
 
   return (
     <RentManagement
-      shops={shops}
-      tenants={tenants}
-      agreements={agreements}
-      loans={loans}
-      penalties={penalties}
+      shops={toArray(shops)}
+      tenants={toArray(tenants)}
+      agreements={toArray(agreements)}
+      loans={toArray(loans)}
+      penalties={toArray(penalties)}
       onAddShop={handleAddShop}
       onUpdateShop={handleUpdateShop}
       onDeleteShop={handleDeleteShop}
