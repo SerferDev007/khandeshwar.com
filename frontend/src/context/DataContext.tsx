@@ -234,21 +234,21 @@ export function DataProvider({ children }: DataProviderProps) {
       setter(data);
     } catch (error: any) {
       console.error(`❌ fetchData(${entity}) failed:`, {
-        message: error.message,
-        status: error.statusCode,
-        details: error.details,
-        stack: error.stack?.split('\n').slice(0, 3).join('\n')
+        message: error?.message,
+        status: error?.statusCode,
+        details: error?.details,
+        stack: error?.stack?.split('\n').slice(0, 3).join('\n')
       });
 
       // Enhanced error message with server details in development
       let errorMessage = `Failed to fetch ${entity}`;
       if ((import.meta as any).env?.DEV) {
-        if (error.statusCode === 500) {
+        if (error?.statusCode === 500) {
           errorMessage += ` (Server Error ${error.statusCode}): ${error.message}`;
-        } else if (error.statusCode) {
+        } else if (error?.statusCode) {
           errorMessage += ` (HTTP ${error.statusCode}): ${error.message}`;
         } else {
-          errorMessage += `: ${error.message}`;
+          errorMessage += `: ${error?.message || 'Unknown error'}`;
         }
       } else {
         errorMessage += '. Please try again.';
@@ -348,12 +348,12 @@ export function DataProvider({ children }: DataProviderProps) {
       setLoadingState('users', false);
     }
   };
-  const fetchShops = () => fetchData('shops', apiClient.getShops, setShops);
-  const fetchTenants = () => fetchData('tenants', apiClient.getTenants, setTenants);
-  const fetchAgreements = () => fetchData('agreements', apiClient.getAgreements, setAgreements);
-  const fetchLoans = () => fetchData('loans', apiClient.getLoans, setLoans);
-  const fetchPenalties = () => fetchData('penalties', apiClient.getRentPenalties, setPenalties);
-  const fetchTransactions = () => fetchData('transactions', apiClient.getTransactions, setTransactions);
+  const fetchShops = () => fetchData('shops', () => apiClient.getShops(), setShops);
+  const fetchTenants = () => fetchData('tenants', () => apiClient.getTenants(), setTenants);
+  const fetchAgreements = () => fetchData('agreements', () => apiClient.getAgreements(), setAgreements);
+  const fetchLoans = () => fetchData('loans', () => apiClient.getLoans(), setLoans);
+  const fetchPenalties = () => fetchData('penalties', () => apiClient.getRentPenalties(), setPenalties);
+  const fetchTransactions = () => fetchData('transactions', () => apiClient.getTransactions(), setTransactions);
 
   // CRUD operations for shops
   const createShop = async (shopData: any): Promise<Shop> => {
@@ -715,7 +715,17 @@ export function DataProvider({ children }: DataProviderProps) {
         }
       });
       
-      const response = await apiClient.createExpense(expenseData);
+      // Strip client-only fields for API call
+      const { receiptImages: clientReceiptImages, ...apiPayload } = expenseData;
+      
+      // Convert receiptImages to base64 strings for API if they exist
+      if (clientReceiptImages && Array.isArray(clientReceiptImages)) {
+        apiPayload.receiptImages = clientReceiptImages.map((file: any) => 
+          typeof file === 'string' ? file : file.base64
+        );
+      }
+      
+      const response = await apiClient.createExpense(apiPayload);
       
       // Handle both normalized and legacy response formats
       const newExpense = response?.data || response;
@@ -729,8 +739,14 @@ export function DataProvider({ children }: DataProviderProps) {
         amount: newExpense.amount
       });
       
-      setTransactions(prev => [...prev, newExpense]);
-      return newExpense;
+      // Reattach client-only fields for UI display
+      const expenseForUI = {
+        ...newExpense,
+        receiptImages: clientReceiptImages || newExpense.receiptImages
+      };
+      
+      setTransactions(prev => [...prev, expenseForUI]);
+      return expenseForUI;
     } catch (error: any) {
       console.error('❌ createExpense failed:', {
         message: error.message,
