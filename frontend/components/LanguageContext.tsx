@@ -112,6 +112,8 @@ const translations = {
     "donations.khajdarNidhi": "Khajdar Nidhi (MP Funding)",
     "donations.grampanchayat": "Grampanchayat",
     "donations.panchayatSamiti": "Panchayat Samiti",
+    "donations.galakharch": "Gala Kharch",
+    "donations.putalaKharch": "Putala Kharch",
 
     // Form fields
     "donations.receiptNumber": "Receipt Number",
@@ -807,6 +809,8 @@ const translations = {
     "donations.khajdarNidhi": "खासदार निधी",
     "donations.grampanchayat": "ग्रामपंचायत",
     "donations.panchayatSamiti": "पंचायत समिती",
+    "donations.galakharch": "गाळा खर्च",
+    "donations.putalaKharch": "पुतळा खर्च",
 
     // Form fields
     "donations.receiptNumber": "पावती क्रमांक",

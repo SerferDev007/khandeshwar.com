@@ -715,8 +715,8 @@ export function DataProvider({ children }: DataProviderProps) {
         }
       });
       
-      // Strip client-only fields for API call
-      const { receiptImages: clientReceiptImages, ...apiPayload } = expenseData;
+      // Strip client-only fields for API call - ensure File objects never reach the API
+      const { receiptImages: clientReceiptImages, ...apiPayload } = expenseData || {};
       
       // Convert receiptImages to base64 strings for API if they exist
       if (clientReceiptImages && Array.isArray(clientReceiptImages)) {

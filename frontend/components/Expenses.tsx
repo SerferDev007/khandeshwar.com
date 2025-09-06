@@ -289,10 +289,7 @@ export default function Expenses({
         toast.success(t("expenses.updateSuccessMessage"));
       } else {
         // Create new expense - build payload without client-only fields
-        const payloadForAPI = {
-          ...expenseData,
-          receiptImages: formData.receiptImages // Keep full file objects for UI state
-        };
+        const { receiptImages: _, ...payloadForAPI } = expenseData;
         
         // Call parent callback which handles API call and returns created expense
         const createdExpense = await onAddTransaction(payloadForAPI);
