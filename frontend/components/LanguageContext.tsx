@@ -81,6 +81,7 @@ const translations = {
     "donations.galaDeposit": "Gala Deposit",
     "donations.galaBhade1": "Gala Bhade-1",
     "donations.galaBhade2": "Gala Bhade-2",
+    "donations.galakharch": "Shop Expenses",
     "donations.governmentFundingGala": "Government Funding for Gala",
     // Main donation categories
     "donations.vargani": "Vargani (Festival Collection)",
@@ -130,6 +131,7 @@ const translations = {
       "Please enter a valid amount per person",
     "donations.totalAmount": "Total Amount",
     "donations.purpose": "Purpose (Varnan)",
+    "donations.putalaKharch": "Statue Maintenance",
     "donations.enterPurpose": "Enter purpose of donation",
     "donations.purposeRequired": "Purpose is required",
 
