@@ -288,23 +288,20 @@ export default function Expenses({
         onUpdateTransaction(editingExpense.id, processedExpense);
         toast.success(t("expenses.updateSuccessMessage"));
       } else {
-        // Create new expense
-        response = await apiClient.createExpense(expenseData);
-        processedExpense = {
-          id: response.data?.id || Date.now().toString(),
-          date: expenseData.date,
-          type: "Expense",
-          category: expenseData.category,
-          subCategory: expenseData.subCategory,
-          description: expenseData.description,
-          amount: expenseData.amount,
-          payeeName: expenseData.payeeName,
-          payeeContact: expenseData.payeeContact,
-          receiptImages: formData.receiptImages, // Keep full file objects for display
+        // Create new expense - build payload without client-only fields
+        const payloadForAPI = {
+          ...expenseData,
+          receiptImages: formData.receiptImages // Keep full file objects for UI state
         };
         
-        // Call parent callback for UI updates
-        onAddTransaction(processedExpense);
+        // Call parent callback which handles API call and returns created expense
+        const createdExpense = await onAddTransaction(payloadForAPI);
+        
+        processedExpense = {
+          ...createdExpense,
+          receiptImages: formData.receiptImages, // Attach receiptImages for display
+        };
+        
         toast.success(t("expenses.expenseSuccessMessage"));
       }
 
