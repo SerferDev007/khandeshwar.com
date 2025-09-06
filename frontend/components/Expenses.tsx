@@ -187,15 +187,15 @@ export default function Expenses({
 
     // Common validations
     if (!formData.date) {
-      newErrors.date = t("donations.dateRequired");
+      newErrors.date = t("expenses.dateRequired");
     }
 
     if (!formData.category) {
-      newErrors.category = t("donations.categoryRequired");
+      newErrors.category = t("expenses.categoryRequired");
     }
 
     if (!formData.subCategory) {
-      newErrors.subCategory = t("donations.subCategoryRequired");
+      newErrors.subCategory = t("expenses.subCategoryRequired");
     }
 
     if (!formData.payeeName.trim()) {
@@ -203,11 +203,11 @@ export default function Expenses({
     }
 
     if (!formData.amount.trim()) {
-      newErrors.amount = t("donations.amountRequired");
+      newErrors.amount = t("expenses.amountRequired");
     } else {
       const amount = parseFloat(formData.amount);
       if (isNaN(amount) || amount <= 0) {
-        newErrors.amount = t("donations.amountInvalid");
+        newErrors.amount = t("expenses.amountInvalid");
       }
     }
 
@@ -290,8 +290,8 @@ export default function Expenses({
       } else {
         // Create new expense - build payload without client-only fields
         const payloadForAPI = {
-          ...expenseData,
-          receiptImages: formData.receiptImages // Keep full file objects for UI state
+          ...expenseData
+          // receiptImages already sanitized in expenseData as base64 strings
         };
         
         // Call parent callback which handles API call and returns created expense

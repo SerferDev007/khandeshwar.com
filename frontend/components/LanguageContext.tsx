@@ -216,6 +216,11 @@ const translations = {
     "expenses.details": "Details",
     "expenses.enterDetails": "Enter expense details",
     "expenses.detailsRequired": "Details are required",
+    "expenses.dateRequired": "Date is required",
+    "expenses.categoryRequired": "Category is required",
+    "expenses.subCategoryRequired": "Sub-category is required",
+    "expenses.amountRequired": "Amount is required",
+    "expenses.amountInvalid": "Please enter a valid amount",
     "expenses.expenseSuccessTitle": "Expense Added Successfully!",
     "expenses.expenseSuccessMessage":
       "The expense has been successfully added to the system.",
@@ -909,6 +914,11 @@ const translations = {
     "expenses.details": "शेरा",
     "expenses.enterDetails": "खर्चाचे तपशील प्रविष्ट करा",
     "expenses.detailsRequired": "शेरा आवश्यक आहे",
+    "expenses.dateRequired": "दिनांक आवश्यक आहे",
+    "expenses.categoryRequired": "श्रेणी आवश्यक आहे",
+    "expenses.subCategoryRequired": "उप-श्रेणी आवश्यक आहे",
+    "expenses.amountRequired": "रक्कम आवश्यक आहे",
+    "expenses.amountInvalid": "कृपया योग्य रक्कम प्रविष्ट करा",
     "expenses.expenseSuccessTitle": "खर्च यशस्वीरित्या जोडला गेला!",
     "expenses.expenseSuccessMessage":
       "खर्च यशस्वीरित्या सिस्टममध्ये जोडला गेला आहे.",
