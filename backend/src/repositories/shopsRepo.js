@@ -1,4 +1,4 @@
-import { pool } from '../config/db.js';
+import { query } from '../config/db.js';
 
 /**
  * Repository for shops data access
@@ -17,7 +17,7 @@ export async function listShops({ limit = 50, offset = 0, status = null } = {}) 
       params.push(status);
     }
     
-    const query = `
+    const queryStr = `
       SELECT id, shop_number, size, monthly_rent, deposit, status, 
              tenant_id, agreement_id, description, created_at 
       FROM shops 
@@ -28,7 +28,7 @@ export async function listShops({ limit = 50, offset = 0, status = null } = {}) 
     
     params.push(limit, offset);
     
-    const [rows] = await pool.query(query, params);
+    const rows = await query(queryStr, params);
     return rows;
   } catch (error) {
     console.error('Error listing shops:', error);
@@ -49,9 +49,9 @@ export async function countShops({ status = null } = {}) {
       params.push(status);
     }
     
-    const query = `SELECT COUNT(*) AS cnt FROM shops ${whereClause}`;
+    const queryStr = `SELECT COUNT(*) AS cnt FROM shops ${whereClause}`;
     
-    const [rows] = await pool.query(query, params);
+    const rows = await query(queryStr, params);
     return rows[0].cnt;
   } catch (error) {
     console.error('Error counting shops:', error);
@@ -64,7 +64,7 @@ export async function countShops({ status = null } = {}) {
  */
 export async function getShopById(id) {
   try {
-    const [rows] = await pool.query(
+    const rows = await query(
       'SELECT * FROM shops WHERE id = ?',
       [id]
     );
@@ -92,7 +92,7 @@ export async function createShop(shopData) {
       description = null
     } = shopData;
     
-    const [result] = await pool.query(
+    const result = await query(
       `INSERT INTO shops (id, shop_number, size, monthly_rent, deposit, status, tenant_id, agreement_id, description)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [id, shop_number, size, monthly_rent, deposit, status, tenant_id, agreement_id, description]
@@ -126,7 +126,7 @@ export async function updateShop(id, shopData) {
     
     updateValues.push(id);
     
-    const [result] = await pool.query(
+    const result = await query(
       `UPDATE shops SET ${updateFields.join(', ')} WHERE id = ?`,
       updateValues
     );
@@ -143,7 +143,7 @@ export async function updateShop(id, shopData) {
  */
 export async function deleteShop(id) {
   try {
-    const [result] = await pool.query(
+    const result = await query(
       'DELETE FROM shops WHERE id = ?',
       [id]
     );

@@ -1,4 +1,4 @@
-import { pool } from '../config/db.js';
+import { query } from '../config/db.js';
 
 /**
  * Repository for rent agreements data access
@@ -17,7 +17,7 @@ export async function listAgreements({ limit = 50, offset = 0, status = null } =
       params.push(status);
     }
     
-    const query = `
+    const queryStr = `
       SELECT a.id, a.tenant_id, a.shop_id, a.start_date, a.end_date, 
              a.monthly_rent, a.status, a.agreement_date, a.created_at,
              t.name AS tenant_name, t.phone AS tenant_phone,
@@ -32,7 +32,7 @@ export async function listAgreements({ limit = 50, offset = 0, status = null } =
     
     params.push(limit, offset);
     
-    const [rows] = await pool.query(query, params);
+    const rows = await query(queryStr, params);
     return rows;
   } catch (error) {
     console.error('Error listing agreements:', error);
@@ -53,9 +53,9 @@ export async function countAgreements({ status = null } = {}) {
       params.push(status);
     }
     
-    const query = `SELECT COUNT(*) AS cnt FROM agreements ${whereClause}`;
+    const queryStr = `SELECT COUNT(*) AS cnt FROM agreements ${whereClause}`;
     
-    const [rows] = await pool.query(query, params);
+    const rows = await query(queryStr, params);
     return rows[0].cnt;
   } catch (error) {
     console.error('Error counting agreements:', error);
@@ -68,7 +68,7 @@ export async function countAgreements({ status = null } = {}) {
  */
 export async function getAgreementById(id) {
   try {
-    const [rows] = await pool.query(
+    const rows = await query(
       `SELECT a.*, 
               t.name AS tenant_name, t.phone AS tenant_phone,
               s.shop_number AS shop_name
@@ -101,7 +101,7 @@ export async function createAgreement(agreementData) {
       agreement_date
     } = agreementData;
     
-    const [result] = await pool.query(
+    const result = await query(
       `INSERT INTO agreements (id, tenant_id, shop_id, start_date, end_date, monthly_rent, status, agreement_date)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
       [id, tenant_id, shop_id, start_date, end_date, monthly_rent, status, agreement_date]
@@ -135,7 +135,7 @@ export async function updateAgreement(id, agreementData) {
     
     updateValues.push(id);
     
-    const [result] = await pool.query(
+    const result = await query(
       `UPDATE agreements SET ${updateFields.join(', ')} WHERE id = ?`,
       updateValues
     );
@@ -152,7 +152,7 @@ export async function updateAgreement(id, agreementData) {
  */
 export async function deleteAgreement(id) {
   try {
-    const [result] = await pool.query(
+    const result = await query(
       'DELETE FROM agreements WHERE id = ?',
       [id]
     );
