@@ -74,14 +74,14 @@ router.get('/', authenticate, authorize(['Admin', 'Treasurer', 'Viewer']), async
 
     const whereClause = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
     
-    // Build main select query
+    // Build main select query - inline LIMIT/OFFSET to avoid MySQL parameter binding issues
     const selectQuery = `
       SELECT id, shop_number, size, monthly_rent, deposit, status, 
              tenant_id, agreement_id, description, created_at 
       FROM shops 
       ${whereClause} 
       ORDER BY created_at DESC, id DESC 
-      LIMIT ? OFFSET ?
+      LIMIT ${limit} OFFSET ${offset}
     `;
     
     // Build count query
@@ -103,8 +103,8 @@ router.get('/', authenticate, authorize(['Admin', 'Treasurer', 'Viewer']), async
 
     // === PHASE 5: EXECUTE MAIN QUERY ===
     const fetchTimer = dbgTimer('shop-list', 'db-fetch', requestId);
-    const selectParams = [...queryParams, limit, offset];
-    const rows = await query(selectQuery, selectParams);
+    // Only pass queryParams (WHERE clause params), LIMIT/OFFSET are inlined
+    const rows = await query(selectQuery, queryParams);
     fetchTimer({ itemCount: rows.length });
 
     // === PHASE 6: TRANSFORM RESULTS ===

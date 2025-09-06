@@ -66,6 +66,10 @@ export class File {
     const { page = 1, limit = 10, sort = 'created_at', order = 'desc' } = options;
     const offset = (page - 1) * limit;
     
+    // Validate and ensure limit and offset are safe integers for inlining
+    const validLimit = Math.min(Math.max(1, parseInt(limit) || 10), 100);
+    const validOffset = Math.max(0, parseInt(offset) || 0);
+    
     try {
       // Get total count
       const totalResults = await query(
@@ -74,21 +78,21 @@ export class File {
       );
       const total = totalResults[0].count;
       
-      // Get paginated results
+      // Get paginated results - inline LIMIT/OFFSET to avoid MySQL parameter binding issues
       const files = await query(
         `SELECT * FROM files WHERE user_id = ? 
          ORDER BY ${sort} ${order.toUpperCase()} 
-         LIMIT ? OFFSET ?`,
-        [userId, limit, offset]
+         LIMIT ${validLimit} OFFSET ${validOffset}`,
+        [userId]
       );
 
       return {
         files: files.map(file => new File(file)),
         pagination: {
           page,
-          limit,
+          limit: validLimit,
           total,
-          pages: Math.ceil(total / limit),
+          pages: Math.ceil(total / validLimit),
         },
       };
     } catch (error) {
@@ -101,6 +105,10 @@ export class File {
   static async findAll(options = {}) {
     const { page = 1, limit = 10, sort = 'created_at', order = 'desc', status, mimeType } = options;
     const offset = (page - 1) * limit;
+    
+    // Validate and ensure limit and offset are safe integers for inlining
+    const validLimit = Math.min(Math.max(1, parseInt(limit) || 10), 100);
+    const validOffset = Math.max(0, parseInt(offset) || 0);
     
     try {
       let whereClause = '';
@@ -120,21 +128,21 @@ export class File {
       const totalResults = await query(`SELECT COUNT(*) as count FROM files${whereClause}`, params);
       const total = totalResults[0].count;
       
-      // Get paginated results
+      // Get paginated results - inline LIMIT/OFFSET to avoid MySQL parameter binding issues
       const files = await query(
         `SELECT * FROM files${whereClause} 
          ORDER BY ${sort} ${order.toUpperCase()} 
-         LIMIT ? OFFSET ?`,
-        [...params, limit, offset]
+         LIMIT ${validLimit} OFFSET ${validOffset}`,
+        params
       );
 
       return {
         files: files.map(file => new File(file)),
         pagination: {
           page,
-          limit,
+          limit: validLimit,
           total,
-          pages: Math.ceil(total / limit),
+          pages: Math.ceil(total / validLimit),
         },
       };
     } catch (error) {

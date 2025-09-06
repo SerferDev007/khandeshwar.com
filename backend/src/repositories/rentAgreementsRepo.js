@@ -9,6 +9,10 @@ import { query } from '../config/db.js';
  */
 export async function listAgreements({ limit = 50, offset = 0, status = null } = {}) {
   try {
+    // Validate and ensure limit and offset are safe integers for inlining
+    const validLimit = Math.min(Math.max(1, parseInt(limit) || 50), 200);
+    const validOffset = Math.max(0, parseInt(offset) || 0);
+    
     let whereClause = '';
     const params = [];
     
@@ -17,6 +21,8 @@ export async function listAgreements({ limit = 50, offset = 0, status = null } =
       params.push(status);
     }
     
+    // Inline validated numeric LIMIT/OFFSET to avoid MySQL parameter binding issues
+    // Keep status as bound parameter for security
     const queryStr = `
       SELECT a.id, a.tenant_id, a.shop_id, a.start_date, a.end_date, 
              a.monthly_rent, a.status, a.agreement_date, a.created_at,
@@ -27,10 +33,8 @@ export async function listAgreements({ limit = 50, offset = 0, status = null } =
       LEFT JOIN shops s ON s.id = a.shop_id
       ${whereClause}
       ORDER BY a.created_at DESC
-      LIMIT ? OFFSET ?
+      LIMIT ${validLimit} OFFSET ${validOffset}
     `;
-    
-    params.push(limit, offset);
     
     const rows = await query(queryStr, params);
     return rows;
