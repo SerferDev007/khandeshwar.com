@@ -15,7 +15,7 @@ const expenseCreateSchema = z.object({
   category: z.string().min(1, 'Category is required'),
   subCategory: z.string().optional(),
   description: z.string().min(1, 'Description is required'),
-  amount: z.number().positive('Amount must be positive'),
+  amount: z.coerce.number().positive('Amount must be positive'),
   payeeName: z.string().min(1, 'Payee name is required'),
   payeeContact: z.string().regex(/^\d{10}$/, 'Contact must be 10 digits').optional().or(z.literal('')),
   receiptImages: z.array(z.string()).optional(),
