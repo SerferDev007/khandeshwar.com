@@ -151,9 +151,22 @@ export const schemas = {
     status: z.enum(['Active', 'Inactive']).optional(),
   }),
 
-  // ID parameter schema
+  // ID parameter schema - accepts both legacy and UUID v4 formats
   idParam: z.object({
-    id: z.string().uuid('Invalid ID format'),
+    id: z.string().refine(
+      (id) => {
+        // UUID v4 format: xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx
+        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+        
+        // Legacy format: 13+ digit timestamp followed by 9 alphanumeric characters
+        const legacyRegex = /^\d{13,}\w{9}$/;
+        
+        return uuidRegex.test(id) || legacyRegex.test(id);
+      },
+      {
+        message: 'Invalid ID format. Must be either UUID v4 or legacy format.',
+      }
+    ),
   }),
 };
 

@@ -4,6 +4,7 @@ import { authenticate, authorize } from '../middleware/auth.js';
 import { z } from 'zod';
 import { query } from '../config/db.js';
 import { Transaction } from '../models/Transaction.js';
+import { generateId } from '../utils/helpers.js';
 import pino from 'pino';
 
 const logger = pino({ name: 'expenses-router' });
@@ -51,11 +52,6 @@ const validateExpenseUpdate = (req, res, next) => {
       details: error.errors
     });
   }
-};
-
-// Generate unique ID
-const generateId = () => {
-  return Date.now().toString() + Math.random().toString(36).substr(2, 9);
 };
 
 // GET /api/expenses - Get all expenses
